@@ -23,7 +23,7 @@ def test_golden_master_psm_kpis_are_stable() -> None:
 
     assert grid.method == "quantile"
     assert np.isclose(grid.min_price, 5.0)
-    assert np.isclose(grid.max_price, 70.0)
+    assert np.isclose(grid.max_price, 100.0)
     assert np.isclose(grid.step, 5.0)
     assert np.isclose(grid.p05, 17.1)
     assert np.isclose(grid.p95, 55.45)

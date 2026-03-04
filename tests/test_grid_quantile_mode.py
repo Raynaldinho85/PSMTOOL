@@ -50,7 +50,7 @@ def test_quantile_autogrid_uses_robust_bounds_with_large_sample() -> None:
     assert details.method == "quantile"
     assert details.p05 is not None
     assert details.p95 is not None
-    assert details.max_price < 1000.0
+    assert details.max_price == 500.0
     assert details.min_price >= 0.0
     assert np.isclose(details.prices[-1], details.max_price)
 
@@ -67,7 +67,7 @@ def test_quantile_autogrid_uses_only_psm_valid_rows() -> None:
     details = build_price_grid_details(df, GridConfig(), currency="EUR")
 
     assert details.method == "quantile"
-    assert details.max_price <= 60.0
+    assert details.max_price == 100.0
 
 
 def test_quantile_autogrid_step_calculation_with_snap() -> None:

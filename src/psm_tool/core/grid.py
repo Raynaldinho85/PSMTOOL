@@ -70,7 +70,7 @@ def _get_increment(cfg: GridConfig, currency: str | None) -> float | None:
     return cfg.currency_snap.get(str(currency).upper())
 
 
-def _psm_valid_threshold_values(df_group: pd.DataFrame) -> np.ndarray:
+def _psm_valid_numeric_rows(df_group: pd.DataFrame) -> pd.DataFrame:
     numeric = df_group[PRICE_COLUMNS].apply(pd.to_numeric, errors="coerce")
     complete = numeric.notna().all(axis=1)
     ordered = (
@@ -79,7 +79,12 @@ def _psm_valid_threshold_values(df_group: pd.DataFrame) -> np.ndarray:
         & (numeric["expensive_acceptable"] < numeric["too_expensive"])
     )
     valid = complete & ordered
-    valid_values = numeric.loc[valid].to_numpy(dtype=float).ravel()
+    return numeric.loc[valid].copy()
+
+
+def _psm_valid_threshold_values(df_group: pd.DataFrame) -> np.ndarray:
+    valid_numeric = _psm_valid_numeric_rows(df_group)
+    valid_values = valid_numeric.to_numpy(dtype=float).ravel()
     return valid_values[~np.isnan(valid_values)]
 
 
@@ -97,7 +102,9 @@ def build_price_grid_details(
     currency: str | None = None,
 ) -> PriceGridResult:
     cfg = grid_config or GridConfig()
-    values = _psm_valid_threshold_values(df_group)
+    valid_numeric = _psm_valid_numeric_rows(df_group)
+    values = valid_numeric.to_numpy(dtype=float).ravel()
+    values = values[~np.isnan(values)]
     if len(values) == 0:
         raise ValueError("Cannot build grid: no numeric threshold values available.")
 
@@ -123,7 +130,14 @@ def build_price_grid_details(
             ):
                 span = p95_candidate - p05_candidate
                 min_price = max(0.0, p05_candidate - 0.25 * span)
-                max_price = p95_candidate + 0.25 * span
+                fallback_max = p95_candidate + 0.25 * span
+                pma_candidate = float(valid_numeric["expensive_acceptable"].median())
+                if np.isfinite(pma_candidate) and pma_candidate > 0:
+                    max_price = _round_up_multiple(pma_candidate * 2.0, 100.0)
+                    if max_price < min_price:
+                        max_price = fallback_max
+                else:
+                    max_price = fallback_max
                 step = float("nan")
                 p05 = p05_candidate
                 p95 = p95_candidate
