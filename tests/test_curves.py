@@ -52,3 +52,19 @@ def test_curves_use_metric_specific_missing_denominator() -> None:
 
     assert curves["too_cheap"].tolist() == [100.0, 0.0]
     assert curves["bargain"].tolist() == [100.0, 100.0]
+
+
+def test_curves_fallback_to_unweighted_when_weights_invalid() -> None:
+    df = pd.DataFrame(
+        {
+            "too_cheap": [10, 20],
+            "bargain": [20, 30],
+            "expensive_acceptable": [30, 40],
+            "too_expensive": [40, 50],
+            "weight": [0, None],
+        }
+    )
+    prices = np.array([20, 30, 40], dtype=float)
+    weighted = compute_psm_curves(df, prices, weight_col="weight")
+    unweighted = compute_psm_curves(df, prices, weight_col=None)
+    pd.testing.assert_frame_equal(weighted, unweighted)

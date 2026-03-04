@@ -32,6 +32,13 @@ class PIConfig:
 
 
 @dataclass(slots=True)
+class OutlierConfig:
+    enabled: bool = False
+    method: Literal["quantile"] = "quantile"
+    level: Literal["mild", "medium", "strict"] = "medium"
+
+
+@dataclass(slots=True)
 class AppConfig:
     demo_mode: bool = field(default_factory=lambda: _env_bool("DEMO_MODE", default=False))
     app_password: str | None = field(default_factory=lambda: getenv("APP_PASSWORD") or None)

@@ -21,6 +21,19 @@ NMS_GLOSSARY: dict[str, str] = {
     "Weighting": "Whether valid survey weights were applied in NMS averaging.",
 }
 
+TURNOVER_GLOSSARY: dict[str, str] = {
+    "Max Turnover Price": "Price where turnover index reaches its maximum (index = 100).",
+    "Max Turnover Index": "Normalized turnover score on a 0-100 scale.",
+    "PI Source": "Source used for purchase intention curve (ladder or NMS trial fallback).",
+}
+
+PROFIT_GLOSSARY: dict[str, str] = {
+    "Unit Cost": "Manually entered unit cost used only in this session.",
+    "Max Profit Price": "Price where profit proxy is highest.",
+    "Max Profit Index": "Normalized profit proxy score on a 0-100 scale.",
+    "Break-even (Cost)": "Price where unit margin is zero (price equals cost).",
+}
+
 
 def _fmt_price(value: Any) -> str:
     try:
@@ -246,3 +259,95 @@ def build_nms_summary(
         sentences.append(str(filter_note))
 
     return sentences
+
+
+def build_turnover_explanations(
+    turnover_result: Any,
+    *,
+    currency: str,
+    source: str | None,
+) -> list[dict[str, str]]:
+    source_label = "PI ladder" if source == "ladder" else "NMS trial fallback"
+    return [
+        {
+            "label": "Max Turnover Price",
+            "value": (
+                f"{_fmt_price(getattr(turnover_result, 'max_turnover_price', None))} {currency}"
+            ),
+            "explanation": TURNOVER_GLOSSARY["Max Turnover Price"],
+        },
+        {
+            "label": "Max Turnover Index",
+            "value": _fmt_price(getattr(turnover_result, "max_turnover_index", None)),
+            "explanation": TURNOVER_GLOSSARY["Max Turnover Index"],
+        },
+        {
+            "label": "PI Source",
+            "value": source_label,
+            "explanation": TURNOVER_GLOSSARY["PI Source"],
+        },
+    ]
+
+
+def build_turnover_summary(
+    turnover_result: Any,
+    *,
+    currency: str,
+    segment_label: str,
+    source: str | None,
+) -> list[str]:
+    max_price = _fmt_price(getattr(turnover_result, "max_turnover_price", None))
+    max_index = _fmt_price(getattr(turnover_result, "max_turnover_index", None))
+    source_label = "PI ladder" if source == "ladder" else "NMS trial fallback"
+    return [
+        f"The highest turnover can be achieved by setting the price at {max_price} {currency}.",
+        f"At this point, the turnover index reaches {max_index} on the 0-100 scale.",
+        f"For {segment_label}, purchase intention is sourced from {source_label}.",
+    ]
+
+
+def build_profit_explanations(profit_result: Any, *, currency: str) -> list[dict[str, str]]:
+    unit_cost = _fmt_price(getattr(profit_result, "unit_cost", None))
+    max_price = _fmt_price(getattr(profit_result, "max_profit_price", None))
+    max_index = _fmt_price(getattr(profit_result, "max_profit_index", None))
+    return [
+        {
+            "label": "Unit Cost",
+            "value": f"{unit_cost} {currency}",
+            "explanation": PROFIT_GLOSSARY["Unit Cost"],
+        },
+        {
+            "label": "Max Profit Price",
+            "value": f"{max_price} {currency}",
+            "explanation": PROFIT_GLOSSARY["Max Profit Price"],
+        },
+        {
+            "label": "Max Profit Index",
+            "value": max_index,
+            "explanation": PROFIT_GLOSSARY["Max Profit Index"],
+        },
+        {
+            "label": "Break-even (Cost)",
+            "value": f"{unit_cost} {currency}",
+            "explanation": PROFIT_GLOSSARY["Break-even (Cost)"],
+        },
+    ]
+
+
+def build_profit_summary(
+    profit_result: Any,
+    *,
+    currency: str,
+    segment_label: str,
+) -> list[str]:
+    unit_cost = _fmt_price(getattr(profit_result, "unit_cost", None))
+    max_price = _fmt_price(getattr(profit_result, "max_profit_price", None))
+    max_index = _fmt_price(getattr(profit_result, "max_profit_index", None))
+    return [
+        (
+            f"Given unit cost {unit_cost} {currency}, the highest profit proxy is achieved "
+            f"at {max_price} {currency}."
+        ),
+        f"At this point, the profit index reaches {max_index} on the 0-100 scale.",
+        f"For {segment_label}, the break-even marker is set at {unit_cost} {currency}.",
+    ]

@@ -11,12 +11,14 @@ METRIC_DEFINITIONS: dict[str, tuple[str, str]] = {
 }
 
 
-def _base_weights(df: pd.DataFrame, weight_col: str | None) -> np.ndarray:
+def resolve_psm_weights(df: pd.DataFrame, weight_col: str | None) -> tuple[np.ndarray, bool]:
     if weight_col and weight_col in df.columns:
         weights = pd.to_numeric(df[weight_col], errors="coerce").fillna(0.0).to_numpy(dtype=float)
         weights[weights < 0] = 0.0
-        return weights
-    return np.ones(len(df), dtype=float)
+        if float(np.sum(weights)) > 0.0:
+            return weights, True
+        return np.ones(len(df), dtype=float), False
+    return np.ones(len(df), dtype=float), False
 
 
 def _metric_curve(
@@ -46,7 +48,7 @@ def compute_psm_curves(
 ) -> pd.DataFrame:
     prices = np.asarray(prices, dtype=float)
     result = pd.DataFrame({"price": prices})
-    weights_all = _base_weights(df_group, weight_col)
+    weights_all, _weighted = resolve_psm_weights(df_group, weight_col)
 
     for output_name, (source_col, op) in METRIC_DEFINITIONS.items():
         source = pd.to_numeric(df_group[source_col], errors="coerce").to_numpy(dtype=float)

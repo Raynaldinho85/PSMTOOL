@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from psm_tool.report.insights import (
     build_kpi_explanations,
     build_nms_explanations,
     build_nms_summary,
+    build_profit_explanations,
+    build_profit_summary,
     build_psm_summary,
+    build_turnover_explanations,
+    build_turnover_summary,
 )
 
 
@@ -128,3 +134,51 @@ def test_build_nms_summary_tradeoff_and_weight_fallback_note() -> None:
     assert any("higher price than trial" in line for line in lines)
     assert any("unweighted fallback" in line for line in lines)
     assert any("PUKI filter not applied" in line for line in lines)
+
+
+def test_build_turnover_explanations_and_summary() -> None:
+    turnover = SimpleNamespace(max_turnover_price=200.0, max_turnover_index=100.0)
+
+    rows = build_turnover_explanations(turnover, currency="EUR", source="ladder")
+    assert [row["label"] for row in rows] == [
+        "Max Turnover Price",
+        "Max Turnover Index",
+        "PI Source",
+    ]
+    assert rows[0]["value"] == "200.00 EUR"
+    assert rows[2]["value"] == "PI ladder"
+
+    lines = build_turnover_summary(
+        turnover,
+        currency="EUR",
+        segment_label="DE",
+        source="ladder",
+    )
+    assert lines[0] == ("The highest turnover can be achieved by setting the price at 200.00 EUR.")
+    assert any("turnover index reaches 100.00" in line for line in lines)
+    assert any("PI ladder" in line for line in lines)
+
+
+def test_build_profit_explanations_and_summary() -> None:
+    profit = SimpleNamespace(unit_cost=75.0, max_profit_price=180.0, max_profit_index=100.0)
+
+    rows = build_profit_explanations(profit, currency="EUR")
+    assert [row["label"] for row in rows] == [
+        "Unit Cost",
+        "Max Profit Price",
+        "Max Profit Index",
+        "Break-even (Cost)",
+    ]
+    assert rows[0]["value"] == "75.00 EUR"
+    assert rows[1]["value"] == "180.00 EUR"
+
+    lines = build_profit_summary(
+        profit,
+        currency="EUR",
+        segment_label="DE",
+    )
+    assert lines[0] == (
+        "Given unit cost 75.00 EUR, the highest profit proxy is achieved at 180.00 EUR."
+    )
+    assert any("profit index reaches 100.00" in line for line in lines)
+    assert any("break-even marker is set at 75.00 EUR" in line for line in lines)
