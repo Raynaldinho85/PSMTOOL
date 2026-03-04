@@ -12,7 +12,12 @@ from psm_tool.core.outliers import apply_outlier_filter
 from psm_tool.core.qc import apply_psm_validity_filter, compute_qc_report
 from psm_tool.plots.nms_plot import make_nms_figure
 from psm_tool.plots.psm_plot import make_psm_figure
-from psm_tool.report.insights import build_kpi_explanations, build_psm_summary
+from psm_tool.report.insights import (
+    build_kpi_explanations,
+    build_nms_explanations,
+    build_nms_summary,
+    build_psm_summary,
+)
 
 PRICE_COLUMNS = ["too_cheap", "bargain", "expensive_acceptable", "too_expensive"]
 OUTLIER_LABEL_TO_LEVEL = {"Mild": "mild", "Medium": "medium", "Streng": "strict"}
@@ -250,6 +255,16 @@ def main() -> None:
                 "NMS weight fallback active: invalid/empty weights were replaced by "
                 "unweighted averaging."
             )
+        st.markdown("**NMS Key Facts**")
+        nms_key_facts = pd.DataFrame(build_nms_explanations(nms_result, currency=currency))
+        st.dataframe(nms_key_facts, use_container_width=True, hide_index=True)
+        st.markdown("**NMS Summary**")
+        for sentence in build_nms_summary(
+            nms_result,
+            currency=currency,
+            segment_label=str(selected_segment),
+        ):
+            st.markdown(f"- {sentence}")
     else:
         st.info("PI columns are missing. NMS chart is not available for this selection.")
 

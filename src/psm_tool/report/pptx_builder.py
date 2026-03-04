@@ -10,7 +10,7 @@ from pptx.util import Inches, Pt
 from psm_tool.plots.nms_plot import make_nms_figure
 from psm_tool.plots.psm_plot import make_psm_figure
 from psm_tool.plots.render_static import figure_to_png_bytes
-from psm_tool.report.insights import build_psm_summary
+from psm_tool.report.insights import build_nms_summary, build_psm_summary
 
 
 def _new_presentation(template_path: str | Path | None = None) -> Presentation:
@@ -122,6 +122,22 @@ def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
     paragraph = frame.add_paragraph()
     paragraph.text = f"MaxRevenue: {analysis['currency']} {nms_result.max_revenue_price:.2f}"
     paragraph.font.size = Pt(14)
+    _add_nms_summary_bullets(slide, analysis, nms_result)
+
+
+def _add_nms_summary_bullets(slide, analysis: dict[str, Any], nms_result) -> None:
+    sentences = build_nms_summary(
+        nms_result=nms_result,
+        currency=analysis["currency"],
+        segment_label=str(analysis["segment"]),
+    )
+    summary_box = slide.shapes.add_textbox(Inches(0.5), Inches(5.7), Inches(12.0), Inches(1.6))
+    frame = summary_box.text_frame
+    frame.clear()
+    for idx, sentence in enumerate(sentences):
+        paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
+        paragraph.text = f"- {sentence}"
+        paragraph.font.size = Pt(12)
 
 
 def build_pptx_report(
