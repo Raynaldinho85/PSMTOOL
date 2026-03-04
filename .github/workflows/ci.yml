@@ -43,4 +43,4 @@ jobs:
       - name: Ensure Chrome for Kaleido
         run: python -c "import plotly.io as pio; pio.get_chrome()"
       - name: Run SAV-marked tests
-        run: pytest -q -m "sav"
+        run: pytest --override-ini "addopts=-q -p no:cacheprovider" -m "sav"
