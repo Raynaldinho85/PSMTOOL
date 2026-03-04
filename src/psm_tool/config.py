@@ -5,6 +5,13 @@ from os import getenv
 from typing import Literal
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(slots=True)
 class GridConfig:
     mode: Literal["auto", "manual"] = "auto"
@@ -26,7 +33,7 @@ class PIConfig:
 
 @dataclass(slots=True)
 class AppConfig:
-    demo_mode: bool = getenv("DEMO_MODE", "false").lower() == "true"
-    app_password: str | None = getenv("APP_PASSWORD") or None
-    max_upload_mb: int = int(getenv("MAX_UPLOAD_MB", "25"))
-    max_rows_demo: int = int(getenv("MAX_ROWS_DEMO", "5000"))
+    demo_mode: bool = field(default_factory=lambda: _env_bool("DEMO_MODE", default=False))
+    app_password: str | None = field(default_factory=lambda: getenv("APP_PASSWORD") or None)
+    max_upload_mb: int = field(default_factory=lambda: int(getenv("MAX_UPLOAD_MB", "25")))
+    max_rows_demo: int = field(default_factory=lambda: int(getenv("MAX_ROWS_DEMO", "5000")))
