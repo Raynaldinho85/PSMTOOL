@@ -48,7 +48,6 @@ def make_psm_figure(curves: pd.DataFrame, kpis: PSMKPIResult | None = None) -> g
         title="Van Westendorp Price Sensitivity Meter",
         xaxis_title="Price",
         yaxis_title="Share (%)",
-        legend_title="Curves",
         hovermode="x unified",
         height=500,
         legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import tempfile
 from importlib import resources
 from io import BytesIO
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -11,10 +13,10 @@ from psm_tool.io.read_any import (
     SAVDependencyError,
     read_any,
     read_optional_pi_ladder,
-    read_pi_ladder,
 )
 from psm_tool.io.validate import template_columns, validate_template
 from psm_tool.ui.style import inject_base_styles
+from psm_tool.ui.upload_state import clear_loaded_dataset_state, has_loaded_dataset
 
 
 def _empty_template_df() -> pd.DataFrame:
@@ -32,6 +34,34 @@ def _xlsx_template_bytes() -> bytes:
     return output.getvalue()
 
 
+def _sav_template_bytes() -> tuple[bytes | None, str | None]:
+    try:
+        import pyreadstat  # type: ignore[import-not-found]
+    except ImportError:
+        return (
+            None,
+            "SAV template download requires optional dependency 'pyreadstat' "
+            "(install with: pip install -e .[sav]).",
+        )
+
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            suffix=".sav",
+            prefix=".tmp_psm_template_",
+            dir=Path.cwd(),
+            delete=False,
+        ) as handle:
+            temp_path = Path(handle.name)
+        pyreadstat.write_sav(_empty_template_df(), str(temp_path))
+        return temp_path.read_bytes(), None
+    except Exception as exc:
+        return None, f"SAV template generation unavailable: {exc}"
+    finally:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink()
+
+
 def _load_sample_dataset() -> pd.DataFrame:
     with (
         resources.files("psm_tool.resources").joinpath("sample_psm.csv").open("rb") as sample_handle
@@ -39,12 +69,18 @@ def _load_sample_dataset() -> pd.DataFrame:
         return pd.read_csv(sample_handle)
 
 
-def _store_dataset(df: pd.DataFrame, *, pi_ladder_df: pd.DataFrame | None = None) -> None:
+def _store_dataset(
+    df: pd.DataFrame,
+    *,
+    source_name: str,
+    pi_ladder_df: pd.DataFrame | None = None,
+) -> None:
     result = validate_template(df)
     st.session_state["psm_validation_errors"] = result.errors
     st.session_state["psm_validation_warnings"] = result.warnings
     st.session_state["psm_analysis_payload"] = None
     st.session_state["psm_pi_ladder_df"] = pi_ladder_df
+    st.session_state["psm_input_source"] = source_name
 
     if result.is_valid:
         st.session_state["psm_input_df"] = result.normalized_df
@@ -64,14 +100,15 @@ def _render_validation_messages() -> None:
 
 def _render_loaded_dataset_summary(df: pd.DataFrame, *, demo_mode: bool) -> None:
     segments = int(df["segment"].nunique(dropna=True)) if "segment" in df.columns else 0
-    products = int(df["product_id"].nunique(dropna=True)) if "product_id" in df.columns else 1
+    products = int(df["product_id"].nunique(dropna=True)) if "product_id" in df.columns else 0
     currencies = int(df["currency"].nunique(dropna=True)) if "currency" in df.columns else 0
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Rows", f"{len(df)}")
     col2.metric("Columns", f"{len(df.columns)}")
     col3.metric("Segments", f"{segments}")
-    col4.metric("Products / Currencies", f"{products} / {currencies}")
+    col4.metric("Product Categories", f"{products}")
+    col5.metric("Currencies", f"{currencies}")
 
     if demo_mode:
         st.caption("DEMO_MODE hides raw row preview.")
@@ -85,6 +122,7 @@ def main() -> None:
     config = AppConfig()
     inject_base_styles(max_width=1400)
 
+    st.markdown('<p class="psm-page-eyebrow">Data Intake</p>', unsafe_allow_html=True)
     st.title("1. Upload")
     st.caption("Accepted formats: CSV, XLSX, SAV")
 
@@ -95,8 +133,11 @@ def main() -> None:
         )
 
     with st.container(border=True):
-        st.subheader("Template and Demo Data")
-        col1, col2, col3 = st.columns(3)
+        st.markdown(
+            '<div class="psm-card-title">Template and Demo Data</div>',
+            unsafe_allow_html=True,
+        )
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.download_button(
                 "Download CSV template",
@@ -114,55 +155,72 @@ def main() -> None:
                 use_container_width=True,
             )
         with col3:
+            sav_bytes, sav_hint = _sav_template_bytes()
+            st.download_button(
+                "Download SAV template",
+                data=sav_bytes if sav_bytes is not None else b"",
+                file_name="psm_template.sav",
+                mime="application/octet-stream",
+                use_container_width=True,
+                disabled=sav_bytes is None,
+                help=sav_hint if sav_hint else "SPSS template with the required schema.",
+            )
+        with col4:
             if st.button("Load example dataset", use_container_width=True):
-                _store_dataset(_load_sample_dataset(), pi_ladder_df=None)
+                _store_dataset(
+                    _load_sample_dataset(),
+                    source_name="sample_psm.csv",
+                    pi_ladder_df=None,
+                )
                 st.success("Loaded synthetic packaged example dataset.")
 
     with st.container(border=True):
-        st.subheader("Upload Input File")
-        uploaded = st.file_uploader(
-            "Choose input dataset",
-            type=["csv", "xlsx", "sav"],
-            help="Required template columns must match exactly.",
-        )
-        if uploaded is not None:
-            try:
-                payload = uploaded.getvalue()
-                frame = read_any(payload, filename=uploaded.name)
-            except SAVDependencyError as exc:
-                st.error(str(exc))
-            except Exception as exc:
-                st.error(f"Failed to read '{uploaded.name}': {exc}")
-            else:
-                if config.demo_mode and len(frame) > config.max_rows_demo:
-                    st.error(
-                        "DEMO_MODE upload limit exceeded: "
-                        f"{len(frame)} rows provided, max {config.max_rows_demo} allowed."
-                    )
+        st.markdown('<div class="psm-card-title">Upload Input File</div>', unsafe_allow_html=True)
+        if has_loaded_dataset(st.session_state):
+            source = str(st.session_state.get("psm_input_source") or "loaded dataset")
+            st.markdown(
+                (
+                    "<p class='psm-upload-state'>Current dataset loaded: "
+                    f"<strong>{source}</strong></p>"
+                ),
+                unsafe_allow_html=True,
+            )
+            if st.button("Remove current dataset", type="secondary", use_container_width=True):
+                clear_loaded_dataset_state(st.session_state)
+                st.rerun()
+        else:
+            uploaded = st.file_uploader(
+                "Choose input dataset",
+                type=["csv", "xlsx", "sav"],
+                help="Required template columns must match exactly.",
+            )
+            if uploaded is not None:
+                try:
+                    payload = uploaded.getvalue()
+                    frame = read_any(payload, filename=uploaded.name)
+                except SAVDependencyError as exc:
+                    st.error(str(exc))
+                except Exception as exc:
+                    st.error(f"Failed to read '{uploaded.name}': {exc}")
                 else:
-                    auto_ladder = read_optional_pi_ladder(payload, filename=uploaded.name)
-                    _store_dataset(frame, pi_ladder_df=auto_ladder)
-                    st.success(f"Loaded '{uploaded.name}' with {len(frame)} rows.")
-                    if auto_ladder is not None:
-                        st.info(
-                            "Detected optional purchase intention ladder table "
-                            "(sheet 'purchase_intention')."
+                    if config.demo_mode and len(frame) > config.max_rows_demo:
+                        st.error(
+                            "DEMO_MODE upload limit exceeded: "
+                            f"{len(frame)} rows provided, max {config.max_rows_demo} allowed."
                         )
-
-        pi_upload = st.file_uploader(
-            "Optional PI ladder file (CSV/XLSX)",
-            type=["csv", "xlsx"],
-            key="pi_ladder_upload",
-            help="Accepted: *_pi.csv or XLSX sheet named 'purchase_intention'.",
-        )
-        if pi_upload is not None:
-            try:
-                ladder = read_pi_ladder(pi_upload.getvalue(), filename=pi_upload.name)
-            except Exception as exc:
-                st.error(f"Failed to read PI ladder '{pi_upload.name}': {exc}")
-            else:
-                st.session_state["psm_pi_ladder_df"] = ladder
-                st.success(f"Loaded PI ladder '{pi_upload.name}' with {len(ladder)} rows.")
+                    else:
+                        auto_ladder = read_optional_pi_ladder(payload, filename=uploaded.name)
+                        _store_dataset(
+                            frame,
+                            source_name=uploaded.name,
+                            pi_ladder_df=auto_ladder,
+                        )
+                        st.success(f"Loaded '{uploaded.name}' with {len(frame)} rows.")
+                        if auto_ladder is not None:
+                            st.info(
+                                "Detected optional purchase intention ladder table "
+                                "(sheet 'purchase_intention')."
+                            )
 
     _render_validation_messages()
 

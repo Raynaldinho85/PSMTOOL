@@ -10,6 +10,7 @@ def test_packaged_sample_dataset_loads_via_importlib_resources() -> None:
         df = pd.read_csv(handle)
 
     assert not df.empty
+    assert len(df) >= 60
     assert {"segment", "currency", "pi_bargain_pct", "pi_expensive_pct"}.issubset(df.columns)
-    assert {"DE", "SE"}.issubset(set(df["segment"].unique()))
-    assert {"EUR", "SEK"}.issubset(set(df["currency"].unique()))
+    assert {"DE", "SE", "CH"}.issubset(set(df["segment"].unique()))
+    assert {"EUR", "SEK", "CHF"}.issubset(set(df["currency"].unique()))

@@ -20,6 +20,7 @@ def _initialize_state() -> None:
     defaults = {
         "psm_input_df": None,
         "psm_pi_ladder_df": None,
+        "psm_input_source": None,
         "unit_cost_by_product": {},
         "psm_validation_errors": [],
         "psm_validation_warnings": [],
@@ -35,6 +36,7 @@ def main() -> None:
     inject_base_styles(max_width=1420)
     _initialize_state()
 
+    st.markdown('<p class="psm-page-eyebrow">Pricing Research Toolkit</p>', unsafe_allow_html=True)
     st.title("PSM Tool")
     st.caption("Van Westendorp PSM with optional Newton-Miller-Smith Trial + Revenue extension.")
 
@@ -49,23 +51,31 @@ def main() -> None:
     col1, col2, col3 = st.columns(3)
     with col1:
         with st.container(border=True):
-            st.markdown("**1 Upload**")
+            st.markdown('<div class="psm-card-title">1 Upload</div>', unsafe_allow_html=True)
             st.markdown(
-                "<p class='psm-muted'>Load CSV/XLSX/SAV, validate template, or use demo data.</p>",
+                (
+                    "<p class='psm-card-copy'>"
+                    "Load CSV/XLSX/SAV, validate template, or use demo data."
+                    "</p>"
+                ),
                 unsafe_allow_html=True,
             )
     with col2:
         with st.container(border=True):
-            st.markdown("**2 Results**")
+            st.markdown('<div class="psm-card-title">2 Results</div>', unsafe_allow_html=True)
             st.markdown(
-                "<p class='psm-muted'>Run PSM + optional NMS, review KPIs and quality checks.</p>",
+                (
+                    "<p class='psm-card-copy'>"
+                    "Run PSM + optional NMS, review KPIs and quality checks."
+                    "</p>"
+                ),
                 unsafe_allow_html=True,
             )
     with col3:
         with st.container(border=True):
-            st.markdown("**3 Export**")
+            st.markdown('<div class="psm-card-title">3 Export</div>', unsafe_allow_html=True)
             st.markdown(
-                "<p class='psm-muted'>Download PowerPoint and Excel exports "
+                "<p class='psm-card-copy'>Download PowerPoint and Excel exports "
                 "generated in-memory.</p>",
                 unsafe_allow_html=True,
             )

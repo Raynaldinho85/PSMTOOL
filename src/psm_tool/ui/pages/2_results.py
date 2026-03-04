@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from html import escape
+
 import pandas as pd
 import streamlit as st
 
@@ -31,7 +33,7 @@ from psm_tool.report.insights import (
 from psm_tool.ui.style import inject_base_styles
 
 PRICE_COLUMNS = ["too_cheap", "bargain", "expensive_acceptable", "too_expensive"]
-OUTLIER_LABEL_TO_LEVEL = {"Mild": "mild", "Medium": "medium", "Streng": "strict"}
+OUTLIER_LABEL_TO_LEVEL = {"Mild": "mild", "Medium": "medium", "Strict": "strict"}
 
 
 def _series_or_default(df: pd.DataFrame, column: str, default: str) -> pd.Series:
@@ -103,10 +105,13 @@ def _on_unit_cost_change(target_key: str, widget_key: str) -> None:
 
 def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("PMI", f"{price_symbol}{kpis['pmi']:.2f}")
-    col2.metric("OPP", f"{price_symbol}{kpis['opp']:.2f}")
-    col3.metric("IDP", f"{price_symbol}{kpis['idp']:.2f}")
-    col4.metric("PME", f"{price_symbol}{kpis['pme']:.2f}")
+    col1.metric(
+        "PMI (Point of Marginal Inexpensiveness)",
+        f"{price_symbol}{kpis['pmi']:.2f}",
+    )
+    col2.metric("OPP (Optimal Pricing Point)", f"{price_symbol}{kpis['opp']:.2f}")
+    col3.metric("IDP (Indifference Pricing Point)", f"{price_symbol}{kpis['idp']:.2f}")
+    col4.metric("PME (Point of Marginal Expensiveness)", f"{price_symbol}{kpis['pme']:.2f}")
 
     col5, col6 = st.columns(2)
     col5.metric(
@@ -129,14 +134,33 @@ def _render_context_banner(
     analysis_n: int,
 ) -> None:
     with st.container(border=True):
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Selection", f"{selected_product} / {selected_segment}")
-        col2.metric("Currency", currency or "n/a")
-        col3.metric("Analysis N", f"{analysis_n} (valid {valid_n} / total {total_n})")
+        selection_text = f"{escape(selected_product)} / {escape(selected_segment)}"
+        currency_text = escape(currency or "n/a")
+        analysis_text = f"{analysis_n} (valid {valid_n} / total {total_n})"
+        st.markdown(
+            (
+                "<div class='psm-context-grid'>"
+                "<div class='psm-context-chip'>"
+                "<span class='label'>Selection</span>"
+                f"<span class='value'>{selection_text}</span>"
+                "</div>"
+                "<div class='psm-context-chip'>"
+                "<span class='label'>Currency</span>"
+                f"<span class='value'>{currency_text}</span>"
+                "</div>"
+                "<div class='psm-context-chip'>"
+                "<span class='label'>Analysis N</span>"
+                f"<span class='value'>{analysis_text}</span>"
+                "</div>"
+                "</div>"
+            ),
+            unsafe_allow_html=True,
+        )
 
 
 def main() -> None:
     inject_base_styles(max_width=1820)
+    st.markdown('<p class="psm-page-eyebrow">Analysis Workspace</p>', unsafe_allow_html=True)
     st.title("2. Results")
 
     df: pd.DataFrame | None = st.session_state.get("psm_input_df")
@@ -167,9 +191,8 @@ def main() -> None:
 
     with st.container(border=True):
         st.subheader("Analysis Controls")
-        cfg_col1, cfg_col2 = st.columns(2)
-        mode = cfg_col1.selectbox("Grid mode", options=["auto", "manual"], index=0)
-        snap_enabled = cfg_col2.toggle("Snap to currency increment", value=True)
+        mode = st.selectbox("Grid mode", options=["auto", "manual"], index=0)
+        snap_enabled = st.toggle("Snap to currency increment", value=True)
 
         manual_min: float | None = None
         manual_max: float | None = None
@@ -181,12 +204,12 @@ def main() -> None:
             manual_step = float(manual_col3.number_input("Manual step", value=5.0, min_value=0.01))
 
         outlier_col1, outlier_col2 = st.columns(2)
-        outlier_enabled = outlier_col1.toggle("Ausreisserfilter aktiv", value=False)
+        outlier_enabled = outlier_col1.toggle("Outlier filter enabled", value=False)
         outlier_label = "Medium"
         if outlier_enabled:
             outlier_label = outlier_col2.selectbox(
-                "Ausreisser-Haerte",
-                options=["Mild", "Medium", "Streng"],
+                "Outlier level",
+                options=["Mild", "Medium", "Strict"],
                 index=1,
             )
         outlier_level = OUTLIER_LABEL_TO_LEVEL[outlier_label]
