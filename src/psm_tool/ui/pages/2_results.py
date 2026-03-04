@@ -193,6 +193,11 @@ def main() -> None:
         st.subheader("Analysis Controls")
         mode = st.selectbox("Grid mode", options=["auto", "manual"], index=0)
         snap_enabled = st.toggle("Snap to currency increment", value=True)
+        plausibility_filter_enabled = st.toggle(
+            "Apply plausibility filter (strict ordering)",
+            value=True,
+            help="Rule: too_cheap < bargain < expensive_acceptable < too_expensive",
+        )
 
         manual_min: float | None = None
         manual_max: float | None = None
@@ -253,23 +258,36 @@ def main() -> None:
         apply_puki_filter=has_puki,
     )
     valid_df, valid_mask = apply_psm_validity_filter(group_df)
+    invalid_ordering_n = int((~valid_mask).sum())
+    analysis_base_df = valid_df if plausibility_filter_enabled else group_df.copy()
     outlier_result = apply_outlier_filter(
-        valid_df,
+        analysis_base_df,
         columns=PRICE_COLUMNS,
         level=outlier_level,
         enabled=outlier_enabled,
     )
     analysis_df = outlier_result.filtered_df
 
-    if len(valid_df) == 0:
+    if plausibility_filter_enabled and len(valid_df) == 0:
         st.error("No PSM-valid respondents after applying ordering checks.")
         st.dataframe(qc.as_frame(), use_container_width=True)
         return
 
+    if not plausibility_filter_enabled and invalid_ordering_n > 0:
+        st.warning(
+            "Plausibility filter is disabled: "
+            f"{invalid_ordering_n} respondents with non-ordered thresholds are included."
+        )
+
     if len(analysis_df) == 0:
-        st.error("All PSM-valid respondents were excluded by outlier filtering.")
+        st.error("All respondents in the current analysis base were excluded by outlier filtering.")
         qc_df = qc.as_frame()
-        qc_df["excluded_psm_n"] = int((~valid_mask).sum())
+        qc_df["plausibility_filter_applied"] = plausibility_filter_enabled
+        qc_df["invalid_ordering_n"] = invalid_ordering_n
+        qc_df["excluded_psm_n"] = invalid_ordering_n if plausibility_filter_enabled else 0
+        qc_df["included_invalid_ordering_n"] = (
+            0 if plausibility_filter_enabled else invalid_ordering_n
+        )
         qc_df["outlier_filter_applied"] = outlier_result.enabled
         qc_df["outlier_level"] = outlier_result.level
         qc_df["outlier_q_low"] = outlier_result.q_low
@@ -362,7 +380,10 @@ def main() -> None:
     p95_label = "n/a" if grid_p95 is None else f"{grid_p95:.2f}"
 
     qc_df = qc.as_frame()
-    qc_df["excluded_psm_n"] = int((~valid_mask).sum())
+    qc_df["plausibility_filter_applied"] = plausibility_filter_enabled
+    qc_df["invalid_ordering_n"] = invalid_ordering_n
+    qc_df["excluded_psm_n"] = invalid_ordering_n if plausibility_filter_enabled else 0
+    qc_df["included_invalid_ordering_n"] = 0 if plausibility_filter_enabled else invalid_ordering_n
     qc_df["outlier_filter_applied"] = outlier_result.enabled
     qc_df["outlier_level"] = outlier_result.level
     qc_df["outlier_q_low"] = outlier_result.q_low
@@ -557,6 +578,8 @@ def main() -> None:
         "turnover_source": turnover_source,
         "unit_cost": unit_cost,
         "puki_threshold": puki_threshold,
+        "plausibility_filter_applied": plausibility_filter_enabled,
+        "invalid_ordering_n": invalid_ordering_n,
         "outlier_settings": {
             "enabled": outlier_result.enabled,
             "level": outlier_result.level,
