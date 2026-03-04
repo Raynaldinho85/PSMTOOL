@@ -18,6 +18,33 @@ class PSMKPIResult:
     price_stress: float
     stress_flag: str
 
+    def as_dict(self) -> dict[str, float | str]:
+        return {
+            "pmi": self.pmi.value,
+            "pmi_status": self.pmi.status,
+            "opp": self.opp.value,
+            "opp_status": self.opp.status,
+            "idp": self.idp.value,
+            "idp_status": self.idp.status,
+            "pme": self.pme.value,
+            "pme_status": self.pme.status,
+            "accepted_low": self.accepted_low,
+            "accepted_high": self.accepted_high,
+            "price_stress": self.price_stress,
+            "stress_flag": self.stress_flag,
+        }
+
+    def as_frame(self) -> pd.DataFrame:
+        return pd.DataFrame([self.as_dict()])
+
+
+def _stress_flag(value: float) -> str:
+    if value > 0:
+        return "positive"
+    if value < 0:
+        return "negative"
+    return "neutral"
+
 
 def compute_psm_kpis(curves: pd.DataFrame) -> PSMKPIResult:
     prices = curves["price"].to_numpy(dtype=float)
@@ -32,14 +59,18 @@ def compute_psm_kpis(curves: pd.DataFrame) -> PSMKPIResult:
     idp = find_intersection(prices, bargain, expensive)
     pmi = find_intersection(prices, too_cheap, not_bargain)
     pme = find_intersection(prices, too_expensive, not_expensive)
+
+    accepted_low = min(pmi.value, pme.value)
+    accepted_high = max(pmi.value, pme.value)
     stress = float(opp.value - idp.value)
+
     return PSMKPIResult(
         pmi=pmi,
         opp=opp,
         idp=idp,
         pme=pme,
-        accepted_low=float(pmi.value),
-        accepted_high=float(pme.value),
+        accepted_low=float(accepted_low),
+        accepted_high=float(accepted_high),
         price_stress=stress,
-        stress_flag="positive" if stress > 0 else "negative" if stress < 0 else "neutral",
+        stress_flag=_stress_flag(stress),
     )

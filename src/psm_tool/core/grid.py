@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -10,20 +11,41 @@ from psm_tool.config import GridConfig
 PRICE_COLUMNS = ["too_cheap", "bargain", "expensive_acceptable", "too_expensive"]
 
 
+@dataclass(slots=True)
+class PriceGridResult:
+    prices: np.ndarray
+    min_price: float
+    max_price: float
+    step: float
+    increment: float | None
+    snapped: bool
+
+
 def _nice_step(raw_step: float) -> float:
     if raw_step <= 0:
         return 1.0
     exponent = math.floor(math.log10(raw_step))
     fraction = raw_step / (10**exponent)
-    if fraction <= 1:
-        nice_fraction = 1
-    elif fraction <= 2:
-        nice_fraction = 2
-    elif fraction <= 5:
-        nice_fraction = 5
+    if fraction <= 1.0:
+        base = 1.0
+    elif fraction <= 2.0:
+        base = 2.0
+    elif fraction <= 5.0:
+        base = 5.0
     else:
-        nice_fraction = 10
-    return float(nice_fraction * (10**exponent))
+        base = 10.0
+    return base * (10**exponent)
+
+
+def _resolution_step(values: np.ndarray) -> float:
+    unique_values = np.unique(np.sort(values))
+    if len(unique_values) < 2:
+        return 1.0
+    diffs = np.diff(unique_values)
+    positive = diffs[diffs > 0]
+    if len(positive) == 0:
+        return 1.0
+    return float(np.min(positive))
 
 
 def _snap_value(value: float, increment: float, mode: str) -> float:
@@ -37,41 +59,43 @@ def _round_up_multiple(value: float, increment: float) -> float:
     return math.ceil(value / increment) * increment
 
 
-def _currency_increment(grid_config: GridConfig, currency: str | None) -> float | None:
-    if not grid_config.snap_enabled or not currency:
+def _get_increment(cfg: GridConfig, currency: str | None) -> float | None:
+    if not cfg.snap_enabled or not currency:
         return None
-    return grid_config.currency_snap.get(str(currency).upper())
+    return cfg.currency_snap.get(str(currency).upper())
 
 
-def build_price_grid(
+def build_price_grid_details(
     df_group: pd.DataFrame,
     grid_config: GridConfig | None = None,
     currency: str | None = None,
-) -> np.ndarray:
+) -> PriceGridResult:
     cfg = grid_config or GridConfig()
-    prices = df_group[PRICE_COLUMNS].to_numpy(dtype=float).ravel()
-    prices = prices[~np.isnan(prices)]
-    if len(prices) == 0:
+    raw_values = (
+        df_group[PRICE_COLUMNS].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float).ravel()
+    )
+    values = raw_values[~np.isnan(raw_values)]
+    if len(values) == 0:
         raise ValueError("Cannot build grid: no numeric threshold values available.")
 
-    raw_min = float(np.floor(np.min(prices)))
-    raw_max = float(np.ceil(np.max(prices)))
+    raw_min = float(np.floor(np.min(values)))
+    raw_max = float(np.ceil(np.max(values)))
     data_range = max(raw_max - raw_min, 1.0)
-    derived_step = _nice_step(data_range / 120.0)
-
-    increment = _currency_increment(cfg, currency)
+    derived_step = max(_nice_step(data_range / 120.0), _resolution_step(values))
 
     if cfg.mode == "manual":
         if cfg.min_price is None or cfg.max_price is None or cfg.step is None:
-            raise ValueError("Manual grid mode requires min_price, max_price, and step.")
+            raise ValueError("Manual mode requires min_price, max_price, and step.")
         min_price = float(cfg.min_price)
         max_price = float(cfg.max_price)
         step = float(cfg.step)
     else:
         min_price = raw_min
         max_price = raw_max
-        step = derived_step
+        step = float(derived_step)
 
+    increment = _get_increment(cfg, currency)
+    snapped = increment is not None
     if increment is not None:
         min_price = _snap_value(min_price, increment, mode="floor")
         max_price = _snap_value(max_price, increment, mode="ceil")
@@ -84,9 +108,25 @@ def build_price_grid(
         raise ValueError("Grid max_price must be >= min_price.")
 
     span = max_price - min_price
-    count = int(math.floor(span / step)) + 1
-    grid = min_price + np.arange(count, dtype=float) * step
-    if len(grid) == 0 or not np.isclose(grid[-1], max_price):
-        grid = np.append(grid, max_price)
+    n_steps = int(math.floor(span / step)) + 1
+    prices = min_price + np.arange(n_steps, dtype=float) * step
+    if len(prices) == 0 or not np.isclose(prices[-1], max_price):
+        prices = np.append(prices, max_price)
 
-    return np.unique(np.round(grid, 10))
+    prices = np.unique(np.round(prices, 10))
+    return PriceGridResult(
+        prices=prices,
+        min_price=float(prices[0]),
+        max_price=float(prices[-1]),
+        step=float(step),
+        increment=increment,
+        snapped=snapped,
+    )
+
+
+def build_price_grid(
+    df_group: pd.DataFrame,
+    grid_config: GridConfig | None = None,
+    currency: str | None = None,
+) -> np.ndarray:
+    return build_price_grid_details(df_group, grid_config=grid_config, currency=currency).prices

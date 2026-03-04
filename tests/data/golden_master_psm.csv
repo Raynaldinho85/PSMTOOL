@@ -1,0 +1,9 @@
+respondent_id,segment,currency,product_id,too_cheap,bargain,expensive_acceptable,too_expensive,weight,puki,pi_bargain_pct,pi_expensive_pct
+GM_001,DE,EUR,Classic,15,25,35,45,1.0,1,82,57
+GM_002,DE,EUR,Classic,20,30,40,50,1.0,2,80,55
+GM_003,DE,EUR,Classic,25,35,45,55,1.0,2,78,52
+GM_004,DE,EUR,Classic,20,30,42,54,1.2,1,81,56
+GM_005,DE,EUR,Classic,18,28,38,48,0.9,3,75,50
+GM_006,DE,EUR,Classic,22,32,44,56,1.1,2,79,54
+GM_007,DE,EUR,Classic,24,34,46,58,1.0,1,77,51
+GM_008,DE,EUR,Classic,16,26,36,46,0.8,2,83,58

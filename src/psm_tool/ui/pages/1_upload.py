@@ -6,15 +6,11 @@ from io import BytesIO
 import pandas as pd
 import streamlit as st
 
-from psm_tool.io.validate import (
-    OPTIONAL_COLUMNS,
-    RECOMMENDED_COLUMNS,
-    REQUIRED_COLUMNS,
-)
+from psm_tool.io.validate import template_columns
 
 
 def _template_columns() -> list[str]:
-    return sorted(REQUIRED_COLUMNS) + sorted(RECOMMENDED_COLUMNS) + sorted(OPTIONAL_COLUMNS)
+    return template_columns()
 
 
 def _empty_template_df() -> pd.DataFrame:
