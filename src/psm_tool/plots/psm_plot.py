@@ -36,13 +36,25 @@ def make_psm_figure(curves: pd.DataFrame, kpis: PSMKPIResult | None = None) -> g
             )
 
     if kpis is not None:
+        annotation_positions = {
+            "PMI": "top left",
+            "OPP": "top left",
+            "IDP": "top right",
+            "PME": "top right",
+        }
         for key, value in (
             ("PMI", kpis.pmi.value),
             ("OPP", kpis.opp.value),
             ("IDP", kpis.idp.value),
             ("PME", kpis.pme.value),
         ):
-            fig.add_vline(x=value, line_dash="dot", line_width=1, annotation_text=key)
+            fig.add_vline(
+                x=value,
+                line_dash="dot",
+                line_width=1,
+                annotation_text=key,
+                annotation_position=annotation_positions[key],
+            )
 
     fig.update_layout(
         title="Van Westendorp Price Sensitivity Meter",
