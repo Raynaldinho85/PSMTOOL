@@ -5,6 +5,7 @@ from pathlib import Path
 import streamlit as st
 
 from psm_tool.core.nms import NMSResult
+from psm_tool.core.turnover_index import TurnoverIndexResult
 from psm_tool.plots.render_static import BrowserPreflightError, check_kaleido_browser
 from psm_tool.report.excel_export import build_excel_report
 from psm_tool.report.pptx_builder import build_pptx_report
@@ -24,6 +25,11 @@ def _materialize_payload(analysis_payload: dict) -> dict:
     }
     if "nms_result" in analysis_payload and isinstance(analysis_payload["nms_result"], NMSResult):
         export_analysis["nms_result"] = analysis_payload["nms_result"]
+    if "turnover_index_result" in analysis_payload and isinstance(
+        analysis_payload["turnover_index_result"], TurnoverIndexResult
+    ):
+        export_analysis["turnover_index_result"] = analysis_payload["turnover_index_result"]
+    export_analysis["turnover_source"] = analysis_payload.get("turnover_source")
     return {"analyses": [export_analysis]}
 
 

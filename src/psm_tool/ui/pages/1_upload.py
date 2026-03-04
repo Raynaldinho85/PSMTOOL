@@ -7,7 +7,12 @@ import pandas as pd
 import streamlit as st
 
 from psm_tool.config import AppConfig
-from psm_tool.io.read_any import SAVDependencyError, read_any
+from psm_tool.io.read_any import (
+    SAVDependencyError,
+    read_any,
+    read_optional_pi_ladder,
+    read_pi_ladder,
+)
 from psm_tool.io.validate import template_columns, validate_template
 from psm_tool.ui.style import inject_base_styles
 
@@ -34,11 +39,12 @@ def _load_sample_dataset() -> pd.DataFrame:
         return pd.read_csv(sample_handle)
 
 
-def _store_dataset(df: pd.DataFrame) -> None:
+def _store_dataset(df: pd.DataFrame, *, pi_ladder_df: pd.DataFrame | None = None) -> None:
     result = validate_template(df)
     st.session_state["psm_validation_errors"] = result.errors
     st.session_state["psm_validation_warnings"] = result.warnings
     st.session_state["psm_analysis_payload"] = None
+    st.session_state["psm_pi_ladder_df"] = pi_ladder_df
 
     if result.is_valid:
         st.session_state["psm_input_df"] = result.normalized_df
@@ -109,7 +115,7 @@ def main() -> None:
             )
         with col3:
             if st.button("Load example dataset", use_container_width=True):
-                _store_dataset(_load_sample_dataset())
+                _store_dataset(_load_sample_dataset(), pi_ladder_df=None)
                 st.success("Loaded synthetic packaged example dataset.")
 
     with st.container(border=True):
@@ -121,7 +127,8 @@ def main() -> None:
         )
         if uploaded is not None:
             try:
-                frame = read_any(uploaded.getvalue(), filename=uploaded.name)
+                payload = uploaded.getvalue()
+                frame = read_any(payload, filename=uploaded.name)
             except SAVDependencyError as exc:
                 st.error(str(exc))
             except Exception as exc:
@@ -133,8 +140,29 @@ def main() -> None:
                         f"{len(frame)} rows provided, max {config.max_rows_demo} allowed."
                     )
                 else:
-                    _store_dataset(frame)
+                    auto_ladder = read_optional_pi_ladder(payload, filename=uploaded.name)
+                    _store_dataset(frame, pi_ladder_df=auto_ladder)
                     st.success(f"Loaded '{uploaded.name}' with {len(frame)} rows.")
+                    if auto_ladder is not None:
+                        st.info(
+                            "Detected optional purchase intention ladder table "
+                            "(sheet 'purchase_intention')."
+                        )
+
+        pi_upload = st.file_uploader(
+            "Optional PI ladder file (CSV/XLSX)",
+            type=["csv", "xlsx"],
+            key="pi_ladder_upload",
+            help="Accepted: *_pi.csv or XLSX sheet named 'purchase_intention'.",
+        )
+        if pi_upload is not None:
+            try:
+                ladder = read_pi_ladder(pi_upload.getvalue(), filename=pi_upload.name)
+            except Exception as exc:
+                st.error(f"Failed to read PI ladder '{pi_upload.name}': {exc}")
+            else:
+                st.session_state["psm_pi_ladder_df"] = ladder
+                st.success(f"Loaded PI ladder '{pi_upload.name}' with {len(ladder)} rows.")
 
     _render_validation_messages()
 

@@ -10,6 +10,7 @@ from pptx.util import Inches, Pt
 from psm_tool.plots.nms_plot import make_nms_figure
 from psm_tool.plots.psm_plot import make_psm_figure
 from psm_tool.plots.render_static import figure_to_png_bytes
+from psm_tool.plots.turnover_index_plot import make_turnover_index_figure
 from psm_tool.report.insights import build_nms_summary, build_psm_summary
 
 
@@ -102,6 +103,28 @@ def _add_summary_bullets(slide, analysis: dict[str, Any]) -> None:
         paragraph.font.size = Pt(12)
 
 
+def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, Any]) -> bool:
+    turnover_result = analysis.get("turnover_index_result")
+    if turnover_result is None:
+        return False
+
+    slide = presentation.slides.add_slide(presentation.slide_layouts[6])
+    _add_title(slide, "Purchase Intention & Turnover Index")
+
+    subtitle = slide.shapes.add_textbox(Inches(0.5), Inches(0.85), Inches(12.0), Inches(0.5))
+    subtitle_frame = subtitle.text_frame
+    subtitle_frame.text = (
+        "The highest turnover can be achieved by setting the price at "
+        f"{turnover_result.max_turnover_price:.2f} {analysis['currency']}."
+    )
+    subtitle_frame.paragraphs[0].font.size = Pt(16)
+
+    figure = make_turnover_index_figure(turnover_result, currency=analysis["currency"])
+    image_bytes = figure_to_png_bytes(figure)
+    slide.shapes.add_picture(BytesIO(image_bytes), Inches(0.5), Inches(1.3), width=Inches(12.0))
+    return True
+
+
 def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None:
     nms_result = analysis.get("nms_result")
     if nms_result is None:
@@ -149,7 +172,9 @@ def build_pptx_report(
 
     for analysis in analyses:
         _add_psm_slide(presentation, analysis)
-        _add_nms_slide(presentation, analysis)
+        added_turnover_slide = _add_turnover_index_slide(presentation, analysis)
+        if not added_turnover_slide:
+            _add_nms_slide(presentation, analysis)
 
     output = BytesIO()
     presentation.save(output)

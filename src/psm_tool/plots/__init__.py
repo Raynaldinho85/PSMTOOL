@@ -7,6 +7,7 @@ from psm_tool.plots.render_static import (
     check_kaleido_browser,
     figure_to_png_bytes,
 )
+from psm_tool.plots.turnover_index_plot import make_turnover_index_figure
 
 __all__ = [
     "BrowserPreflightError",
@@ -14,4 +15,5 @@ __all__ = [
     "figure_to_png_bytes",
     "make_nms_figure",
     "make_psm_figure",
+    "make_turnover_index_figure",
 ]

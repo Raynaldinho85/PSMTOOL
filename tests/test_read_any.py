@@ -3,10 +3,16 @@ from __future__ import annotations
 import importlib.util
 from io import BytesIO
 
+import numpy as np
 import pandas as pd
 import pytest
 
-from psm_tool.io.read_any import SAVDependencyError, read_any
+from psm_tool.io.read_any import (
+    SAVDependencyError,
+    read_any,
+    read_optional_pi_ladder,
+    read_pi_ladder,
+)
 
 
 def _frame() -> pd.DataFrame:
@@ -41,3 +47,43 @@ def test_read_any_sav_raises_dependency_error_when_pyreadstat_missing() -> None:
 
     with pytest.raises(SAVDependencyError):
         read_any(b"dummy", filename="input.sav")
+
+
+def test_read_pi_ladder_from_xlsx_sheet() -> None:
+    ladder = pd.DataFrame(
+        {
+            "segment": ["DE"],
+            "currency": ["eur"],
+            "price": [200],
+            "purchase_intention_pct": [75],
+        }
+    )
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        _frame().to_excel(writer, sheet_name="data", index=False)
+        ladder.to_excel(writer, sheet_name="purchase_intention", index=False)
+
+    parsed = read_pi_ladder(output.getvalue(), filename="input.xlsx")
+    assert list(parsed.columns) == ["segment", "currency", "price", "purchase_intention_pct"]
+    assert parsed["currency"].iloc[0] == "EUR"
+
+
+def test_read_optional_pi_ladder_uses_suffix_for_csv() -> None:
+    payload = (
+        pd.DataFrame({"price": [100], "purchase_intention_pct": [20]})
+        .to_csv(index=False)
+        .encode("utf-8")
+    )
+    parsed = read_optional_pi_ladder(payload, filename="device_pi.csv")
+    assert parsed is not None
+    assert np.isclose(parsed["purchase_intention_pct"].iloc[0], 20.0)
+
+
+def test_read_optional_pi_ladder_returns_none_for_regular_csv() -> None:
+    payload = (
+        pd.DataFrame({"price": [100], "purchase_intention_pct": [20]})
+        .to_csv(index=False)
+        .encode("utf-8")
+    )
+    parsed = read_optional_pi_ladder(payload, filename="device.csv")
+    assert parsed is None

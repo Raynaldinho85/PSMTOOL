@@ -10,8 +10,10 @@ from psm_tool.core.metrics import compute_psm_kpis
 from psm_tool.core.nms import compute_nms
 from psm_tool.core.outliers import apply_outlier_filter
 from psm_tool.core.qc import apply_psm_validity_filter, compute_qc_report
+from psm_tool.core.turnover_index import compute_turnover_index, resolve_purchase_intention_curve
 from psm_tool.plots.nms_plot import make_nms_figure
 from psm_tool.plots.psm_plot import make_psm_figure
+from psm_tool.plots.turnover_index_plot import make_turnover_index_figure
 from psm_tool.report.insights import (
     build_kpi_explanations,
     build_nms_explanations,
@@ -53,6 +55,30 @@ def _build_grid_config(
 def _has_nms_columns(df: pd.DataFrame) -> bool:
     required = {"pi_bargain_pct", "pi_expensive_pct"}
     return required.issubset(df.columns)
+
+
+def _select_pi_ladder_for_group(
+    pi_ladder_df: pd.DataFrame | None,
+    *,
+    segment: str,
+    currency: str,
+    product_id: str,
+) -> pd.DataFrame | None:
+    if pi_ladder_df is None or len(pi_ladder_df) == 0:
+        return None
+
+    selected = pi_ladder_df.copy()
+    if "segment" in selected.columns:
+        selected = selected.loc[selected["segment"].astype(str) == str(segment)]
+    if "currency" in selected.columns:
+        selected = selected.loc[
+            selected["currency"].astype(str).str.upper() == str(currency).upper()
+        ]
+    if "product_id" in selected.columns:
+        selected = selected.loc[selected["product_id"].astype(str) == str(product_id)]
+    if len(selected) == 0:
+        return None
+    return selected
 
 
 def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
@@ -212,6 +238,26 @@ def main() -> None:
             puki_threshold=puki_threshold,
         )
 
+    pi_ladder_df: pd.DataFrame | None = st.session_state.get("psm_pi_ladder_df")
+    selected_ladder = _select_pi_ladder_for_group(
+        pi_ladder_df,
+        segment=str(selected_segment),
+        currency=currency,
+        product_id=str(selected_product),
+    )
+    turnover_result = None
+    turnover_source: str | None = None
+    try:
+        pi_curve, turnover_source = resolve_purchase_intention_curve(
+            grid_details.prices,
+            pi_ladder_df=selected_ladder,
+            nms_curves=(nms_result.curves if nms_result is not None else None),
+        )
+        turnover_result = compute_turnover_index(grid_details.prices, pi_curve)
+    except ValueError:
+        turnover_result = None
+        turnover_source = None
+
     _render_context_banner(
         selected_product=str(selected_product),
         selected_segment=str(selected_segment),
@@ -278,35 +324,65 @@ def main() -> None:
                 st.markdown(f"- {sentence}")
 
     with nms_tab:
-        if nms_result is None:
-            st.info("PI columns are missing. NMS chart is not available for this selection.")
+        if turnover_result is None and nms_result is None:
+            st.info("No purchase intention source available for this selection.")
         else:
-            with st.container(border=True):
-                st.plotly_chart(make_nms_figure(nms_result), use_container_width=True)
-            col_n1, col_n2, col_n3 = st.columns(3)
-            col_n1.metric("MaxTrial Price", f"{currency} {nms_result.max_trial_price:.2f}")
-            col_n2.metric("MaxRevenue Price", f"{currency} {nms_result.max_revenue_price:.2f}")
-            col_n3.metric("NMS Included N", str(nms_result.included_n))
-            if nms_result.filter_note:
-                st.caption(nms_result.filter_note)
-            if weight_col and not nms_result.weighting_applied:
-                st.caption(
-                    "NMS weight fallback active: invalid/empty weights were replaced by "
-                    "unweighted averaging."
-                )
-            nms_col1, nms_col2 = st.columns([1.1, 1.0])
-            with nms_col1:
-                st.markdown("**NMS Key Facts**")
-                nms_key_facts = pd.DataFrame(build_nms_explanations(nms_result, currency=currency))
-                st.dataframe(nms_key_facts, use_container_width=True, hide_index=True)
-            with nms_col2:
-                st.markdown("**NMS Summary**")
-                for sentence in build_nms_summary(
-                    nms_result,
-                    currency=currency,
-                    segment_label=str(selected_segment),
-                ):
-                    st.markdown(f"- {sentence}")
+            view_options = ["Purchase Intention + Turnover Index (0-100)"]
+            if nms_result is not None:
+                view_options.append("Trial + Revenue (two axes)")
+            view_mode = st.radio("Show", options=view_options, horizontal=True, index=0)
+
+            if view_mode == "Purchase Intention + Turnover Index (0-100)":
+                if turnover_result is None:
+                    st.info("Unable to compute Turnover Index for this selection.")
+                else:
+                    with st.container(border=True):
+                        st.plotly_chart(
+                            make_turnover_index_figure(turnover_result, currency=currency),
+                            use_container_width=True,
+                        )
+                    col_t1, col_t2, col_t3 = st.columns(3)
+                    col_t1.metric(
+                        "Maximum Turnover Price",
+                        f"{currency} {turnover_result.max_turnover_price:.2f}",
+                    )
+                    col_t2.metric(
+                        "Maximum Turnover Index",
+                        f"{turnover_result.max_turnover_index:.2f}",
+                    )
+                    source_label = (
+                        "PI ladder" if turnover_source == "ladder" else "NMS trial fallback"
+                    )
+                    col_t3.metric("PI Source", source_label)
+            else:
+                with st.container(border=True):
+                    st.plotly_chart(make_nms_figure(nms_result), use_container_width=True)
+                col_n1, col_n2, col_n3 = st.columns(3)
+                col_n1.metric("MaxTrial Price", f"{currency} {nms_result.max_trial_price:.2f}")
+                col_n2.metric("MaxRevenue Price", f"{currency} {nms_result.max_revenue_price:.2f}")
+                col_n3.metric("NMS Included N", str(nms_result.included_n))
+                if nms_result.filter_note:
+                    st.caption(nms_result.filter_note)
+                if weight_col and not nms_result.weighting_applied:
+                    st.caption(
+                        "NMS weight fallback active: invalid/empty weights were replaced by "
+                        "unweighted averaging."
+                    )
+                nms_col1, nms_col2 = st.columns([1.1, 1.0])
+                with nms_col1:
+                    st.markdown("**NMS Key Facts**")
+                    nms_key_facts = pd.DataFrame(
+                        build_nms_explanations(nms_result, currency=currency)
+                    )
+                    st.dataframe(nms_key_facts, use_container_width=True, hide_index=True)
+                with nms_col2:
+                    st.markdown("**NMS Summary**")
+                    for sentence in build_nms_summary(
+                        nms_result,
+                        currency=currency,
+                        segment_label=str(selected_segment),
+                    ):
+                        st.markdown(f"- {sentence}")
 
     with qc_tab:
         st.dataframe(qc_df, use_container_width=True)
@@ -329,6 +405,8 @@ def main() -> None:
         "kpis": kpi_dict,
         "kpi_result": kpi_result,
         "nms_result": nms_result,
+        "turnover_index_result": turnover_result,
+        "turnover_source": turnover_source,
         "puki_threshold": puki_threshold,
         "outlier_settings": {
             "enabled": outlier_result.enabled,

@@ -19,6 +19,7 @@ def _check_password(config: AppConfig) -> None:
 def _initialize_state() -> None:
     defaults = {
         "psm_input_df": None,
+        "psm_pi_ladder_df": None,
         "psm_validation_errors": [],
         "psm_validation_warnings": [],
         "psm_analysis_payload": None,
