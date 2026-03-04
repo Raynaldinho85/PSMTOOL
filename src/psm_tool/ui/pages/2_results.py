@@ -7,7 +7,9 @@ from psm_tool.config import GridConfig
 from psm_tool.core.curves import compute_psm_curves
 from psm_tool.core.grid import build_price_grid_details
 from psm_tool.core.metrics import compute_psm_kpis
+from psm_tool.core.nms import compute_nms
 from psm_tool.core.qc import apply_psm_validity_filter, compute_qc_report
+from psm_tool.plots.nms_plot import make_nms_figure
 from psm_tool.plots.psm_plot import make_psm_figure
 
 
@@ -35,6 +37,11 @@ def _build_grid_config(
         max_price=manual_max,
         step=manual_step,
     )
+
+
+def _has_nms_columns(df: pd.DataFrame) -> bool:
+    required = {"pi_bargain_pct", "pi_expensive_pct"}
+    return required.issubset(df.columns)
 
 
 def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
@@ -79,7 +86,7 @@ def main() -> None:
         return
 
     st.subheader("Price Grid Settings")
-    cfg_col1, cfg_col2, cfg_col3 = st.columns(3)
+    cfg_col1, cfg_col2 = st.columns(2)
     mode = cfg_col1.selectbox("Grid mode", options=["auto", "manual"], index=0)
     snap_enabled = cfg_col2.toggle("Snap to currency increment", value=True)
 
@@ -94,8 +101,19 @@ def main() -> None:
 
     currency = str(_series_or_default(group_df, "currency", "").iloc[0]).upper()
     grid_cfg = _build_grid_config(mode, snap_enabled, manual_min, manual_max, manual_step)
+    has_puki = "puki" in group_df.columns
+    puki_threshold = 2
+    if has_puki:
+        include_neutral = st.toggle("Include neutral PUKI (<=3)", value=False, key="puki_neutral")
+        puki_threshold = 3 if include_neutral else 2
+    else:
+        st.caption("PUKI column missing: PI filter is not applied.")
 
-    qc = compute_qc_report(group_df, puki_threshold=2, apply_puki_filter=True)
+    qc = compute_qc_report(
+        group_df,
+        puki_threshold=puki_threshold,
+        apply_puki_filter=has_puki,
+    )
     valid_df, valid_mask = apply_psm_validity_filter(group_df)
 
     if len(valid_df) == 0:
@@ -131,6 +149,25 @@ def main() -> None:
     qc_df["excluded_psm_n"] = int((~valid_mask).sum())
     st.dataframe(qc_df, use_container_width=True)
 
+    nms_result = None
+    if _has_nms_columns(valid_df):
+        nms_result = compute_nms(
+            valid_df,
+            grid_details.prices,
+            weight_col=weight_col,
+            puki_threshold=puki_threshold,
+        )
+        st.subheader("NMS Trial + Revenue")
+        st.plotly_chart(make_nms_figure(nms_result), use_container_width=True)
+        col_n1, col_n2, col_n3 = st.columns(3)
+        col_n1.metric("MaxTrial Price", f"{currency} {nms_result.max_trial_price:.2f}")
+        col_n2.metric("MaxRevenue Price", f"{currency} {nms_result.max_revenue_price:.2f}")
+        col_n3.metric("NMS Included N", str(nms_result.included_n))
+        if nms_result.filter_note:
+            st.caption(nms_result.filter_note)
+    else:
+        st.info("PI columns are missing. NMS chart is not available for this selection.")
+
     st.session_state["psm_analysis_payload"] = {
         "product_id": selected_product,
         "segment": selected_segment,
@@ -140,6 +177,8 @@ def main() -> None:
         "curves": curves,
         "kpis": kpi_dict,
         "kpi_result": kpi_result,
+        "nms_result": nms_result,
+        "puki_threshold": puki_threshold,
         "grid": {
             "min_price": grid_details.min_price,
             "max_price": grid_details.max_price,

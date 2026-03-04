@@ -1,42 +1,51 @@
 from __future__ import annotations
 
-import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from psm_tool.core.nms import NMSResult
 
 
 def make_nms_figure(result: NMSResult) -> go.Figure:
     curves = result.curves
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(x=curves["price"], y=curves["trial_pct"], mode="lines", name="Trial %")
-    )
-    fig.add_trace(
+    figure = make_subplots(specs=[[{"secondary_y": True}]])
+
+    figure.add_trace(
         go.Scatter(
-            x=curves["price"], y=curves["turnover_index"], mode="lines", name="Turnover Index"
-        )
+            x=curves["price"],
+            y=curves["trial_pct"],
+            mode="lines",
+            name="Trial %",
+            line={"color": "#1f77b4"},
+        ),
+        secondary_y=False,
     )
-    fig.add_vline(
+    figure.add_trace(
+        go.Scatter(
+            x=curves["price"],
+            y=curves["revenue_per_100"],
+            mode="lines",
+            name="Revenue / 100",
+            line={"color": "#d62728"},
+        ),
+        secondary_y=True,
+    )
+
+    figure.add_vline(
         x=result.max_trial_price,
         line_dash="dot",
-        line_color="#2f855a",
+        line_color="#1f77b4",
         annotation_text="MaxTrial",
     )
-    fig.add_vline(
+    figure.add_vline(
         x=result.max_revenue_price,
         line_dash="dot",
-        line_color="#c53030",
+        line_color="#d62728",
         annotation_text="MaxRevenue",
     )
-    fig.update_layout(
-        title="NMS Trial and Revenue Curves",
-        xaxis_title="Price",
-        yaxis_title="Index / Percent",
-        template="plotly_white",
-    )
-    return fig
 
-
-def make_nms_frame(curves: pd.DataFrame) -> pd.DataFrame:
-    return curves.copy()
+    figure.update_xaxes(title_text="Price")
+    figure.update_yaxes(title_text="Trial %", secondary_y=False)
+    figure.update_yaxes(title_text="Revenue / 100", secondary_y=True)
+    figure.update_layout(title="NMS Trial and Revenue", template="plotly_white")
+    return figure

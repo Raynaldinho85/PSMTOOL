@@ -11,32 +11,88 @@ class NMSResult:
     curves: pd.DataFrame
     max_trial_price: float
     max_revenue_price: float
+    base_n: int
+    included_n: int
+    puki_filter_applied: bool
+    puki_threshold: int | None
+    filter_note: str | None = None
 
 
 def _interp_segment(x: float, x0: float, y0: float, x1: float, y1: float) -> float:
-    if x1 == x0:
+    if np.isclose(x1, x0):
         return y1
     ratio = (x - x0) / (x1 - x0)
     return y0 + ratio * (y1 - y0)
 
 
 def _respondent_trial(row: pd.Series, prices: np.ndarray) -> np.ndarray:
-    tc, b, ea, te = [
-        float(row[col]) for col in ("too_cheap", "bargain", "expensive_acceptable", "too_expensive")
-    ]
-    pi_b = float(np.clip(row.get("pi_bargain_pct", 0.0), 0.0, 100.0))
-    pi_e = float(np.clip(row.get("pi_expensive_pct", 0.0), 0.0, 100.0))
-    output = np.zeros_like(prices, dtype=float)
+    tc = float(row["too_cheap"])
+    bargain = float(row["bargain"])
+    acceptable = float(row["expensive_acceptable"])
+    te = float(row["too_expensive"])
+    pi_bargain = float(np.clip(row["pi_bargain_pct"], 0.0, 100.0))
+    pi_expensive = float(np.clip(row["pi_expensive_pct"], 0.0, 100.0))
+
+    out = np.zeros_like(prices, dtype=float)
     for idx, price in enumerate(prices):
         if price <= tc or price >= te:
-            output[idx] = 0.0
-        elif price <= b:
-            output[idx] = _interp_segment(price, tc, 0.0, b, pi_b)
-        elif price <= ea:
-            output[idx] = _interp_segment(price, b, pi_b, ea, pi_e)
+            out[idx] = 0.0
+        elif price <= bargain:
+            out[idx] = _interp_segment(price, tc, 0.0, bargain, pi_bargain)
+        elif price <= acceptable:
+            out[idx] = _interp_segment(price, bargain, pi_bargain, acceptable, pi_expensive)
         else:
-            output[idx] = _interp_segment(price, ea, pi_e, te, 0.0)
-    return output
+            out[idx] = _interp_segment(price, acceptable, pi_expensive, te, 0.0)
+    return out
+
+
+def _select_population(
+    df_group: pd.DataFrame, puki_threshold: int
+) -> tuple[pd.DataFrame, bool, str | None]:
+    if "puki" not in df_group.columns:
+        return df_group.copy(), False, "PUKI filter not applied because 'puki' column is missing."
+
+    puki_numeric = pd.to_numeric(df_group["puki"], errors="coerce")
+    include_mask = puki_numeric <= float(puki_threshold)
+    selected = df_group.loc[include_mask.fillna(False)].copy()
+    return selected, True, None
+
+
+def _weight_vector(df: pd.DataFrame, weight_col: str | None) -> np.ndarray:
+    if weight_col and weight_col in df.columns:
+        weights = pd.to_numeric(df[weight_col], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+        weights[weights < 0] = 0.0
+        if np.sum(weights) > 0:
+            return weights
+    return np.ones(len(df), dtype=float)
+
+
+def _empty_nms_result(
+    prices: np.ndarray,
+    base_n: int,
+    included_n: int,
+    puki_filter_applied: bool,
+    puki_threshold: int | None,
+    note: str | None,
+) -> NMSResult:
+    curves = pd.DataFrame(
+        {
+            "price": prices,
+            "trial_pct": np.nan,
+            "revenue_per_100": np.nan,
+            "turnover_index": np.nan,
+        }
+    )
+    return NMSResult(
+        curves=curves,
+        max_trial_price=float("nan"),
+        max_revenue_price=float("nan"),
+        base_n=base_n,
+        included_n=included_n,
+        puki_filter_applied=puki_filter_applied,
+        puki_threshold=puki_threshold,
+        filter_note=note,
+    )
 
 
 def compute_nms(
@@ -44,39 +100,54 @@ def compute_nms(
     prices: np.ndarray,
     *,
     weight_col: str | None = None,
+    puki_threshold: int = 2,
 ) -> NMSResult:
-    if len(df_group) == 0:
-        empty = pd.DataFrame(
-            {
-                "price": prices,
-                "trial_pct": np.nan,
-                "revenue_per_100": np.nan,
-                "turnover_index": np.nan,
-            }
+    required = [
+        "too_cheap",
+        "bargain",
+        "expensive_acceptable",
+        "too_expensive",
+        "pi_bargain_pct",
+        "pi_expensive_pct",
+    ]
+    missing = [col for col in required if col not in df_group.columns]
+    if missing:
+        raise ValueError(
+            f"NMS requires columns: {', '.join(required)}. Missing: {', '.join(missing)}"
         )
-        return NMSResult(curves=empty, max_trial_price=float("nan"), max_revenue_price=float("nan"))
 
-    if weight_col and weight_col in df_group.columns:
-        weights = (
-            pd.to_numeric(df_group[weight_col], errors="coerce").fillna(0).to_numpy(dtype=float)
+    prices = np.asarray(prices, dtype=float)
+    base_n = int(len(df_group))
+    selected, filter_applied, note = _select_population(df_group, puki_threshold=puki_threshold)
+    selected = selected.dropna(subset=required).copy()
+    included_n = int(len(selected))
+    threshold_out = puki_threshold if filter_applied else None
+
+    if included_n == 0:
+        return _empty_nms_result(
+            prices=prices,
+            base_n=base_n,
+            included_n=0,
+            puki_filter_applied=filter_applied,
+            puki_threshold=threshold_out,
+            note=note,
         )
-    else:
-        weights = np.ones(len(df_group), dtype=float)
-    if np.sum(weights) <= 0:
-        weights = np.ones(len(df_group), dtype=float)
 
     respondent_curves = np.vstack(
-        [_respondent_trial(row, prices) for _, row in df_group.iterrows()]
+        [_respondent_trial(row, prices) for _, row in selected.iterrows()]
     )
+    weights = _weight_vector(selected, weight_col=weight_col)
     trial_pct = np.average(respondent_curves, axis=0, weights=weights)
-    revenue = (trial_pct / 100.0) * prices * 100.0
-    max_rev = np.max(revenue) if len(revenue) else 0.0
-    turnover = np.zeros_like(revenue)
-    if max_rev > 0:
-        turnover = revenue / max_rev * 100.0
 
-    max_trial_price = float(prices[int(np.argmax(trial_pct))])
-    max_revenue_price = float(prices[int(np.argmax(revenue))])
+    revenue = (trial_pct / 100.0) * prices * 100.0
+    max_revenue = float(np.max(revenue))
+    if max_revenue <= 0:
+        turnover = np.zeros_like(revenue)
+    else:
+        turnover = revenue / max_revenue * 100.0
+
+    max_trial_price = float(prices[int(np.nanargmax(trial_pct))])
+    max_revenue_price = float(prices[int(np.nanargmax(revenue))])
 
     curves = pd.DataFrame(
         {
@@ -86,6 +157,14 @@ def compute_nms(
             "turnover_index": turnover,
         }
     )
+
     return NMSResult(
-        curves=curves, max_trial_price=max_trial_price, max_revenue_price=max_revenue_price
+        curves=curves,
+        max_trial_price=max_trial_price,
+        max_revenue_price=max_revenue_price,
+        base_n=base_n,
+        included_n=included_n,
+        puki_filter_applied=filter_applied,
+        puki_threshold=threshold_out,
+        filter_note=note,
     )

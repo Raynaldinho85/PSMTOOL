@@ -29,6 +29,7 @@ data_private/*
 *.tmp
 tmp/
 .tmp/
+.tmp_test_sav/
 
 # IDE/OS
 .vscode/

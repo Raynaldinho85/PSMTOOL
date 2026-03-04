@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tempfile
 from io import BytesIO
 from pathlib import Path
 from typing import BinaryIO
@@ -26,8 +27,22 @@ def _read_sav_bytes(raw: bytes) -> pd.DataFrame:
             "Install with: pip install 'psm-tool[sav]'"
         ) from exc
 
-    df, _meta = pyreadstat.read_sav(BytesIO(raw))
-    return df
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            suffix=".sav",
+            prefix=".tmp_sav_",
+            dir=Path.cwd(),
+            delete=False,
+        ) as handle:
+            handle.write(raw)
+            handle.flush()
+            temp_path = Path(handle.name)
+        df, _meta = pyreadstat.read_sav(str(temp_path))
+        return df
+    finally:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink()
 
 
 def read_any(upload: bytes | BinaryIO | str | Path, filename: str | None = None) -> pd.DataFrame:
