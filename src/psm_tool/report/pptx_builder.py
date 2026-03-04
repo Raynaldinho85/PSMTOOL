@@ -10,6 +10,7 @@ from pptx.util import Inches, Pt
 from psm_tool.plots.nms_plot import make_nms_figure
 from psm_tool.plots.psm_plot import make_psm_figure
 from psm_tool.plots.render_static import figure_to_png_bytes
+from psm_tool.report.insights import build_psm_summary
 
 
 def _new_presentation(template_path: str | Path | None = None) -> Presentation:
@@ -29,6 +30,23 @@ def _add_title(slide, title_text: str) -> None:
 def _add_kpi_summary(slide, analysis: dict[str, Any]) -> None:
     kpis = analysis["kpis"]
     currency = analysis["currency"]
+    outlier_settings = analysis.get("outlier_settings", {})
+    outlier_stats = analysis.get("outlier_stats", {})
+    outlier_enabled = bool(outlier_settings.get("enabled", False))
+    if outlier_enabled:
+        level = str(outlier_settings.get("level", "medium")).capitalize()
+        q_low = outlier_settings.get("q_low")
+        q_high = outlier_settings.get("q_high")
+        excluded = int(outlier_stats.get("excluded_n", 0))
+        outlier_line = (
+            "Outlier filter: "
+            f"{level} ({q_low * 100:.1f}%-{q_high * 100:.1f}%), excluded n={excluded}"
+            if q_low is not None and q_high is not None
+            else f"Outlier filter: {level}, excluded n={excluded}"
+        )
+    else:
+        outlier_line = "Outlier filter: Off"
+
     lines = [
         f"PMI: {currency} {kpis['pmi']:.2f}",
         f"OPP: {currency} {kpis['opp']:.2f}",
@@ -37,6 +55,7 @@ def _add_kpi_summary(slide, analysis: dict[str, Any]) -> None:
         "Accepted range: "
         f"{currency} {kpis['accepted_low']:.2f} - {currency} {kpis['accepted_high']:.2f}",
         f"Price stress (OPP-IDP): {kpis['price_stress']:.2f} [{kpis['stress_flag']}]",
+        outlier_line,
     ]
     text_box = slide.shapes.add_textbox(Inches(8.0), Inches(1.1), Inches(4.8), Inches(4.8))
     frame = text_box.text_frame
@@ -56,6 +75,31 @@ def _add_psm_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
     image_bytes = figure_to_png_bytes(figure)
     slide.shapes.add_picture(BytesIO(image_bytes), Inches(0.5), Inches(1.0), width=Inches(7.2))
     _add_kpi_summary(slide, analysis)
+    _add_summary_bullets(slide, analysis)
+
+
+def _add_summary_bullets(slide, analysis: dict[str, Any]) -> None:
+    nms_result = analysis.get("nms_result")
+    nms_kpis = None
+    if nms_result is not None:
+        nms_kpis = {
+            "max_trial_price": nms_result.max_trial_price,
+            "max_revenue_price": nms_result.max_revenue_price,
+        }
+
+    sentences = build_psm_summary(
+        analysis["kpis"],
+        currency=analysis["currency"],
+        segment_label=str(analysis["segment"]),
+        nms_kpis=nms_kpis,
+    )
+    summary_box = slide.shapes.add_textbox(Inches(0.5), Inches(5.7), Inches(12.0), Inches(1.6))
+    frame = summary_box.text_frame
+    frame.clear()
+    for idx, sentence in enumerate(sentences):
+        paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
+        paragraph.text = f"- {sentence}"
+        paragraph.font.size = Pt(12)
 
 
 def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None:

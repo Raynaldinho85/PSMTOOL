@@ -12,6 +12,7 @@ from psm_tool.core.outliers import apply_outlier_filter
 from psm_tool.core.qc import apply_psm_validity_filter, compute_qc_report
 from psm_tool.plots.nms_plot import make_nms_figure
 from psm_tool.plots.psm_plot import make_psm_figure
+from psm_tool.report.insights import build_kpi_explanations, build_psm_summary
 
 PRICE_COLUMNS = ["too_cheap", "bargain", "expensive_acceptable", "too_expensive"]
 OUTLIER_LABEL_TO_LEVEL = {"Mild": "mild", "Medium": "medium", "Streng": "strict"}
@@ -169,11 +170,15 @@ def main() -> None:
     kpi_result = compute_psm_kpis(curves)
     figure = make_psm_figure(curves, kpi_result)
 
-    increment_label = "None" if grid_details.increment is None else f"{grid_details.increment:g}"
-    p05_label = "n/a" if grid_details.p05 is None else f"{grid_details.p05:.2f}"
-    p95_label = "n/a" if grid_details.p95 is None else f"{grid_details.p95:.2f}"
+    increment = getattr(grid_details, "increment", None)
+    grid_method = getattr(grid_details, "method", "legacy")
+    grid_p05 = getattr(grid_details, "p05", None)
+    grid_p95 = getattr(grid_details, "p95", None)
+    increment_label = "None" if increment is None else f"{increment:g}"
+    p05_label = "n/a" if grid_p05 is None else f"{grid_p05:.2f}"
+    p95_label = "n/a" if grid_p95 is None else f"{grid_p95:.2f}"
     st.caption(
-        f"Grid method={grid_details.method} | "
+        f"Grid method={grid_method} | "
         f"Grid increment used: {increment_label} | "
         f"grid_min={grid_details.min_price:.2f} | "
         f"grid_max={grid_details.max_price:.2f} | "
@@ -184,6 +189,35 @@ def main() -> None:
 
     kpi_dict = kpi_result.as_dict()
     _render_kpi_cards(currency + " ", kpi_dict)
+
+    nms_result = None
+    if _has_nms_columns(analysis_df):
+        nms_result = compute_nms(
+            analysis_df,
+            grid_details.prices,
+            weight_col=weight_col,
+            puki_threshold=puki_threshold,
+        )
+
+    st.subheader("Key Facts")
+    key_facts = pd.DataFrame(build_kpi_explanations(kpi_dict))
+    st.dataframe(key_facts, use_container_width=True, hide_index=True)
+
+    nms_kpis = None
+    if nms_result is not None:
+        nms_kpis = {
+            "max_trial_price": nms_result.max_trial_price,
+            "max_revenue_price": nms_result.max_revenue_price,
+        }
+    summary_lines = build_psm_summary(
+        kpi_dict,
+        currency=currency,
+        segment_label=str(selected_segment),
+        nms_kpis=nms_kpis,
+    )
+    st.subheader("Summary")
+    for sentence in summary_lines:
+        st.markdown(f"- {sentence}")
 
     st.subheader("Quality Control")
     qc_df = qc.as_frame()
@@ -202,14 +236,7 @@ def main() -> None:
             "(all missing/zero/invalid). Unweighted calculation was applied."
         )
 
-    nms_result = None
-    if _has_nms_columns(analysis_df):
-        nms_result = compute_nms(
-            analysis_df,
-            grid_details.prices,
-            weight_col=weight_col,
-            puki_threshold=puki_threshold,
-        )
+    if nms_result is not None:
         st.subheader("NMS Trial + Revenue")
         st.plotly_chart(make_nms_figure(nms_result), use_container_width=True)
         col_n1, col_n2, col_n3 = st.columns(3)
@@ -254,11 +281,11 @@ def main() -> None:
             "min_price": grid_details.min_price,
             "max_price": grid_details.max_price,
             "step": grid_details.step,
-            "increment": grid_details.increment,
-            "snapped": grid_details.snapped,
-            "p05": grid_details.p05,
-            "p95": grid_details.p95,
-            "method": grid_details.method,
+            "increment": increment,
+            "snapped": bool(getattr(grid_details, "snapped", increment is not None)),
+            "p05": grid_p05,
+            "p95": grid_p95,
+            "method": grid_method,
         },
         "qc": qc_df,
     }
