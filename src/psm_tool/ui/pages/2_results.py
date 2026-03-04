@@ -21,6 +21,15 @@ from psm_tool.report.insights import (
 
 PRICE_COLUMNS = ["too_cheap", "bargain", "expensive_acceptable", "too_expensive"]
 OUTLIER_LABEL_TO_LEVEL = {"Mild": "mild", "Medium": "medium", "Streng": "strict"}
+RESULTS_PAGE_STYLE = """
+<style>
+section.main > div.block-container {
+    max-width: 1800px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+</style>
+"""
 
 
 def _series_or_default(df: pd.DataFrame, column: str, default: str) -> pd.Series:
@@ -73,6 +82,7 @@ def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
 
 
 def main() -> None:
+    st.markdown(RESULTS_PAGE_STYLE, unsafe_allow_html=True)
     st.title("2. Results")
     df: pd.DataFrame | None = st.session_state.get("psm_input_df")
     if df is None:
