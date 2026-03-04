@@ -139,6 +139,7 @@ def main() -> None:
         "valid_df": valid_df,
         "curves": curves,
         "kpis": kpi_dict,
+        "kpi_result": kpi_result,
         "grid": {
             "min_price": grid_details.min_price,
             "max_price": grid_details.max_price,

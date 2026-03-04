@@ -2,21 +2,94 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 from pptx import Presentation
+from pptx.util import Inches, Pt
+
+from psm_tool.plots.nms_plot import make_nms_figure
+from psm_tool.plots.psm_plot import make_psm_figure
+from psm_tool.plots.render_static import figure_to_png_bytes
 
 
-def build_pptx_report(template_path: str | Path | None = None) -> bytes:
-    presentation = (
-        Presentation(template_path)
-        if template_path and Path(template_path).exists()
-        else Presentation()
-    )
-    title_layout = presentation.slide_layouts[0]
-    slide = presentation.slides.add_slide(title_layout)
-    slide.shapes.title.text = "PSM Tool Report"
-    subtitle = slide.placeholders[1]
-    subtitle.text = "Generated from in-memory analysis."
+def _new_presentation(template_path: str | Path | None = None) -> Presentation:
+    if template_path and Path(template_path).exists():
+        return Presentation(str(template_path))
+    return Presentation()
+
+
+def _add_title(slide, title_text: str) -> None:
+    title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.2), Inches(12.2), Inches(0.6))
+    title_frame = title_box.text_frame
+    title_frame.text = title_text
+    title_frame.paragraphs[0].font.size = Pt(24)
+    title_frame.paragraphs[0].font.bold = True
+
+
+def _add_kpi_summary(slide, analysis: dict[str, Any]) -> None:
+    kpis = analysis["kpis"]
+    currency = analysis["currency"]
+    lines = [
+        f"PMI: {currency} {kpis['pmi']:.2f}",
+        f"OPP: {currency} {kpis['opp']:.2f}",
+        f"IDP: {currency} {kpis['idp']:.2f}",
+        f"PME: {currency} {kpis['pme']:.2f}",
+        "Accepted range: "
+        f"{currency} {kpis['accepted_low']:.2f} - {currency} {kpis['accepted_high']:.2f}",
+        f"Price stress (OPP-IDP): {kpis['price_stress']:.2f} [{kpis['stress_flag']}]",
+    ]
+    text_box = slide.shapes.add_textbox(Inches(8.0), Inches(1.1), Inches(4.8), Inches(4.8))
+    frame = text_box.text_frame
+    frame.clear()
+    for index, line in enumerate(lines):
+        paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
+        paragraph.text = line
+        paragraph.font.size = Pt(14)
+
+
+def _add_psm_slide(presentation: Presentation, analysis: dict[str, Any]) -> None:
+    slide = presentation.slides.add_slide(presentation.slide_layouts[6])
+    title = f"PSM - {analysis['product_id']} / {analysis['segment']}"
+    _add_title(slide, title)
+
+    figure = make_psm_figure(analysis["curves"], analysis["kpi_result"])
+    image_bytes = figure_to_png_bytes(figure)
+    slide.shapes.add_picture(BytesIO(image_bytes), Inches(0.5), Inches(1.0), width=Inches(7.2))
+    _add_kpi_summary(slide, analysis)
+
+
+def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None:
+    nms_result = analysis.get("nms_result")
+    if nms_result is None:
+        return
+
+    slide = presentation.slides.add_slide(presentation.slide_layouts[6])
+    title = f"NMS - {analysis['product_id']} / {analysis['segment']}"
+    _add_title(slide, title)
+
+    figure = make_nms_figure(nms_result)
+    image_bytes = figure_to_png_bytes(figure)
+    slide.shapes.add_picture(BytesIO(image_bytes), Inches(0.5), Inches(1.0), width=Inches(8.0))
+
+    box = slide.shapes.add_textbox(Inches(8.7), Inches(1.2), Inches(3.8), Inches(2.5))
+    frame = box.text_frame
+    frame.text = f"MaxTrial: {analysis['currency']} {nms_result.max_trial_price:.2f}"
+    frame.paragraphs[0].font.size = Pt(14)
+    paragraph = frame.add_paragraph()
+    paragraph.text = f"MaxRevenue: {analysis['currency']} {nms_result.max_revenue_price:.2f}"
+    paragraph.font.size = Pt(14)
+
+
+def build_pptx_report(
+    report_payload: dict[str, Any],
+    template_path: str | Path | None = None,
+) -> bytes:
+    presentation = _new_presentation(template_path=template_path)
+    analyses = report_payload.get("analyses", [])
+
+    for analysis in analyses:
+        _add_psm_slide(presentation, analysis)
+        _add_nms_slide(presentation, analysis)
 
     output = BytesIO()
     presentation.save(output)
