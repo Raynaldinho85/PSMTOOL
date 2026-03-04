@@ -56,3 +56,37 @@ def test_validate_normalizes_columns_and_coerces_numeric_values() -> None:
     assert any("non-numeric values" in warning for warning in result.warnings)
     assert any("non-positive values" in warning for warning in result.warnings)
     assert any("outside 1..5" in warning for warning in result.warnings)
+
+
+def test_validate_autoscales_fraction_pi_columns_to_percent() -> None:
+    df = _valid_base_frame()
+    df["pi_bargain_pct"] = [0.8]
+    df["pi_expensive_pct"] = [0.6]
+
+    result = validate_template(df)
+    assert result.is_valid is True
+    assert result.normalized_df["pi_bargain_pct"].iloc[0] == 80.0
+    assert result.normalized_df["pi_expensive_pct"].iloc[0] == 60.0
+    assert any("PI unit normalized" in warning for warning in result.warnings)
+
+
+def test_validate_rejects_mixed_pi_units() -> None:
+    df = _valid_base_frame()
+    df["pi_bargain_pct"] = [0.8]
+    df["pi_expensive_pct"] = [60.0]
+
+    result = validate_template(df)
+    assert result.is_valid is False
+    assert any("Mixed PI units detected" in error for error in result.errors)
+
+
+def test_validate_warns_for_tiny_fraction_like_pi_without_scaling() -> None:
+    df = _valid_base_frame()
+    df["pi_bargain_pct"] = [0.01]
+    df["pi_expensive_pct"] = [0.02]
+
+    result = validate_template(df)
+    assert result.is_valid is True
+    assert result.normalized_df["pi_bargain_pct"].iloc[0] == 0.01
+    assert result.normalized_df["pi_expensive_pct"].iloc[0] == 0.02
+    assert any("extremely small; not auto-scaled" in warning for warning in result.warnings)

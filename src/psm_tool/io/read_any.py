@@ -7,6 +7,8 @@ from typing import BinaryIO
 
 import pandas as pd
 
+from psm_tool.io.validate import normalize_single_pi_series
+
 
 class SAVDependencyError(RuntimeError):
     """Raised when SAV support is requested without optional dependency."""
@@ -73,7 +75,22 @@ def _canonicalize_pi_ladder(frame: pd.DataFrame) -> pd.DataFrame:
     out["price"] = pd.to_numeric(out["price"], errors="coerce")
     out["purchase_intention_pct"] = pd.to_numeric(out["purchase_intention_pct"], errors="coerce")
     out = out.dropna(subset=["price", "purchase_intention_pct"]).copy()
-    out["purchase_intention_pct"] = out["purchase_intention_pct"].clip(0.0, 100.0)
+
+    lower_bound_violation = bool((out["purchase_intention_pct"] < 0.0).any())
+    upper_bound_violation = bool((out["purchase_intention_pct"] > 100.0).any())
+    if lower_bound_violation or upper_bound_violation:
+        raise ValueError(
+            "Purchase intention ladder values must be in range 0..100 (percent) or "
+            "0..1 (fraction scale)."
+        )
+
+    normalized_series, pi_unit_note = normalize_single_pi_series(out["purchase_intention_pct"])
+    out["purchase_intention_pct"] = normalized_series
+    if bool((out["purchase_intention_pct"] > 100.0).any()):
+        raise ValueError(
+            "Purchase intention ladder values exceed 100 after normalization. "
+            "Please verify PI units."
+        )
 
     keep_cols = [col for col in PI_LADDER_OPTIONAL_COLUMNS if col in out.columns]
     keep_cols.extend(PI_LADDER_REQUIRED_COLUMNS)
@@ -84,6 +101,8 @@ def _canonicalize_pi_ladder(frame: pd.DataFrame) -> pd.DataFrame:
         out["segment"] = out["segment"].astype(str)
     if "product_id" in out.columns:
         out["product_id"] = out["product_id"].astype(str)
+    if pi_unit_note:
+        out.attrs["pi_unit_note"] = pi_unit_note
     return out
 
 

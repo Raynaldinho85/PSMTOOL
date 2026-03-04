@@ -22,7 +22,11 @@ from psm_tool.report.insights import (
     build_kpi_explanations,
     build_nms_explanations,
     build_nms_summary,
+    build_profit_explanations,
+    build_profit_summary,
     build_psm_summary,
+    build_turnover_explanations,
+    build_turnover_summary,
 )
 from psm_tool.ui.style import inject_base_styles
 
@@ -302,6 +306,21 @@ def main() -> None:
             float(unit_cost),
         )
 
+    pi_unit_notes: list[str] = []
+    for warning in st.session_state.get("psm_validation_warnings", []):
+        warning_text = str(warning)
+        has_pi_prefix = warning_text.startswith("PI unit")
+        has_tiny_fraction_hint = "fractions but are extremely small" in warning_text
+        if has_pi_prefix or has_tiny_fraction_hint:
+            pi_unit_notes.append(warning_text)
+    if nms_result is not None and nms_result.pi_unit_note:
+        pi_unit_notes.append(str(nms_result.pi_unit_note))
+    if selected_ladder is not None:
+        ladder_note = selected_ladder.attrs.get("pi_unit_note")
+        if ladder_note:
+            pi_unit_notes.append(str(ladder_note))
+    pi_unit_notes = list(dict.fromkeys(pi_unit_notes))
+
     _render_context_banner(
         selected_product=str(selected_product),
         selected_segment=str(selected_segment),
@@ -371,6 +390,8 @@ def main() -> None:
         if turnover_result is None and nms_result is None:
             st.info("No purchase intention source available for this selection.")
         else:
+            for note in pi_unit_notes:
+                st.caption(f"PI unit note: {note}")
             view_options = ["Purchase Intention + Turnover Index (0-100)"]
             if unit_cost is not None and profit_result is not None:
                 view_options.append("Profit Index (0-100)")
@@ -404,6 +425,26 @@ def main() -> None:
                         "PI ladder" if turnover_source == "ladder" else "NMS trial fallback"
                     )
                     col_t3.metric("PI Source", source_label)
+                    turnover_col1, turnover_col2 = st.columns([1.1, 1.0])
+                    with turnover_col1:
+                        st.markdown("**Turnover Key Facts**")
+                        turnover_key_facts = pd.DataFrame(
+                            build_turnover_explanations(
+                                turnover_result,
+                                currency=currency,
+                                source=turnover_source,
+                            )
+                        )
+                        st.dataframe(turnover_key_facts, use_container_width=True, hide_index=True)
+                    with turnover_col2:
+                        st.markdown("**Turnover Summary**")
+                        for sentence in build_turnover_summary(
+                            turnover_result,
+                            currency=currency,
+                            segment_label=str(selected_segment),
+                            source=turnover_source,
+                        ):
+                            st.markdown(f"- {sentence}")
             elif view_mode == "Profit Index (0-100)":
                 with st.container(border=True):
                     st.plotly_chart(
@@ -422,6 +463,21 @@ def main() -> None:
                 )
                 col_p2.metric("Break-even (Cost)", f"{currency} {float(unit_cost):.2f}")
                 col_p3.metric("Max Profit Index", f"{profit_result.max_profit_index:.2f}")
+                profit_col1, profit_col2 = st.columns([1.1, 1.0])
+                with profit_col1:
+                    st.markdown("**Profit Key Facts**")
+                    profit_key_facts = pd.DataFrame(
+                        build_profit_explanations(profit_result, currency=currency)
+                    )
+                    st.dataframe(profit_key_facts, use_container_width=True, hide_index=True)
+                with profit_col2:
+                    st.markdown("**Profit Summary**")
+                    for sentence in build_profit_summary(
+                        profit_result,
+                        currency=currency,
+                        segment_label=str(selected_segment),
+                    ):
+                        st.markdown(f"- {sentence}")
             else:
                 with st.container(border=True):
                     st.plotly_chart(make_nms_figure(nms_result), use_container_width=True)

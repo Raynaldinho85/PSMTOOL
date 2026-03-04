@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from psm_tool.io.validate import normalize_pi_pair_units
+
 
 @dataclass(slots=True)
 class NMSResult:
@@ -15,7 +17,9 @@ class NMSResult:
     included_n: int
     puki_filter_applied: bool
     puki_threshold: int | None
+    weighting_applied: bool
     filter_note: str | None = None
+    pi_unit_note: str | None = None
 
 
 def _interp_segment(x: float, x0: float, y0: float, x1: float, y1: float) -> float:
@@ -58,13 +62,14 @@ def _select_population(
     return selected, True, None
 
 
-def _weight_vector(df: pd.DataFrame, weight_col: str | None) -> np.ndarray:
+def resolve_nms_weights(df: pd.DataFrame, weight_col: str | None) -> tuple[np.ndarray, bool]:
     if weight_col and weight_col in df.columns:
         weights = pd.to_numeric(df[weight_col], errors="coerce").fillna(0.0).to_numpy(dtype=float)
         weights[weights < 0] = 0.0
         if np.sum(weights) > 0:
-            return weights
-    return np.ones(len(df), dtype=float)
+            return weights, True
+        return np.ones(len(df), dtype=float), False
+    return np.ones(len(df), dtype=float), False
 
 
 def _empty_nms_result(
@@ -73,7 +78,9 @@ def _empty_nms_result(
     included_n: int,
     puki_filter_applied: bool,
     puki_threshold: int | None,
+    weighting_applied: bool,
     note: str | None,
+    pi_unit_note: str | None,
 ) -> NMSResult:
     curves = pd.DataFrame(
         {
@@ -91,7 +98,9 @@ def _empty_nms_result(
         included_n=included_n,
         puki_filter_applied=puki_filter_applied,
         puki_threshold=puki_threshold,
+        weighting_applied=weighting_applied,
         filter_note=note,
+        pi_unit_note=pi_unit_note,
     )
 
 
@@ -119,6 +128,10 @@ def compute_nms(
     prices = np.asarray(prices, dtype=float)
     base_n = int(len(df_group))
     selected, filter_applied, note = _select_population(df_group, puki_threshold=puki_threshold)
+    try:
+        selected, pi_unit_note = normalize_pi_pair_units(selected)
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
     selected = selected.dropna(subset=required).copy()
     included_n = int(len(selected))
     threshold_out = puki_threshold if filter_applied else None
@@ -130,13 +143,15 @@ def compute_nms(
             included_n=0,
             puki_filter_applied=filter_applied,
             puki_threshold=threshold_out,
+            weighting_applied=False,
             note=note,
+            pi_unit_note=pi_unit_note,
         )
 
     respondent_curves = np.vstack(
         [_respondent_trial(row, prices) for _, row in selected.iterrows()]
     )
-    weights = _weight_vector(selected, weight_col=weight_col)
+    weights, weighting_applied = resolve_nms_weights(selected, weight_col=weight_col)
     trial_pct = np.average(respondent_curves, axis=0, weights=weights)
 
     revenue = (trial_pct / 100.0) * prices * 100.0
@@ -166,5 +181,7 @@ def compute_nms(
         included_n=included_n,
         puki_filter_applied=filter_applied,
         puki_threshold=threshold_out,
+        weighting_applied=weighting_applied,
         filter_note=note,
+        pi_unit_note=pi_unit_note,
     )

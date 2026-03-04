@@ -87,3 +87,35 @@ def test_read_optional_pi_ladder_returns_none_for_regular_csv() -> None:
     )
     parsed = read_optional_pi_ladder(payload, filename="device.csv")
     assert parsed is None
+
+
+def test_read_pi_ladder_autoscales_fraction_values_and_sets_note() -> None:
+    payload = (
+        pd.DataFrame({"price": [100, 200], "purchase_intention_pct": [0.8, 0.6]})
+        .to_csv(index=False)
+        .encode("utf-8")
+    )
+    parsed = read_pi_ladder(payload, filename="device_pi.csv")
+    assert np.allclose(parsed["purchase_intention_pct"].to_numpy(dtype=float), [80.0, 60.0])
+    assert "PI unit normalized" in str(parsed.attrs.get("pi_unit_note", ""))
+
+
+def test_read_pi_ladder_tiny_fraction_values_warn_without_scaling() -> None:
+    payload = (
+        pd.DataFrame({"price": [100, 200], "purchase_intention_pct": [0.01, 0.02]})
+        .to_csv(index=False)
+        .encode("utf-8")
+    )
+    parsed = read_pi_ladder(payload, filename="device_pi.csv")
+    assert np.allclose(parsed["purchase_intention_pct"].to_numpy(dtype=float), [0.01, 0.02])
+    assert "extremely small; not auto-scaled" in str(parsed.attrs.get("pi_unit_note", ""))
+
+
+def test_read_pi_ladder_rejects_values_above_100() -> None:
+    payload = (
+        pd.DataFrame({"price": [100, 200], "purchase_intention_pct": [75, 120]})
+        .to_csv(index=False)
+        .encode("utf-8")
+    )
+    with pytest.raises(ValueError, match="must be in range 0..100"):
+        read_pi_ladder(payload, filename="device_pi.csv")
