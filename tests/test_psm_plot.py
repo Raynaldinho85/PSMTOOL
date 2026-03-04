@@ -41,3 +41,11 @@ def test_psm_legend_title_is_hidden() -> None:
     else:
         legend_title = None
     assert legend_title in (None, "")
+
+
+def test_psm_adds_background_ranges_between_kpi_markers() -> None:
+    curves = _sample_curves()
+    fig = make_psm_figure(curves, compute_psm_kpis(curves))
+
+    rect_shapes = [shape for shape in fig.layout.shapes if str(shape.type) == "rect"]
+    assert len(rect_shapes) >= 3

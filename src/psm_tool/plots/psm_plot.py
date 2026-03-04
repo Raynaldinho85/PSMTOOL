@@ -1,9 +1,42 @@
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 import plotly.graph_objects as go
 
 from psm_tool.core.metrics import PSMKPIResult
+
+
+def _add_kpi_range_backgrounds(fig: go.Figure, kpis: PSMKPIResult) -> None:
+    points = sorted(
+        {
+            float(kpis.pmi.value),
+            float(kpis.opp.value),
+            float(kpis.idp.value),
+            float(kpis.pme.value),
+        }
+    )
+    points = [value for value in points if math.isfinite(value)]
+    if len(points) < 2:
+        return
+
+    fills = [
+        "rgba(245, 158, 11, 0.09)",
+        "rgba(251, 191, 36, 0.06)",
+        "rgba(245, 158, 11, 0.04)",
+    ]
+    for idx, (left, right) in enumerate(zip(points[:-1], points[1:], strict=False)):
+        if right <= left:
+            continue
+        fig.add_vrect(
+            x0=left,
+            x1=right,
+            fillcolor=fills[idx % len(fills)],
+            opacity=1.0,
+            line_width=0,
+            layer="below",
+        )
 
 
 def make_psm_figure(curves: pd.DataFrame, kpis: PSMKPIResult | None = None) -> go.Figure:
@@ -36,6 +69,7 @@ def make_psm_figure(curves: pd.DataFrame, kpis: PSMKPIResult | None = None) -> g
             )
 
     if kpis is not None:
+        _add_kpi_range_backgrounds(fig, kpis)
         annotation_positions = {
             "PMI": "top left",
             "OPP": "top left",
