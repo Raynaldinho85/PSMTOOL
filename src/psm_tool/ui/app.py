@@ -20,6 +20,7 @@ def _initialize_state() -> None:
     defaults = {
         "psm_input_df": None,
         "psm_pi_ladder_df": None,
+        "unit_cost_by_product": {},
         "psm_validation_errors": [],
         "psm_validation_warnings": [],
         "psm_analysis_payload": None,

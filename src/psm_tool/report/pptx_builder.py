@@ -122,6 +122,18 @@ def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, An
     figure = make_turnover_index_figure(turnover_result, currency=analysis["currency"])
     image_bytes = figure_to_png_bytes(figure)
     slide.shapes.add_picture(BytesIO(image_bytes), Inches(0.5), Inches(1.3), width=Inches(12.0))
+
+    unit_cost = analysis.get("unit_cost")
+    profit_result = analysis.get("profit_proxy_result")
+    if unit_cost is not None and profit_result is not None:
+        bullets = slide.shapes.add_textbox(Inches(0.5), Inches(6.9), Inches(12.0), Inches(0.5))
+        frame = bullets.text_frame
+        frame.text = (
+            f"Given unit cost {float(unit_cost):.2f} {analysis['currency']}, "
+            "the highest profit proxy is achieved at "
+            f"{profit_result.max_profit_price:.2f} {analysis['currency']}."
+        )
+        frame.paragraphs[0].font.size = Pt(12)
     return True
 
 

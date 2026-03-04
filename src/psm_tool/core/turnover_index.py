@@ -13,6 +13,14 @@ class TurnoverIndexResult:
     max_turnover_index: float
 
 
+@dataclass(slots=True)
+class ProfitProxyResult:
+    df: pd.DataFrame
+    unit_cost: float
+    max_profit_price: float
+    max_profit_index: float
+
+
 def _as_numeric_array(values: np.ndarray | pd.Series | list[float]) -> np.ndarray:
     array = np.asarray(values, dtype=float)
     if array.ndim != 1:
@@ -108,4 +116,45 @@ def compute_turnover_index(prices: np.ndarray, pi_pct: np.ndarray) -> TurnoverIn
         df=frame,
         max_turnover_price=max_turnover_price,
         max_turnover_index=max_turnover,
+    )
+
+
+def compute_profit_proxy(
+    prices: np.ndarray, pi_pct: np.ndarray, unit_cost: float
+) -> ProfitProxyResult:
+    if unit_cost < 0:
+        raise ValueError("unit_cost must be >= 0.")
+
+    price_arr = _as_numeric_array(prices)
+    pi_arr = np.clip(_as_numeric_array(pi_pct), 0.0, 100.0)
+    if len(price_arr) != len(pi_arr):
+        raise ValueError("prices and pi_pct must have equal length.")
+
+    profit_per_unit = price_arr - float(unit_cost)
+    profit_proxy_per_100 = profit_per_unit * (pi_arr / 100.0) * 100.0
+    max_profit = float(np.max(profit_proxy_per_100))
+    if max_profit <= 0:
+        profit_index = np.zeros_like(profit_proxy_per_100)
+    else:
+        profit_index = profit_proxy_per_100 / max_profit * 100.0
+
+    max_index_value = float(np.max(profit_proxy_per_100))
+    max_indices = np.flatnonzero(np.isclose(profit_proxy_per_100, max_index_value))
+    max_index = (
+        int(max_indices[0]) if len(max_indices) > 0 else int(np.argmax(profit_proxy_per_100))
+    )
+
+    frame = pd.DataFrame(
+        {
+            "price": price_arr,
+            "purchase_intention_pct": pi_arr,
+            "profit_proxy_per_100": profit_proxy_per_100,
+            "profit_index": profit_index,
+        }
+    )
+    return ProfitProxyResult(
+        df=frame,
+        unit_cost=float(unit_cost),
+        max_profit_price=float(price_arr[max_index]),
+        max_profit_index=float(np.max(profit_index)),
     )

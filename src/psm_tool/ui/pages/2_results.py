@@ -10,10 +10,14 @@ from psm_tool.core.metrics import compute_psm_kpis
 from psm_tool.core.nms import compute_nms
 from psm_tool.core.outliers import apply_outlier_filter
 from psm_tool.core.qc import apply_psm_validity_filter, compute_qc_report
-from psm_tool.core.turnover_index import compute_turnover_index, resolve_purchase_intention_curve
+from psm_tool.core.turnover_index import (
+    compute_profit_proxy,
+    compute_turnover_index,
+    resolve_purchase_intention_curve,
+)
 from psm_tool.plots.nms_plot import make_nms_figure
 from psm_tool.plots.psm_plot import make_psm_figure
-from psm_tool.plots.turnover_index_plot import make_turnover_index_figure
+from psm_tool.plots.turnover_index_plot import make_pi_economics_figure
 from psm_tool.report.insights import (
     build_kpi_explanations,
     build_nms_explanations,
@@ -79,6 +83,18 @@ def _select_pi_ladder_for_group(
     if len(selected) == 0:
         return None
     return selected
+
+
+def _cost_key(product_id: str, segment: str) -> str:
+    product = str(product_id).strip()
+    if product:
+        return product
+    return f"segment::{segment}"
+
+
+def _on_unit_cost_change(target_key: str, widget_key: str) -> None:
+    mapping = st.session_state.setdefault("unit_cost_by_product", {})
+    mapping[target_key] = float(st.session_state[widget_key])
 
 
 def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
@@ -181,6 +197,26 @@ def main() -> None:
         else:
             st.caption("PUKI column missing: PI filter is not applied.")
 
+        cost_map: dict[str, float] = st.session_state.setdefault("unit_cost_by_product", {})
+        unit_cost_key = _cost_key(str(selected_product), str(selected_segment))
+        widget_key = f"unit_cost_input::{unit_cost_key}"
+        default_cost = float(cost_map.get(unit_cost_key, 0.0))
+        with st.expander("Economics (optional)", expanded=False):
+            st.caption("Used only for calculations and exports in this session.")
+            st.number_input(
+                "Unit cost",
+                min_value=0.0,
+                value=default_cost,
+                step=1.0,
+                format="%.2f",
+                key=widget_key,
+                help="Used only for calculations and exports in this session.",
+                on_change=_on_unit_cost_change,
+                args=(unit_cost_key, widget_key),
+            )
+
+    unit_cost = cost_map.get(unit_cost_key)
+
     currency = str(_series_or_default(group_df, "currency", "").iloc[0]).upper()
     grid_cfg = _build_grid_config(mode, snap_enabled, manual_min, manual_max, manual_step)
 
@@ -258,6 +294,14 @@ def main() -> None:
         turnover_result = None
         turnover_source = None
 
+    profit_result = None
+    if turnover_result is not None and unit_cost is not None:
+        profit_result = compute_profit_proxy(
+            grid_details.prices,
+            turnover_result.df["purchase_intention_pct"].to_numpy(dtype=float),
+            float(unit_cost),
+        )
+
     _render_context_banner(
         selected_product=str(selected_product),
         selected_segment=str(selected_segment),
@@ -328,6 +372,8 @@ def main() -> None:
             st.info("No purchase intention source available for this selection.")
         else:
             view_options = ["Purchase Intention + Turnover Index (0-100)"]
+            if unit_cost is not None and profit_result is not None:
+                view_options.append("Profit Index (0-100)")
             if nms_result is not None:
                 view_options.append("Trial + Revenue (two axes)")
             view_mode = st.radio("Show", options=view_options, horizontal=True, index=0)
@@ -338,7 +384,11 @@ def main() -> None:
                 else:
                     with st.container(border=True):
                         st.plotly_chart(
-                            make_turnover_index_figure(turnover_result, currency=currency),
+                            make_pi_economics_figure(
+                                turnover_result,
+                                currency=currency,
+                                mode="turnover",
+                            ),
                             use_container_width=True,
                         )
                     col_t1, col_t2, col_t3 = st.columns(3)
@@ -354,6 +404,24 @@ def main() -> None:
                         "PI ladder" if turnover_source == "ladder" else "NMS trial fallback"
                     )
                     col_t3.metric("PI Source", source_label)
+            elif view_mode == "Profit Index (0-100)":
+                with st.container(border=True):
+                    st.plotly_chart(
+                        make_pi_economics_figure(
+                            turnover_result,
+                            currency=currency,
+                            mode="profit",
+                            profit_result=profit_result,
+                            unit_cost=float(unit_cost),
+                        ),
+                        use_container_width=True,
+                    )
+                col_p1, col_p2, col_p3 = st.columns(3)
+                col_p1.metric(
+                    "Max Profit Price", f"{currency} {profit_result.max_profit_price:.2f}"
+                )
+                col_p2.metric("Break-even (Cost)", f"{currency} {float(unit_cost):.2f}")
+                col_p3.metric("Max Profit Index", f"{profit_result.max_profit_index:.2f}")
             else:
                 with st.container(border=True):
                     st.plotly_chart(make_nms_figure(nms_result), use_container_width=True)
@@ -406,7 +474,9 @@ def main() -> None:
         "kpi_result": kpi_result,
         "nms_result": nms_result,
         "turnover_index_result": turnover_result,
+        "profit_proxy_result": profit_result,
         "turnover_source": turnover_source,
+        "unit_cost": unit_cost,
         "puki_threshold": puki_threshold,
         "outlier_settings": {
             "enabled": outlier_result.enabled,

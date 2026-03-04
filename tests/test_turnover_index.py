@@ -5,6 +5,7 @@ import pandas as pd
 
 from psm_tool.core.turnover_index import (
     align_pi_ladder_to_grid,
+    compute_profit_proxy,
     compute_turnover_index,
     resolve_purchase_intention_curve,
 )
@@ -43,3 +44,27 @@ def test_resolve_purchase_intention_curve_falls_back_to_nms_trial() -> None:
     )
     assert source == "nms_trial"
     assert np.allclose(pi_curve, [20.0, 30.0, 40.0])
+
+
+def test_compute_profit_proxy_normalizes_and_tie_breaks_lowest_price() -> None:
+    prices = np.array([100.0, 200.0, 300.0], dtype=float)
+    pi_pct = np.array([100.0, 50.0, 100.0], dtype=float)
+    result = compute_profit_proxy(prices, pi_pct, unit_cost=0.0)
+
+    assert np.allclose(
+        result.df["profit_proxy_per_100"].to_numpy(dtype=float), [10000.0, 10000.0, 30000.0]
+    )
+    assert np.isclose(result.max_profit_price, 300.0)
+    assert np.isclose(result.max_profit_index, 100.0)
+
+    tie = compute_profit_proxy(
+        np.array([100.0, 200.0], dtype=float), np.array([100.0, 50.0]), unit_cost=0.0
+    )
+    assert np.isclose(tie.max_profit_price, 100.0)
+
+
+def test_compute_profit_proxy_handles_non_positive_max() -> None:
+    prices = np.array([10.0, 20.0, 30.0], dtype=float)
+    pi_pct = np.array([0.0, 0.0, 0.0], dtype=float)
+    result = compute_profit_proxy(prices, pi_pct, unit_cost=5.0)
+    assert np.allclose(result.df["profit_index"].to_numpy(dtype=float), [0.0, 0.0, 0.0])

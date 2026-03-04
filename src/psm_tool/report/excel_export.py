@@ -53,28 +53,34 @@ def build_excel_report(report_payload: dict[str, Any]) -> bytes:
         for analysis in analyses:
             nms_result = analysis.get("nms_result")
             turnover_result = analysis.get("turnover_index_result")
-            if nms_result is None:
-                if turnover_result is not None:
-                    frame = turnover_result.df.copy()
-                    frame.insert(0, "segment", analysis["segment"])
-                    frame.insert(0, "product_id", analysis["product_id"])
-                    turnover_rows.append(frame)
-                continue
+            profit_result = analysis.get("profit_proxy_result")
+            unit_cost = analysis.get("unit_cost")
             row = {
                 "product_id": analysis["product_id"],
                 "segment": analysis["segment"],
                 "currency": analysis["currency"],
-                "max_trial_price": nms_result.max_trial_price,
-                "max_revenue_price": nms_result.max_revenue_price,
+                "max_trial_price": (nms_result.max_trial_price if nms_result is not None else None),
+                "max_revenue_price": (
+                    nms_result.max_revenue_price if nms_result is not None else None
+                ),
+                "unit_cost": unit_cost,
             }
             if turnover_result is not None:
                 row["max_turnover_price"] = turnover_result.max_turnover_price
                 row["max_turnover_index"] = turnover_result.max_turnover_index
                 frame = turnover_result.df.copy()
+                if profit_result is not None:
+                    row["max_profit_price"] = profit_result.max_profit_price
+                    row["max_profit_index"] = profit_result.max_profit_index
+                    profit_frame = profit_result.df[
+                        ["price", "profit_proxy_per_100", "profit_index"]
+                    ]
+                    frame = frame.merge(profit_frame, on="price", how="left")
                 frame.insert(0, "segment", analysis["segment"])
                 frame.insert(0, "product_id", analysis["product_id"])
                 turnover_rows.append(frame)
-            nms_rows.append(row)
+            if nms_result is not None or turnover_result is not None or profit_result is not None:
+                nms_rows.append(row)
         if nms_rows:
             pd.DataFrame(nms_rows).to_excel(writer, sheet_name="nms_kpis", index=False)
         if turnover_rows:
