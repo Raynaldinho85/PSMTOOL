@@ -3,6 +3,7 @@ from __future__ import annotations
 import streamlit as st
 
 from psm_tool.config import AppConfig
+from psm_tool.ui.style import inject_base_styles
 
 
 def _check_password(config: AppConfig) -> None:
@@ -29,23 +30,43 @@ def _initialize_state() -> None:
 def main() -> None:
     config = AppConfig()
     st.set_page_config(page_title="PSM Tool", page_icon=":bar_chart:", layout="wide")
+    inject_base_styles(max_width=1420)
     _initialize_state()
 
     st.title("PSM Tool")
-    st.caption("Van Westendorp Price Sensitivity Meter + optional NMS extension")
-    st.info("Privacy: uploaded files are processed in-memory and are not stored on disk.")
+    st.caption("Van Westendorp PSM with optional Newton-Miller-Smith Trial + Revenue extension.")
+
+    with st.container(border=True):
+        st.markdown(
+            "This app analyzes uploaded pricing survey data fully in-memory. "
+            "No raw upload files are written to disk by default."
+        )
 
     _check_password(config)
 
-    st.markdown(
-        """
-Use the page navigation in the sidebar:
-
-- **1 Upload**: load a CSV/XLSX/SAV file, download templates, or load synthetic demo data.
-- **2 Results**: calculate PSM curves/KPIs and inspect quality checks.
-- **3 Export**: generate PPTX/Excel outputs in-memory for download.
-"""
-    )
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        with st.container(border=True):
+            st.markdown("**1 Upload**")
+            st.markdown(
+                "<p class='psm-muted'>Load CSV/XLSX/SAV, validate template, or use demo data.</p>",
+                unsafe_allow_html=True,
+            )
+    with col2:
+        with st.container(border=True):
+            st.markdown("**2 Results**")
+            st.markdown(
+                "<p class='psm-muted'>Run PSM + optional NMS, review KPIs and quality checks.</p>",
+                unsafe_allow_html=True,
+            )
+    with col3:
+        with st.container(border=True):
+            st.markdown("**3 Export**")
+            st.markdown(
+                "<p class='psm-muted'>Download PowerPoint and Excel exports "
+                "generated in-memory.</p>",
+                unsafe_allow_html=True,
+            )
     if config.demo_mode:
         st.warning(
             "DEMO_MODE is enabled. Strict upload limits are active "

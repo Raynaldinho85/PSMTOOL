@@ -47,5 +47,11 @@ def make_nms_figure(result: NMSResult) -> go.Figure:
     figure.update_xaxes(title_text="Price")
     figure.update_yaxes(title_text="Trial %", secondary_y=False)
     figure.update_yaxes(title_text="Revenue / 100", secondary_y=True)
-    figure.update_layout(title="NMS Trial and Revenue", template="plotly_white")
+    figure.update_layout(
+        title="NMS Trial and Revenue",
+        template="plotly_white",
+        hovermode="x unified",
+        height=460,
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
+    )
     return figure

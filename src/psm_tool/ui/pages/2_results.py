@@ -18,18 +18,10 @@ from psm_tool.report.insights import (
     build_nms_summary,
     build_psm_summary,
 )
+from psm_tool.ui.style import inject_base_styles
 
 PRICE_COLUMNS = ["too_cheap", "bargain", "expensive_acceptable", "too_expensive"]
 OUTLIER_LABEL_TO_LEVEL = {"Mild": "mild", "Medium": "medium", "Streng": "strict"}
-RESULTS_PAGE_STYLE = """
-<style>
-section.main > div.block-container {
-    max-width: 1800px;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-}
-</style>
-"""
 
 
 def _series_or_default(df: pd.DataFrame, column: str, default: str) -> pd.Series:
@@ -81,22 +73,44 @@ def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
     )
 
 
+def _render_context_banner(
+    *,
+    selected_product: str,
+    selected_segment: str,
+    currency: str,
+    total_n: int,
+    valid_n: int,
+    analysis_n: int,
+) -> None:
+    with st.container(border=True):
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Selection", f"{selected_product} / {selected_segment}")
+        col2.metric("Currency", currency or "n/a")
+        col3.metric("Analysis N", f"{analysis_n} (valid {valid_n} / total {total_n})")
+
+
 def main() -> None:
-    st.markdown(RESULTS_PAGE_STYLE, unsafe_allow_html=True)
+    inject_base_styles(max_width=1820)
     st.title("2. Results")
+
     df: pd.DataFrame | None = st.session_state.get("psm_input_df")
     if df is None:
         st.warning("No dataset loaded. Open page '1 Upload' first.")
         return
 
-    product_values = sorted(_series_or_default(df, "product_id", "default_product").unique())
-    selected_product = st.selectbox("Product", options=product_values, index=0)
+    with st.container(border=True):
+        st.subheader("Selection")
+        select_col1, select_col2 = st.columns(2)
+        product_values = sorted(_series_or_default(df, "product_id", "default_product").unique())
+        selected_product = select_col1.selectbox("Product", options=product_values, index=0)
 
-    product_df = df.loc[
-        _series_or_default(df, "product_id", "default_product") == selected_product
-    ].copy()
-    segment_values = sorted(_series_or_default(product_df, "segment", "default_segment").unique())
-    selected_segment = st.selectbox("Segment", options=segment_values, index=0)
+        product_df = df.loc[
+            _series_or_default(df, "product_id", "default_product") == selected_product
+        ].copy()
+        segment_values = sorted(
+            _series_or_default(product_df, "segment", "default_segment").unique()
+        )
+        selected_segment = select_col2.selectbox("Segment", options=segment_values, index=0)
 
     group_df = product_df.loc[
         _series_or_default(product_df, "segment", "default_segment") == selected_segment
@@ -105,41 +119,44 @@ def main() -> None:
         st.warning("No data for selected product/segment.")
         return
 
-    st.subheader("Price Grid Settings")
-    cfg_col1, cfg_col2 = st.columns(2)
-    mode = cfg_col1.selectbox("Grid mode", options=["auto", "manual"], index=0)
-    snap_enabled = cfg_col2.toggle("Snap to currency increment", value=True)
+    with st.container(border=True):
+        st.subheader("Analysis Controls")
+        cfg_col1, cfg_col2 = st.columns(2)
+        mode = cfg_col1.selectbox("Grid mode", options=["auto", "manual"], index=0)
+        snap_enabled = cfg_col2.toggle("Snap to currency increment", value=True)
 
-    manual_min: float | None = None
-    manual_max: float | None = None
-    manual_step: float | None = None
-    if mode == "manual":
-        manual_col1, manual_col2, manual_col3 = st.columns(3)
-        manual_min = float(manual_col1.number_input("Manual min", value=0.0))
-        manual_max = float(manual_col2.number_input("Manual max", value=100.0))
-        manual_step = float(manual_col3.number_input("Manual step", value=5.0, min_value=0.01))
+        manual_min: float | None = None
+        manual_max: float | None = None
+        manual_step: float | None = None
+        if mode == "manual":
+            manual_col1, manual_col2, manual_col3 = st.columns(3)
+            manual_min = float(manual_col1.number_input("Manual min", value=0.0))
+            manual_max = float(manual_col2.number_input("Manual max", value=100.0))
+            manual_step = float(manual_col3.number_input("Manual step", value=5.0, min_value=0.01))
 
-    st.subheader("Data Guardrails")
-    outlier_col1, outlier_col2 = st.columns(2)
-    outlier_enabled = outlier_col1.toggle("Ausreißerfilter aktiv", value=False)
-    outlier_label = "Medium"
-    if outlier_enabled:
-        outlier_label = outlier_col2.selectbox(
-            "Ausreißer-Härte",
-            options=["Mild", "Medium", "Streng"],
-            index=1,
-        )
-    outlier_level = OUTLIER_LABEL_TO_LEVEL[outlier_label]
+        outlier_col1, outlier_col2 = st.columns(2)
+        outlier_enabled = outlier_col1.toggle("Ausreisserfilter aktiv", value=False)
+        outlier_label = "Medium"
+        if outlier_enabled:
+            outlier_label = outlier_col2.selectbox(
+                "Ausreisser-Haerte",
+                options=["Mild", "Medium", "Streng"],
+                index=1,
+            )
+        outlier_level = OUTLIER_LABEL_TO_LEVEL[outlier_label]
+
+        has_puki = "puki" in group_df.columns
+        puki_threshold = 2
+        if has_puki:
+            include_neutral = st.toggle(
+                "Include neutral PUKI (<=3)", value=False, key="puki_neutral"
+            )
+            puki_threshold = 3 if include_neutral else 2
+        else:
+            st.caption("PUKI column missing: PI filter is not applied.")
 
     currency = str(_series_or_default(group_df, "currency", "").iloc[0]).upper()
     grid_cfg = _build_grid_config(mode, snap_enabled, manual_min, manual_max, manual_step)
-    has_puki = "puki" in group_df.columns
-    puki_threshold = 2
-    if has_puki:
-        include_neutral = st.toggle("Include neutral PUKI (<=3)", value=False, key="puki_neutral")
-        puki_threshold = 3 if include_neutral else 2
-    else:
-        st.caption("PUKI column missing: PI filter is not applied.")
 
     qc = compute_qc_report(
         group_df,
@@ -183,27 +200,8 @@ def main() -> None:
     _weights, psm_weighting_applied = resolve_psm_weights(analysis_df, weight_col)
     curves = compute_psm_curves(analysis_df, grid_details.prices, weight_col=weight_col)
     kpi_result = compute_psm_kpis(curves)
-    figure = make_psm_figure(curves, kpi_result)
-
-    increment = getattr(grid_details, "increment", None)
-    grid_method = getattr(grid_details, "method", "legacy")
-    grid_p05 = getattr(grid_details, "p05", None)
-    grid_p95 = getattr(grid_details, "p95", None)
-    increment_label = "None" if increment is None else f"{increment:g}"
-    p05_label = "n/a" if grid_p05 is None else f"{grid_p05:.2f}"
-    p95_label = "n/a" if grid_p95 is None else f"{grid_p95:.2f}"
-    st.caption(
-        f"Grid method={grid_method} | "
-        f"Grid increment used: {increment_label} | "
-        f"grid_min={grid_details.min_price:.2f} | "
-        f"grid_max={grid_details.max_price:.2f} | "
-        f"grid_step={grid_details.step:.2f} | "
-        f"p05={p05_label} | p95={p95_label}"
-    )
-    st.plotly_chart(figure, use_container_width=True)
-
     kpi_dict = kpi_result.as_dict()
-    _render_kpi_cards(currency + " ", kpi_dict)
+    figure = make_psm_figure(curves, kpi_result)
 
     nms_result = None
     if _has_nms_columns(analysis_df):
@@ -214,27 +212,23 @@ def main() -> None:
             puki_threshold=puki_threshold,
         )
 
-    st.subheader("Key Facts")
-    key_facts = pd.DataFrame(build_kpi_explanations(kpi_dict))
-    st.dataframe(key_facts, use_container_width=True, hide_index=True)
-
-    nms_kpis = None
-    if nms_result is not None:
-        nms_kpis = {
-            "max_trial_price": nms_result.max_trial_price,
-            "max_revenue_price": nms_result.max_revenue_price,
-        }
-    summary_lines = build_psm_summary(
-        kpi_dict,
+    _render_context_banner(
+        selected_product=str(selected_product),
+        selected_segment=str(selected_segment),
         currency=currency,
-        segment_label=str(selected_segment),
-        nms_kpis=nms_kpis,
+        total_n=len(group_df),
+        valid_n=len(valid_df),
+        analysis_n=len(analysis_df),
     )
-    st.subheader("Summary")
-    for sentence in summary_lines:
-        st.markdown(f"- {sentence}")
 
-    st.subheader("Quality Control")
+    increment = getattr(grid_details, "increment", None)
+    grid_method = getattr(grid_details, "method", "legacy")
+    grid_p05 = getattr(grid_details, "p05", None)
+    grid_p95 = getattr(grid_details, "p95", None)
+    increment_label = "None" if increment is None else f"{increment:g}"
+    p05_label = "n/a" if grid_p05 is None else f"{grid_p05:.2f}"
+    p95_label = "n/a" if grid_p95 is None else f"{grid_p95:.2f}"
+
     qc_df = qc.as_frame()
     qc_df["excluded_psm_n"] = int((~valid_mask).sum())
     qc_df["outlier_filter_applied"] = outlier_result.enabled
@@ -244,39 +238,85 @@ def main() -> None:
     qc_df["outlier_excluded_n"] = outlier_result.excluded_n
     qc_df["analysis_n_after_outlier"] = int(len(analysis_df))
     qc_df["psm_weighting_applied"] = psm_weighting_applied
-    st.dataframe(qc_df, use_container_width=True)
-    if weight_col and not psm_weighting_applied:
-        st.caption(
-            "Weight fallback active: weight column exists but is unusable "
-            "(all missing/zero/invalid). Unweighted calculation was applied."
-        )
 
-    if nms_result is not None:
-        st.subheader("NMS Trial + Revenue")
-        st.plotly_chart(make_nms_figure(nms_result), use_container_width=True)
-        col_n1, col_n2, col_n3 = st.columns(3)
-        col_n1.metric("MaxTrial Price", f"{currency} {nms_result.max_trial_price:.2f}")
-        col_n2.metric("MaxRevenue Price", f"{currency} {nms_result.max_revenue_price:.2f}")
-        col_n3.metric("NMS Included N", str(nms_result.included_n))
-        if nms_result.filter_note:
-            st.caption(nms_result.filter_note)
-        if weight_col and not nms_result.weighting_applied:
+    psm_tab, nms_tab, qc_tab = st.tabs(["PSM", "NMS Trial + Revenue", "Quality Control"])
+
+    with psm_tab:
+        with st.container(border=True):
             st.caption(
-                "NMS weight fallback active: invalid/empty weights were replaced by "
-                "unweighted averaging."
+                f"Grid method={grid_method} | "
+                f"Grid increment used: {increment_label} | "
+                f"grid_min={grid_details.min_price:.2f} | "
+                f"grid_max={grid_details.max_price:.2f} | "
+                f"grid_step={grid_details.step:.2f} | "
+                f"p05={p05_label} | p95={p95_label}"
             )
-        st.markdown("**NMS Key Facts**")
-        nms_key_facts = pd.DataFrame(build_nms_explanations(nms_result, currency=currency))
-        st.dataframe(nms_key_facts, use_container_width=True, hide_index=True)
-        st.markdown("**NMS Summary**")
-        for sentence in build_nms_summary(
-            nms_result,
-            currency=currency,
-            segment_label=str(selected_segment),
-        ):
-            st.markdown(f"- {sentence}")
-    else:
-        st.info("PI columns are missing. NMS chart is not available for this selection.")
+            st.plotly_chart(figure, use_container_width=True)
+
+        _render_kpi_cards(currency + " ", kpi_dict)
+
+        psm_col1, psm_col2 = st.columns([1.1, 1.0])
+        with psm_col1:
+            st.markdown("**Key Facts**")
+            key_facts = pd.DataFrame(build_kpi_explanations(kpi_dict))
+            st.dataframe(key_facts, use_container_width=True, hide_index=True)
+        with psm_col2:
+            st.markdown("**Summary**")
+            nms_kpis = None
+            if nms_result is not None:
+                nms_kpis = {
+                    "max_trial_price": nms_result.max_trial_price,
+                    "max_revenue_price": nms_result.max_revenue_price,
+                }
+            summary_lines = build_psm_summary(
+                kpi_dict,
+                currency=currency,
+                segment_label=str(selected_segment),
+                nms_kpis=nms_kpis,
+            )
+            for sentence in summary_lines:
+                st.markdown(f"- {sentence}")
+
+    with nms_tab:
+        if nms_result is None:
+            st.info("PI columns are missing. NMS chart is not available for this selection.")
+        else:
+            with st.container(border=True):
+                st.plotly_chart(make_nms_figure(nms_result), use_container_width=True)
+            col_n1, col_n2, col_n3 = st.columns(3)
+            col_n1.metric("MaxTrial Price", f"{currency} {nms_result.max_trial_price:.2f}")
+            col_n2.metric("MaxRevenue Price", f"{currency} {nms_result.max_revenue_price:.2f}")
+            col_n3.metric("NMS Included N", str(nms_result.included_n))
+            if nms_result.filter_note:
+                st.caption(nms_result.filter_note)
+            if weight_col and not nms_result.weighting_applied:
+                st.caption(
+                    "NMS weight fallback active: invalid/empty weights were replaced by "
+                    "unweighted averaging."
+                )
+            nms_col1, nms_col2 = st.columns([1.1, 1.0])
+            with nms_col1:
+                st.markdown("**NMS Key Facts**")
+                nms_key_facts = pd.DataFrame(build_nms_explanations(nms_result, currency=currency))
+                st.dataframe(nms_key_facts, use_container_width=True, hide_index=True)
+            with nms_col2:
+                st.markdown("**NMS Summary**")
+                for sentence in build_nms_summary(
+                    nms_result,
+                    currency=currency,
+                    segment_label=str(selected_segment),
+                ):
+                    st.markdown(f"- {sentence}")
+
+    with qc_tab:
+        st.dataframe(qc_df, use_container_width=True)
+        if weight_col and not psm_weighting_applied:
+            st.caption(
+                "Weight fallback active: weight column exists but is unusable "
+                "(all missing/zero/invalid). Unweighted calculation was applied."
+            )
+        with st.expander("Outlier bounds", expanded=False):
+            st.dataframe(outlier_result.bounds.reset_index(), use_container_width=True)
 
     st.session_state["psm_analysis_payload"] = {
         "product_id": selected_product,

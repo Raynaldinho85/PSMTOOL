@@ -9,6 +9,7 @@ import streamlit as st
 from psm_tool.config import AppConfig
 from psm_tool.io.read_any import SAVDependencyError, read_any
 from psm_tool.io.validate import template_columns, validate_template
+from psm_tool.ui.style import inject_base_styles
 
 
 def _empty_template_df() -> pd.DataFrame:
@@ -55,49 +56,85 @@ def _render_validation_messages() -> None:
         st.warning(warning)
 
 
+def _render_loaded_dataset_summary(df: pd.DataFrame, *, demo_mode: bool) -> None:
+    segments = int(df["segment"].nunique(dropna=True)) if "segment" in df.columns else 0
+    products = int(df["product_id"].nunique(dropna=True)) if "product_id" in df.columns else 1
+    currencies = int(df["currency"].nunique(dropna=True)) if "currency" in df.columns else 0
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Rows", f"{len(df)}")
+    col2.metric("Columns", f"{len(df.columns)}")
+    col3.metric("Segments", f"{segments}")
+    col4.metric("Products / Currencies", f"{products} / {currencies}")
+
+    if demo_mode:
+        st.caption("DEMO_MODE hides raw row preview.")
+        return
+
+    with st.expander("Preview first 30 rows", expanded=False):
+        st.dataframe(df.head(30), use_container_width=True)
+
+
 def main() -> None:
     config = AppConfig()
+    inject_base_styles(max_width=1400)
+
     st.title("1. Upload")
     st.caption("Accepted formats: CSV, XLSX, SAV")
-    st.info("Files are processed in-memory only and never persisted by default.")
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.download_button(
-            "Download CSV template",
-            data=_csv_template_bytes(),
-            file_name="psm_template.csv",
-            mime="text/csv",
+    with st.container(border=True):
+        st.markdown(
+            "Privacy safeguard: all uploaded files are processed in-memory "
+            "and not persisted by default."
         )
-    with col2:
-        st.download_button(
-            "Download XLSX template",
-            data=_xlsx_template_bytes(),
-            file_name="psm_template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    with col3:
-        if st.button("Load example dataset"):
-            _store_dataset(_load_sample_dataset())
-            st.success("Loaded synthetic packaged example dataset.")
 
-    uploaded = st.file_uploader("Upload input dataset", type=["csv", "xlsx", "sav"])
-    if uploaded is not None:
-        try:
-            frame = read_any(uploaded.getvalue(), filename=uploaded.name)
-        except SAVDependencyError as exc:
-            st.error(str(exc))
-        except Exception as exc:
-            st.error(f"Failed to read '{uploaded.name}': {exc}")
-        else:
-            if config.demo_mode and len(frame) > config.max_rows_demo:
-                st.error(
-                    "DEMO_MODE upload limit exceeded: "
-                    f"{len(frame)} rows provided, max {config.max_rows_demo} allowed."
-                )
+    with st.container(border=True):
+        st.subheader("Template and Demo Data")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.download_button(
+                "Download CSV template",
+                data=_csv_template_bytes(),
+                file_name="psm_template.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        with col2:
+            st.download_button(
+                "Download XLSX template",
+                data=_xlsx_template_bytes(),
+                file_name="psm_template.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+        with col3:
+            if st.button("Load example dataset", use_container_width=True):
+                _store_dataset(_load_sample_dataset())
+                st.success("Loaded synthetic packaged example dataset.")
+
+    with st.container(border=True):
+        st.subheader("Upload Input File")
+        uploaded = st.file_uploader(
+            "Choose input dataset",
+            type=["csv", "xlsx", "sav"],
+            help="Required template columns must match exactly.",
+        )
+        if uploaded is not None:
+            try:
+                frame = read_any(uploaded.getvalue(), filename=uploaded.name)
+            except SAVDependencyError as exc:
+                st.error(str(exc))
+            except Exception as exc:
+                st.error(f"Failed to read '{uploaded.name}': {exc}")
             else:
-                _store_dataset(frame)
-                st.success(f"Loaded '{uploaded.name}' with {len(frame)} rows.")
+                if config.demo_mode and len(frame) > config.max_rows_demo:
+                    st.error(
+                        "DEMO_MODE upload limit exceeded: "
+                        f"{len(frame)} rows provided, max {config.max_rows_demo} allowed."
+                    )
+                else:
+                    _store_dataset(frame)
+                    st.success(f"Loaded '{uploaded.name}' with {len(frame)} rows.")
 
     _render_validation_messages()
 
@@ -106,12 +143,9 @@ def main() -> None:
         st.info("No valid dataset loaded yet.")
         return
 
-    st.success("Dataset is valid for analysis.")
-    st.write(f"Rows: **{len(current_df)}** | Columns: **{len(current_df.columns)}**")
-    if config.demo_mode:
-        st.caption("DEMO_MODE hides raw row preview.")
-    else:
-        st.dataframe(current_df.head(30), use_container_width=True)
+    with st.container(border=True):
+        st.success("Dataset is valid for analysis.")
+        _render_loaded_dataset_summary(current_df, demo_mode=config.demo_mode)
 
 
 if __name__ == "__main__":
