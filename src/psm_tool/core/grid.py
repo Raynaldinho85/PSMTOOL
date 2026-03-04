@@ -9,6 +9,8 @@ import pandas as pd
 from psm_tool.config import GridConfig
 
 PRICE_COLUMNS = ["too_cheap", "bargain", "expensive_acceptable", "too_expensive"]
+TARGET_POINTS = 100
+MIN_QUANTILE_VALUES = 20
 
 
 @dataclass(slots=True)
@@ -19,6 +21,9 @@ class PriceGridResult:
     step: float
     increment: float | None
     snapped: bool
+    p05: float | None = None
+    p95: float | None = None
+    method: str = "legacy"
 
 
 def _nice_step(raw_step: float) -> float:
@@ -65,23 +70,41 @@ def _get_increment(cfg: GridConfig, currency: str | None) -> float | None:
     return cfg.currency_snap.get(str(currency).upper())
 
 
+def _psm_valid_threshold_values(df_group: pd.DataFrame) -> np.ndarray:
+    numeric = df_group[PRICE_COLUMNS].apply(pd.to_numeric, errors="coerce")
+    complete = numeric.notna().all(axis=1)
+    ordered = (
+        (numeric["too_cheap"] < numeric["bargain"])
+        & (numeric["bargain"] < numeric["expensive_acceptable"])
+        & (numeric["expensive_acceptable"] < numeric["too_expensive"])
+    )
+    valid = complete & ordered
+    valid_values = numeric.loc[valid].to_numpy(dtype=float).ravel()
+    return valid_values[~np.isnan(valid_values)]
+
+
+def _legacy_auto_bounds_step(values: np.ndarray) -> tuple[float, float, float]:
+    raw_min = float(np.floor(np.min(values)))
+    raw_max = float(np.ceil(np.max(values)))
+    data_range = max(raw_max - raw_min, 1.0)
+    derived_step = max(_nice_step(data_range / 120.0), _resolution_step(values))
+    return raw_min, raw_max, float(derived_step)
+
+
 def build_price_grid_details(
     df_group: pd.DataFrame,
     grid_config: GridConfig | None = None,
     currency: str | None = None,
 ) -> PriceGridResult:
     cfg = grid_config or GridConfig()
-    raw_values = (
-        df_group[PRICE_COLUMNS].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float).ravel()
-    )
-    values = raw_values[~np.isnan(raw_values)]
+    values = _psm_valid_threshold_values(df_group)
     if len(values) == 0:
         raise ValueError("Cannot build grid: no numeric threshold values available.")
 
-    raw_min = float(np.floor(np.min(values)))
-    raw_max = float(np.ceil(np.max(values)))
-    data_range = max(raw_max - raw_min, 1.0)
-    derived_step = max(_nice_step(data_range / 120.0), _resolution_step(values))
+    legacy_min, legacy_max, legacy_step = _legacy_auto_bounds_step(values)
+    p05: float | None = None
+    p95: float | None = None
+    method = "legacy"
 
     if cfg.mode == "manual":
         if cfg.min_price is None or cfg.max_price is None or cfg.step is None:
@@ -90,26 +113,53 @@ def build_price_grid_details(
         max_price = float(cfg.max_price)
         step = float(cfg.step)
     else:
-        min_price = raw_min
-        max_price = raw_max
-        step = float(derived_step)
+        if len(values) >= MIN_QUANTILE_VALUES:
+            p05_candidate = float(np.quantile(values, 0.05))
+            p95_candidate = float(np.quantile(values, 0.95))
+            if (
+                np.isfinite(p05_candidate)
+                and np.isfinite(p95_candidate)
+                and p95_candidate > p05_candidate
+            ):
+                span = p95_candidate - p05_candidate
+                min_price = max(0.0, p05_candidate - 0.25 * span)
+                max_price = p95_candidate + 0.25 * span
+                step = float("nan")
+                p05 = p05_candidate
+                p95 = p95_candidate
+                method = "quantile"
+            else:
+                min_price = legacy_min
+                max_price = legacy_max
+                step = legacy_step
+        else:
+            min_price = legacy_min
+            max_price = legacy_max
+            step = legacy_step
 
     increment = _get_increment(cfg, currency)
     snapped = increment is not None
     if increment is not None:
         min_price = _snap_value(min_price, increment, mode="floor")
         max_price = _snap_value(max_price, increment, mode="ceil")
-        step = max(step, increment)
-        step = _round_up_multiple(step, increment)
+        if method != "quantile":
+            step = max(step, increment)
+            step = _round_up_multiple(step, increment)
+
+    if cfg.mode == "auto" and method == "quantile":
+        step_raw = max((max_price - min_price) / TARGET_POINTS, 1e-12)
+        step = _nice_step(step_raw)
+        if increment is not None:
+            step = max(step, increment)
+            step = _round_up_multiple(step, increment)
 
     if step <= 0:
         raise ValueError("Grid step must be > 0.")
     if max_price < min_price:
         raise ValueError("Grid max_price must be >= min_price.")
 
-    span = max_price - min_price
-    n_steps = int(math.floor(span / step)) + 1
-    prices = min_price + np.arange(n_steps, dtype=float) * step
+    prices = np.arange(min_price, max_price + step, step, dtype=float)
+    prices = prices[prices <= (max_price + 1e-12)]
     if len(prices) == 0 or not np.isclose(prices[-1], max_price):
         prices = np.append(prices, max_price)
 
@@ -121,6 +171,9 @@ def build_price_grid_details(
         step=float(step),
         increment=increment,
         snapped=snapped,
+        p05=p05,
+        p95=p95,
+        method=method,
     )
 
 

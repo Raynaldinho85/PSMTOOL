@@ -21,9 +21,12 @@ def test_golden_master_psm_kpis_are_stable() -> None:
     curves = compute_psm_curves(valid_df, grid.prices, weight_col="weight")
     kpis = compute_psm_kpis(curves)
 
-    assert np.isclose(grid.min_price, 15.0)
-    assert np.isclose(grid.max_price, 60.0)
+    assert grid.method == "quantile"
+    assert np.isclose(grid.min_price, 5.0)
+    assert np.isclose(grid.max_price, 70.0)
     assert np.isclose(grid.step, 5.0)
+    assert np.isclose(grid.p05, 17.1)
+    assert np.isclose(grid.p95, 55.45)
     assert np.isclose(kpis.pmi.value, 26.35135135135135)
     assert np.isclose(kpis.opp.value, 30.0)
     assert np.isclose(kpis.idp.value, 35.0)
