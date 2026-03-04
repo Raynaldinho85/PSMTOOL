@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "psm-tool"
+version = "0.1.0"
+description = "Self-service Price Sensitivity Meter (Van Westendorp + optional NMS) toolkit"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "PSM Tool Demo" }]
+dependencies = [
+  "numpy>=1.26,<3",
+  "openpyxl>=3.1,<4",
+  "pandas>=2.2,<3",
+  "plotly>=6.1.1,<7",
+  "python-pptx>=1.0.2,<2",
+  "kaleido>=1.0.0,<2",
+  "streamlit>=1.40,<2",
+  "xlsxwriter>=3.2,<4",
+]
+
+[project.optional-dependencies]
+sav = ["pyreadstat>=1.2.7,<2"]
+dev = [
+  "mypy>=1.15,<2",
+  "pre-commit>=4.2,<5",
+  "pytest>=8.3,<9",
+  "ruff>=0.11,<1",
+]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+psm_tool = ["resources/*.csv"]
+
+[tool.pytest.ini_options]
+addopts = "-q -m \"not sav\" -p no:cacheprovider"
+markers = ["sav: tests that require pyreadstat optional dependency"]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+  ".venv",
+  ".git",
+  "wheelhouse",
+  "pytest-cache-files-*",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

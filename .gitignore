@@ -1,21 +1,40 @@
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+pytest-cache-files-*/
 
-# Virtual Environment
+# Virtual environments
 .venv/
+venv/
 
-# Build
+# Build artifacts
 build/
 dist/
 *.egg-info/
+*.whl
+pip-wheel-metadata/
 
-# VS Code
+# Local app artifacts
+exports/*
+!exports/.gitkeep
+data_private/*
+!data_private/.gitkeep
+
+# Local logs/temp
+*.log
+*.tmp
+tmp/
+.tmp/
+
+# IDE/OS
 .vscode/
-
-# OS
+.idea/
 .DS_Store
 Thumbs.db
 
-# Offline packages
+# Offline package cache
 wheelhouse/

@@ -1,0 +1,17 @@
+respondent_id,segment,currency,product_id,too_cheap,bargain,expensive_acceptable,too_expensive,weight,puki,pi_bargain_pct,pi_expensive_pct
+DE_001,DE,EUR,Classic,18,25,34,42,1.0,1,82,58
+DE_002,DE,EUR,Classic,20,28,36,45,1.1,2,79,55
+DE_003,DE,EUR,Classic,17,24,33,41,0.9,2,81,57
+DE_004,DE,EUR,Classic,19,26,35,44,1.0,3,73,50
+DE_005,DE,EUR,Classic,21,29,37,47,1.2,1,85,61
+DE_006,DE,EUR,Premium,24,32,43,56,1.1,2,76,49
+DE_007,DE,EUR,Premium,25,34,45,58,1.0,1,80,53
+DE_008,DE,EUR,Premium,23,31,42,55,0.8,3,72,46
+SE_001,SE,SEK,Classic,170,230,310,390,1.0,1,74,51
+SE_002,SE,SEK,Classic,180,240,320,405,1.1,2,76,52
+SE_003,SE,SEK,Classic,165,225,300,380,0.9,2,73,50
+SE_004,SE,SEK,Classic,190,250,335,420,1.2,3,70,47
+SE_005,SE,SEK,Classic,175,235,315,395,1.0,1,77,54
+SE_006,SE,SEK,Premium,220,285,380,470,1.0,2,69,43
+SE_007,SE,SEK,Premium,210,275,365,455,0.9,1,71,45
+SE_008,SE,SEK,Premium,225,290,390,480,1.1,3,66,41

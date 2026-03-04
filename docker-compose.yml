@@ -1,0 +1,8 @@
+services:
+  psm-tool:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      DEMO_MODE: "true"
+      APP_PASSWORD: ""
