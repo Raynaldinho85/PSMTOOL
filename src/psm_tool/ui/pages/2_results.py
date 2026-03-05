@@ -191,6 +191,60 @@ def _format_additional_metric_value(
     return "—", "unstable"
 
 
+def _build_turnover_summary_safe(
+    *,
+    turnover_result,
+    currency: str,
+    segment_label: str,
+    source: str | None,
+    kpi_statuses: dict[str, str] | None = None,
+) -> list[str]:
+    try:
+        return build_turnover_summary(
+            turnover_result,
+            currency=currency,
+            segment_label=segment_label,
+            source=source,
+            kpi_statuses=kpi_statuses,
+        )
+    except TypeError as exc:
+        if "unexpected keyword argument 'kpi_statuses'" not in str(exc):
+            raise
+        return build_turnover_summary(
+            turnover_result,
+            currency=currency,
+            segment_label=segment_label,
+            source=source,
+        )
+
+
+def _build_profit_summary_safe(
+    *,
+    profit_result,
+    currency: str,
+    segment_label: str,
+    product_label: str,
+    kpi_statuses: dict[str, str] | None = None,
+) -> list[str]:
+    try:
+        return build_profit_summary(
+            profit_result,
+            currency=currency,
+            segment_label=segment_label,
+            product_label=product_label,
+            kpi_statuses=kpi_statuses,
+        )
+    except TypeError as exc:
+        if "unexpected keyword argument 'kpi_statuses'" not in str(exc):
+            raise
+        return build_profit_summary(
+            profit_result,
+            currency=currency,
+            segment_label=segment_label,
+            product_label=product_label,
+        )
+
+
 def _render_kpi_cards(
     price_symbol: str,
     kpis: dict[str, float | str],
@@ -1055,8 +1109,8 @@ def main() -> None:
 
             with st.container(border=True):
                 st.markdown("**Purchase Intention and Turnover Summary**")
-                summary_lines = build_turnover_summary(
-                    turnover_result,
+                summary_lines = _build_turnover_summary_safe(
+                    turnover_result=turnover_result,
                     currency=currency,
                     segment_label=str(selected_segment),
                     source=turnover_source,
@@ -1181,8 +1235,8 @@ def main() -> None:
             }
             with st.container(border=True):
                 st.markdown("**Profit Summary**")
-                summary_lines = build_profit_summary(
-                    profit_result,
+                summary_lines = _build_profit_summary_safe(
+                    profit_result=profit_result,
                     currency=currency,
                     segment_label=str(selected_segment),
                     product_label=str(selected_product),

@@ -95,6 +95,60 @@ def _headline_from_sentence(sentence: str, fallback: str) -> str:
     return f"{short}..."
 
 
+def _build_turnover_summary_safe(
+    *,
+    turnover_result: Any,
+    currency: str,
+    segment_label: str,
+    source: str | None,
+    kpi_statuses: dict[str, str] | None = None,
+) -> list[str]:
+    try:
+        return build_turnover_summary(
+            turnover_result,
+            currency=currency,
+            segment_label=segment_label,
+            source=source,
+            kpi_statuses=kpi_statuses,
+        )
+    except TypeError as exc:
+        if "unexpected keyword argument 'kpi_statuses'" not in str(exc):
+            raise
+        return build_turnover_summary(
+            turnover_result,
+            currency=currency,
+            segment_label=segment_label,
+            source=source,
+        )
+
+
+def _build_profit_summary_safe(
+    *,
+    profit_result: Any,
+    currency: str,
+    segment_label: str,
+    product_label: str,
+    kpi_statuses: dict[str, str] | None = None,
+) -> list[str]:
+    try:
+        return build_profit_summary(
+            profit_result,
+            currency=currency,
+            segment_label=segment_label,
+            product_label=product_label,
+            kpi_statuses=kpi_statuses,
+        )
+    except TypeError as exc:
+        if "unexpected keyword argument 'kpi_statuses'" not in str(exc):
+            raise
+        return build_profit_summary(
+            profit_result,
+            currency=currency,
+            segment_label=segment_label,
+            product_label=product_label,
+        )
+
+
 def _status_map(analysis: dict[str, Any], keys: tuple[str, ...]) -> dict[str, str]:
     kpis = analysis.get("kpis", {})
     return {key: str(kpis.get(f"{key}_status", "closest")) for key in keys}
@@ -398,8 +452,8 @@ def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, An
         height=Inches(chart_h),
     )
 
-    summary_sentences = build_turnover_summary(
-        turnover_result,
+    summary_sentences = _build_turnover_summary_safe(
+        turnover_result=turnover_result,
         currency=analysis["currency"],
         segment_label=str(analysis["segment"]),
         source=analysis.get("turnover_source"),
@@ -546,8 +600,8 @@ def _add_profit_slide(presentation: Presentation, analysis: dict[str, Any]) -> b
         height=Inches(chart_h),
     )
 
-    summary = build_profit_summary(
-        profit_result,
+    summary = _build_profit_summary_safe(
+        profit_result=profit_result,
         currency=analysis["currency"],
         segment_label=str(analysis["segment"]),
         product_label=str(analysis["product_id"]),
