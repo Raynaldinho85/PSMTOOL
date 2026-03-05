@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from html import escape
 
 import pandas as pd
@@ -249,8 +250,12 @@ def _render_summary_bullets(summary_lines: list[str]) -> None:
     if not summary_lines:
         st.markdown("- No summary available.")
         return
-    bullet_text = "\n".join(f"- {line}" for line in summary_lines)
+    bullet_text = "\n".join(f"- {_strip_lens_prefix(line)}" for line in summary_lines)
     st.markdown(bullet_text)
+
+
+def _strip_lens_prefix(line: str) -> str:
+    return re.sub(r"^(Perception|Modeled demand|Economics proxy):\s*", "", str(line).strip())
 
 
 def _render_kpi_cards(
