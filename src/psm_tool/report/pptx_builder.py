@@ -17,6 +17,7 @@ from psm_tool.report.insights import (
     build_psm_summary,
     build_turnover_summary,
 )
+from psm_tool.report.wording_policy import apply_wording_policy, can_recommend
 
 EMU_PER_INCH = 914400.0
 
@@ -52,11 +53,14 @@ def _add_context_line(
     y: float,
     width: float,
     analysis: dict[str, Any],
+    lens: str,
 ) -> float:
     context_h = 0.30
     box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(context_h))
     frame = box.text_frame
-    frame.text = f"{analysis['product_id']} / {analysis['segment']} ({analysis['currency']})"
+    frame.text = (
+        f"{lens} | {analysis['product_id']} / {analysis['segment']} ({analysis['currency']})"
+    )
     frame.paragraphs[0].font.size = Pt(12)
     return context_h
 
@@ -91,40 +95,86 @@ def _headline_from_sentence(sentence: str, fallback: str) -> str:
     return f"{short}..."
 
 
+def _status_map(analysis: dict[str, Any], keys: tuple[str, ...]) -> dict[str, str]:
+    kpis = analysis.get("kpis", {})
+    return {key: str(kpis.get(f"{key}_status", "closest")) for key in keys}
+
+
 def _psm_action_title(analysis: dict[str, Any]) -> str:
     kpis = analysis["kpis"]
-    sentence = (
-        "Set price in accepted range "
-        f"{kpis['accepted_low']:.2f}-{kpis['accepted_high']:.2f} {analysis['currency']}."
-    )
-    return _headline_from_sentence(sentence, "Set price within the accepted range.")
+    statuses = _status_map(analysis, ("pmi", "opp", "idp", "pme"))
+    recommendation_allowed = can_recommend(statuses, allow_interval=False)
+    if recommendation_allowed:
+        sentence = apply_wording_policy(
+            (
+                f"Set price in accepted range {kpis['accepted_low']:.2f}-"
+                f"{kpis['accepted_high']:.2f} {analysis['currency']}."
+            ),
+            lens="Perception",
+        )
+    else:
+        sentence = apply_wording_policy(
+            "OPP recommendation is blocked because PSM intersections are not clean.",
+            lens="Perception",
+            status_flags={"unstable": True, "recommendation_blocked": True},
+        )
+    return _headline_from_sentence(sentence, "Perception: Model suggests pricing guidance.")
 
 
 def _turnover_action_title(analysis: dict[str, Any]) -> str:
     turnover = analysis.get("turnover_index_result")
     if turnover is None:
-        return "Maximize turnover at the modeled optimum."
-    sentence = f"Maximize turnover near {turnover.max_turnover_price:.2f} {analysis['currency']}."
-    return _headline_from_sentence(sentence, "Maximize turnover at the modeled optimum.")
+        return "Economics proxy: Model suggests turnover diagnostics only."
+    statuses = _status_map(analysis, ("opp",))
+    recommendation_allowed = can_recommend(statuses, allow_interval=False)
+    if recommendation_allowed:
+        sentence = apply_wording_policy(
+            f"Maximize turnover near {turnover.max_turnover_price:.2f} {analysis['currency']}.",
+            lens="Economics proxy",
+        )
+    else:
+        sentence = apply_wording_policy(
+            "Turnover target-price recommendation is blocked due to non-clean intersections.",
+            lens="Economics proxy",
+            status_flags={"unstable": True, "recommendation_blocked": True},
+        )
+    return _headline_from_sentence(sentence, "Economics proxy: Model suggests turnover guidance.")
 
 
 def _nms_action_title(analysis: dict[str, Any]) -> str:
     nms_result = analysis.get("nms_result")
     if nms_result is None:
-        return "Align trial and revenue peaks in NMS."
-    sentence = (
-        f"Balance trial ({nms_result.max_trial_price:.2f}) and revenue "
-        f"({nms_result.max_revenue_price:.2f}) in {analysis['currency']}."
+        return "Modeled demand: Model suggests NMS diagnostics."
+    sentence = apply_wording_policy(
+        (
+            f"Balance trial ({nms_result.max_trial_price:.2f}) and revenue "
+            f"({nms_result.max_revenue_price:.2f}) in {analysis['currency']}."
+        ),
+        lens="Modeled demand",
     )
-    return _headline_from_sentence(sentence, "Balance trial and revenue peaks.")
+    return _headline_from_sentence(
+        sentence, "Modeled demand: Model suggests trial/revenue context."
+    )
 
 
 def _profit_action_title(analysis: dict[str, Any]) -> str:
     profit = analysis.get("profit_proxy_result")
     if profit is None:
-        return "Optimize price for profit proxy."
-    sentence = f"Optimize profit proxy near {profit.max_profit_price:.2f} {analysis['currency']}."
-    return _headline_from_sentence(sentence, "Optimize price for profit proxy.")
+        return "Economics proxy: Model suggests profit diagnostics only."
+    statuses = _status_map(analysis, ("pmi", "pme"))
+    recommendation_allowed = can_recommend(statuses, allow_interval=False)
+    if recommendation_allowed:
+        sentence = apply_wording_policy(
+            f"Optimize profit proxy near {profit.max_profit_price:.2f} {analysis['currency']}.",
+            lens="Economics proxy",
+        )
+    else:
+        sentence = apply_wording_policy(
+            "Profit target-price recommendation is blocked due to non-clean intersections.",
+            lens="Economics proxy",
+            status_flags={"unstable": True, "recommendation_blocked": True},
+        )
+    return _headline_from_sentence(sentence, "Economics proxy: Model suggests profit guidance.")
 
 
 def _add_kpi_summary(
@@ -138,6 +188,23 @@ def _add_kpi_summary(
 ) -> None:
     kpis = analysis["kpis"]
     currency = analysis["currency"]
+
+    def _format_point(key: str) -> str:
+        status = str(kpis.get(f"{key}_status", "closest"))
+        value = float(kpis.get(key, 0.0))
+        if status == "clean":
+            return f"{currency} {value:.2f}"
+        if status == "interval":
+            low = kpis.get(f"{key}_low")
+            high = kpis.get(f"{key}_high")
+            if low is None or high is None:
+                return f"{currency} {value:.2f} (~mid)"
+            return (
+                f"[{currency} {float(low):.2f}, {currency} {float(high):.2f}] "
+                f"(~ {currency} {value:.2f})"
+            )
+        return f"{currency} {value:.2f} (diagnostic)"
+
     outlier_settings = analysis.get("outlier_settings", {})
     outlier_stats = analysis.get("outlier_stats", {})
     outlier_enabled = bool(outlier_settings.get("enabled", False))
@@ -155,16 +222,31 @@ def _add_kpi_summary(
     else:
         outlier_line = "Outlier filter: Off"
 
+    pmi_clean = str(kpis.get("pmi_status", "closest")) == "clean"
+    pme_clean = str(kpis.get("pme_status", "closest")) == "clean"
+    opp_clean = str(kpis.get("opp_status", "closest")) == "clean"
+    idp_clean = str(kpis.get("idp_status", "closest")) == "clean"
+    accepted_range_text = (
+        f"{currency} {kpis['accepted_low']:.2f} - {currency} {kpis['accepted_high']:.2f}"
+        if pmi_clean and pme_clean
+        else "— (diagnostic)"
+    )
+    stress_text = (
+        f"{kpis['price_stress']:.2f} [{kpis['stress_flag']}]"
+        if opp_clean and idp_clean
+        else "— (diagnostic)"
+    )
     lines = [
-        f"PMI: {currency} {kpis['pmi']:.2f}",
-        f"OPP: {currency} {kpis['opp']:.2f}",
-        f"IDP: {currency} {kpis['idp']:.2f}",
-        f"PME: {currency} {kpis['pme']:.2f}",
-        "Accepted range: "
-        f"{currency} {kpis['accepted_low']:.2f} - {currency} {kpis['accepted_high']:.2f}",
-        f"Price stress (OPP-IDP): {kpis['price_stress']:.2f} [{kpis['stress_flag']}]",
+        f"PMI: {_format_point('pmi')}",
+        f"OPP: {_format_point('opp')}",
+        f"IDP: {_format_point('idp')}",
+        f"PME: {_format_point('pme')}",
+        f"Accepted range: {accepted_range_text}",
+        f"Price stress (OPP-IDP): {stress_text}",
         outlier_line,
     ]
+    if any(not is_clean for is_clean in (pmi_clean, opp_clean, idp_clean, pme_clean)):
+        lines.append("Intersection quality: interpret with caution.")
 
     text_box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(height))
     frame = text_box.text_frame
@@ -196,6 +278,7 @@ def _add_psm_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
         y=context_y,
         width=content_w,
         analysis=analysis,
+        lens="Perception",
     )
 
     summary_h = min(1.45, max(1.10, slide_h * 0.18))
@@ -297,6 +380,7 @@ def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, An
         y=context_y,
         width=content_w,
         analysis=analysis,
+        lens="Economics proxy",
     )
 
     summary_h = min(1.35, max(1.00, slide_h * 0.17))
@@ -319,6 +403,7 @@ def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, An
         currency=analysis["currency"],
         segment_label=str(analysis["segment"]),
         source=analysis.get("turnover_source"),
+        kpi_statuses=_status_map(analysis, ("opp",)),
     )
     _add_bullet_text(
         slide,
@@ -358,6 +443,7 @@ def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
         y=context_y,
         width=content_w,
         analysis=analysis,
+        lens="Modeled demand",
     )
 
     summary_h = min(1.35, max(1.05, slide_h * 0.17))
@@ -436,6 +522,7 @@ def _add_profit_slide(presentation: Presentation, analysis: dict[str, Any]) -> b
         y=context_y,
         width=content_w,
         analysis=analysis,
+        lens="Economics proxy",
     )
 
     summary_h = min(1.35, max(1.05, slide_h * 0.17))
@@ -464,6 +551,7 @@ def _add_profit_slide(presentation: Presentation, analysis: dict[str, Any]) -> b
         currency=analysis["currency"],
         segment_label=str(analysis["segment"]),
         product_label=str(analysis["product_id"]),
+        kpi_statuses=_status_map(analysis, ("pmi", "pme")),
     )
     _add_bullet_text(
         slide,

@@ -7,6 +7,7 @@ import pandas as pd
 import streamlit as st
 
 from psm_tool.config import GridConfig
+from psm_tool.core.additional_metrics import MetricResult, compute_additional_metrics
 from psm_tool.core.curves import compute_psm_curves, resolve_psm_weights
 from psm_tool.core.grid import build_price_grid_details
 from psm_tool.core.metrics import compute_psm_kpis
@@ -28,6 +29,7 @@ from psm_tool.report.insights import (
     build_turnover_summary,
     describe_turnover_source,
 )
+from psm_tool.report.wording_policy import can_recommend
 from psm_tool.ui.auth import require_auth
 from psm_tool.ui.page_nav import render_page_nav_bottom, render_page_nav_top
 from psm_tool.ui.results_logic import apply_manual_defaults_on_enter
@@ -119,7 +121,9 @@ def _render_kpi_card(*, title: str, subtitle: str | None, value: str) -> None:
     if subtitle and "[Caution:" in subtitle:
         caution_label = subtitle.split("[Caution:", 1)[1].split("]", 1)[0].strip()
         if caution_label:
-            caution_html = f"<span class='psm-kpi-badge psm-kpi-badge--warn'>{escape(caution_label)}</span>"
+            caution_html = (
+                f"<span class='psm-kpi-badge psm-kpi-badge--warn'>{escape(caution_label)}</span>"
+            )
         subtitle_clean = subtitle_clean.replace(f"[Caution:{caution_label}]", "").strip()
     badges_html = (
         f"<div class='psm-kpi-badges'>{lens_html}{caution_html}</div>"
@@ -162,16 +166,41 @@ def _format_intersection_value(
         low = kpis.get(f"{key}_low")
         high = kpis.get(f"{key}_high")
         if low is None or high is None:
-            return f"{price_symbol}{value:.2f} (≈ mid)", "interval"
-        return f"{price_symbol}{float(low):.2f} - {price_symbol}{float(high):.2f} (≈ {price_symbol}{value:.2f})", "interval"
+            return f"{price_symbol}{value:.2f} (~mid)", "interval"
+        return (
+            f"[{price_symbol}{float(low):.2f}, {price_symbol}{float(high):.2f}] "
+            f"(~ {price_symbol}{value:.2f})",
+            "interval",
+        )
     return f"{price_symbol}{value:.2f} (diagnostic)", "closest"
 
 
-def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
+def _format_additional_metric_value(
+    metric: MetricResult,
+    *,
+    price_symbol: str,
+) -> tuple[str, str | None]:
+    if metric.is_stable and metric.value is not None:
+        if metric.key in {"price_sensitivity_index", "range_symmetry"}:
+            return f"{metric.value:.3f}", None
+        if metric.key == "revenue_efficiency":
+            return f"{metric.value:+.2f} {price_symbol.strip()}", None
+        if metric.key == "profit_feasibility_zone":
+            return f"{metric.value:.1f}%", None
+        return f"{metric.value:.2f}", None
+    return "—", "unstable"
+
+
+def _render_kpi_cards(
+    price_symbol: str,
+    kpis: dict[str, float | str],
+    additional_metrics: dict[str, MetricResult],
+) -> dict[str, dict[str, float | str | bool | None]]:
     pmi_value, pmi_caution = _format_intersection_value(kpis, key="pmi", price_symbol=price_symbol)
     opp_value, opp_caution = _format_intersection_value(kpis, key="opp", price_symbol=price_symbol)
     idp_value, idp_caution = _format_intersection_value(kpis, key="idp", price_symbol=price_symbol)
     pme_value, pme_caution = _format_intersection_value(kpis, key="pme", price_symbol=price_symbol)
+    derived_payload: dict[str, dict[str, float | str | bool | None]] = {}
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -217,12 +246,15 @@ def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
     with col5:
         if pmi_clean and pme_clean:
             accepted_range_value = (
-                f"{price_symbol}{kpis['accepted_low']:.2f} - {price_symbol}{kpis['accepted_high']:.2f}"
+                f"{price_symbol}{kpis['accepted_low']:.2f} - "
+                f"{price_symbol}{kpis['accepted_high']:.2f}"
             )
             accepted_caution = None
+            accepted_reason = None
         else:
             accepted_range_value = "—"
             accepted_caution = "unstable"
+            accepted_reason = "Requires clean PMI and PME intersections."
         _render_kpi_card(
             title="Accepted Range",
             subtitle=_subtitle_with_badges(
@@ -230,13 +262,22 @@ def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
             ),
             value=accepted_range_value,
         )
+        derived_payload["accepted_range"] = {
+            "is_stable": accepted_caution is None,
+            "display_value": accepted_range_value,
+            "diagnostic_value": float(kpis["accepted_high"]) - float(kpis["accepted_low"]),
+            "reason": accepted_reason,
+            "lens": "Perception",
+        }
     with col6:
         if opp_clean and idp_clean:
             stress_value = f"{kpis['price_stress']:.2f} ({kpis['stress_flag']})"
             stress_caution = None
+            stress_reason = None
         else:
             stress_value = "—"
             stress_caution = "unstable"
+            stress_reason = "Requires clean OPP and IDP intersections."
         _render_kpi_card(
             title="Price Stress",
             subtitle=_subtitle_with_badges(
@@ -244,7 +285,66 @@ def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
             ),
             value=stress_value,
         )
+        derived_payload["price_stress"] = {
+            "is_stable": stress_caution is None,
+            "display_value": stress_value,
+            "diagnostic_value": float(kpis.get("price_stress", 0.0)),
+            "reason": stress_reason,
+            "lens": "Perception",
+        }
     st.markdown("<div class='psm-kpi-row-gap'></div>", unsafe_allow_html=True)
+
+    col7, col8, col9, col10 = st.columns(4)
+    metric_specs = [
+        (
+            "price_sensitivity_index",
+            "Price Sensitivity Index",
+            "Relative accepted-range width: (PME - PMI) / IDP",
+        ),
+        (
+            "range_symmetry",
+            "Range Symmetry",
+            "Right/left accepted-range span around IDP",
+        ),
+        (
+            "revenue_efficiency",
+            "Revenue Efficiency",
+            "Gap between max turnover price and OPP",
+        ),
+        (
+            "profit_feasibility_zone",
+            "Profit Feasibility Zone",
+            "Accepted-range share above cost",
+        ),
+    ]
+    for column, (key, title, base_subtitle) in zip(
+        (col7, col8, col9, col10),
+        metric_specs,
+        strict=False,
+    ):
+        metric = additional_metrics[key]
+        metric_value, metric_caution = _format_additional_metric_value(
+            metric, price_symbol=price_symbol
+        )
+        with column:
+            _render_kpi_card(
+                title=title,
+                subtitle=_subtitle_with_badges(
+                    base_subtitle,
+                    lens=metric.lens,
+                    caution=metric_caution,
+                ),
+                value=metric_value,
+            )
+        derived_payload[key] = {
+            "is_stable": metric.is_stable,
+            "display_value": metric_value,
+            "diagnostic_value": metric.diagnostic_value,
+            "reason": metric.reason,
+            "lens": metric.lens,
+        }
+    st.markdown("<div class='psm-kpi-row-gap'></div>", unsafe_allow_html=True)
+    return derived_payload
 
 
 def _apply_psm_axis_footer(
@@ -753,6 +853,14 @@ def main() -> None:
             float(unit_cost),
         )
 
+    additional_metrics = compute_additional_metrics(
+        kpis=kpi_dict,
+        max_turnover_price=(
+            float(turnover_result.max_turnover_price) if turnover_result is not None else None
+        ),
+        unit_cost=(float(unit_cost) if unit_cost is not None else None),
+    )
+
     pi_unit_notes: list[str] = []
     for warning in st.session_state.get("psm_validation_warnings", []):
         warning_text = str(warning)
@@ -789,6 +897,8 @@ def main() -> None:
     qc_df["analysis_n_after_outlier"] = int(len(analysis_df))
     qc_df["psm_weighting_applied"] = psm_weighting_applied
 
+    derived_metric_payload: dict[str, dict[str, float | str | bool | None]] = {}
+
     tab_specs: list[tuple[str, str]] = [("PSM", "psm")]
     if turnover_result is not None:
         tab_specs.append(("Purchase Intention + Turnover Index", "turnover"))
@@ -819,7 +929,11 @@ def main() -> None:
             country_key="results_selected_segment",
         )
 
-        _render_kpi_cards(currency + " ", kpi_dict)
+        derived_metric_payload = _render_kpi_cards(
+            currency + " ",
+            kpi_dict,
+            additional_metrics,
+        )
 
         with st.container(border=True):
             st.markdown("**Summary**")
@@ -874,32 +988,70 @@ def main() -> None:
                 country_key="results_selected_segment_turnover",
             )
             source_label, source_note = describe_turnover_source(turnover_source)
+            turnover_recommendation_allowed = can_recommend(
+                {"opp": str(kpi_dict.get("opp_status", "closest"))},
+                allow_interval=False,
+            )
             t_col1, t_col2, t_col3 = st.columns(3)
             with t_col1:
+                max_turnover_display = (
+                    f"{currency} {turnover_result.max_turnover_price:.2f}"
+                    if turnover_recommendation_allowed
+                    else "—"
+                )
                 _render_kpi_card(
                     title="Maximum Turnover Price",
-                    subtitle=(
-                        "(Price where the turnover index reaches its maximum, "
-                        "which means the strongest modeled price-intent balance)"
+                    subtitle=_subtitle_with_badges(
+                        "Price where turnover index reaches its maximum",
+                        lens="Economics proxy",
+                        caution=None if turnover_recommendation_allowed else "unstable",
                     ),
-                    value=f"{currency} {turnover_result.max_turnover_price:.2f}",
+                    value=max_turnover_display,
                 )
             with t_col2:
+                max_turnover_index_display = (
+                    f"{turnover_result.max_turnover_index:.2f}"
+                    if turnover_recommendation_allowed
+                    else "—"
+                )
                 _render_kpi_card(
                     title="Maximum Turnover Index",
-                    subtitle=(
-                        "(Normalized turnover score at the maximum-turnover price, "
-                        "which means the peak index benchmark on a 0-100 scale)"
+                    subtitle=_subtitle_with_badges(
+                        "Normalized turnover score at max-turnover price",
+                        lens="Economics proxy",
+                        caution=None if turnover_recommendation_allowed else "unstable",
                     ),
-                    value=f"{turnover_result.max_turnover_index:.2f}",
+                    value=max_turnover_index_display,
                 )
             with t_col3:
                 _render_kpi_card(
                     title="PI Source",
-                    subtitle=f"({source_note})",
+                    subtitle=_subtitle_with_badges(source_note, lens="Modeled demand"),
                     value=source_label,
                 )
             st.markdown("<div class='psm-kpi-row-gap'></div>", unsafe_allow_html=True)
+            derived_metric_payload["max_turnover_price"] = {
+                "is_stable": turnover_recommendation_allowed,
+                "display_value": max_turnover_display,
+                "diagnostic_value": float(turnover_result.max_turnover_price),
+                "reason": (
+                    None
+                    if turnover_recommendation_allowed
+                    else "Requires clean OPP for optimization statements."
+                ),
+                "lens": "Economics proxy",
+            }
+            derived_metric_payload["max_turnover_index"] = {
+                "is_stable": turnover_recommendation_allowed,
+                "display_value": max_turnover_index_display,
+                "diagnostic_value": float(turnover_result.max_turnover_index),
+                "reason": (
+                    None
+                    if turnover_recommendation_allowed
+                    else "Requires clean OPP for optimization statements."
+                ),
+                "lens": "Economics proxy",
+            }
 
             with st.container(border=True):
                 st.markdown("**Purchase Intention and Turnover Summary**")
@@ -957,26 +1109,76 @@ def main() -> None:
                 product_key="results_selected_product_profit",
                 country_key="results_selected_segment_profit",
             )
+            profit_recommendation_allowed = can_recommend(
+                {
+                    "pmi": str(kpi_dict.get("pmi_status", "closest")),
+                    "pme": str(kpi_dict.get("pme_status", "closest")),
+                },
+                allow_interval=False,
+            )
             p_col1, p_col2, p_col3 = st.columns(3)
             with p_col1:
+                max_profit_display = (
+                    f"{currency} {profit_result.max_profit_price:.2f}"
+                    if profit_recommendation_allowed
+                    else "—"
+                )
                 _render_kpi_card(
                     title="Maximum Profit Price",
-                    subtitle="(Price where the profit proxy reaches its maximum)",
-                    value=f"{currency} {profit_result.max_profit_price:.2f}",
+                    subtitle=_subtitle_with_badges(
+                        "Price where profit proxy reaches its maximum",
+                        lens="Economics proxy",
+                        caution=None if profit_recommendation_allowed else "unstable",
+                    ),
+                    value=max_profit_display,
                 )
             with p_col2:
                 _render_kpi_card(
                     title="Break-even (Cost)",
-                    subtitle="(Price where unit margin equals zero)",
+                    subtitle=_subtitle_with_badges(
+                        "Price where unit margin equals zero",
+                        lens="Economics proxy",
+                    ),
                     value=f"{currency} {float(unit_cost):.2f}",
                 )
             with p_col3:
+                max_profit_index_display = (
+                    f"{profit_result.max_profit_index:.2f}"
+                    if profit_recommendation_allowed
+                    else "—"
+                )
                 _render_kpi_card(
                     title="Maximum Profit Index",
-                    subtitle="(Normalized profit proxy score at the optimum)",
-                    value=f"{profit_result.max_profit_index:.2f}",
+                    subtitle=_subtitle_with_badges(
+                        "Normalized profit proxy score at the optimum",
+                        lens="Economics proxy",
+                        caution=None if profit_recommendation_allowed else "unstable",
+                    ),
+                    value=max_profit_index_display,
                 )
             st.markdown("<div class='psm-kpi-row-gap'></div>", unsafe_allow_html=True)
+            derived_metric_payload["max_profit_price"] = {
+                "is_stable": profit_recommendation_allowed,
+                "display_value": max_profit_display,
+                "diagnostic_value": float(profit_result.max_profit_price),
+                "reason": (
+                    None
+                    if profit_recommendation_allowed
+                    else "Requires clean PMI and PME for optimization statements."
+                ),
+                "lens": "Economics proxy",
+            }
+            derived_metric_payload["max_profit_index"] = {
+                "is_stable": profit_recommendation_allowed,
+                "display_value": max_profit_index_display,
+                "diagnostic_value": float(profit_result.max_profit_index),
+                "reason": (
+                    None
+                    if profit_recommendation_allowed
+                    else "Requires clean PMI and PME for optimization statements."
+                ),
+                "lens": "Economics proxy",
+            }
             with st.container(border=True):
                 st.markdown("**Profit Summary**")
                 summary_lines = build_profit_summary(
@@ -1087,6 +1289,8 @@ def main() -> None:
         "nms_result": nms_result,
         "turnover_index_result": turnover_result,
         "profit_proxy_result": profit_result,
+        "additional_metrics": {key: metric.as_dict() for key, metric in additional_metrics.items()},
+        "derived_metric_status": derived_metric_payload,
         "turnover_source": turnover_source,
         "unit_cost": unit_cost,
         "puki_threshold": puki_threshold,

@@ -99,8 +99,9 @@ def test_pptx_export_builds_report() -> None:
             if hasattr(shape, "text"):
                 text_chunks.append(shape.text)
     full_text = "\n".join(text_chunks)
-    assert "Maximize turnover near" in full_text
-    assert "Set price in accepted range" in full_text
+    assert "Model suggests" in full_text
+    assert "Perception | Classic / DE (EUR)" in full_text
+    assert "Economics proxy | Classic / DE (EUR)" in full_text
 
 
 def test_pptx_export_includes_profit_sentence_only_when_cost_is_provided() -> None:
