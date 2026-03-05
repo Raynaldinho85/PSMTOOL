@@ -28,6 +28,7 @@ from psm_tool.report.insights import (
     build_turnover_summary,
     describe_turnover_source,
 )
+from psm_tool.ui.auth import require_auth
 from psm_tool.ui.page_nav import render_page_nav_bottom, render_page_nav_top
 from psm_tool.ui.results_logic import apply_manual_defaults_on_enter
 from psm_tool.ui.style import inject_base_styles, render_notice
@@ -400,6 +401,7 @@ def _estimate_opp_for_manual_default(
 
 
 def main() -> None:
+    require_auth()
     inject_base_styles(max_width=2800)
     st.markdown('<p class="psm-page-eyebrow">Analysis Workspace</p>', unsafe_allow_html=True)
     st.title("2. Results")

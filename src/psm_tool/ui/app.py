@@ -3,18 +3,9 @@ from __future__ import annotations
 import streamlit as st
 
 from psm_tool.config import AppConfig
+from psm_tool.ui.auth import require_auth
 from psm_tool.ui.page_nav import render_page_nav_bottom
 from psm_tool.ui.style import inject_base_styles, render_notice
-
-
-def _check_password(config: AppConfig) -> None:
-    if not config.app_password:
-        return
-
-    provided = st.text_input("Application password", type="password")
-    if provided != config.app_password:
-        render_notice("Enter a valid password to continue.")
-        st.stop()
 
 
 def _initialize_state() -> None:
@@ -36,6 +27,7 @@ def main() -> None:
     st.set_page_config(page_title="PRICEY", page_icon=":bar_chart:", layout="wide")
     inject_base_styles(max_width=2800)
     _initialize_state()
+    require_auth()
 
     st.markdown('<p class="psm-page-eyebrow">Pricing Research Toolkit</p>', unsafe_allow_html=True)
     st.title("PRICEY")
@@ -49,8 +41,6 @@ def main() -> None:
             "This app analyzes uploaded pricing survey data fully in-memory. "
             "No raw upload files are written to disk by default."
         )
-
-    _check_password(config)
 
     col1, col2, col3 = st.columns(3)
     with col1:

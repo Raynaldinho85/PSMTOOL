@@ -15,6 +15,7 @@ from psm_tool.io.read_any import (
     read_optional_pi_ladder,
 )
 from psm_tool.io.validate import template_columns, validate_template
+from psm_tool.ui.auth import require_auth
 from psm_tool.ui.page_nav import render_page_nav_bottom, render_page_nav_top
 from psm_tool.ui.style import inject_base_styles, render_notice
 from psm_tool.ui.upload_state import clear_loaded_dataset_state, has_loaded_dataset
@@ -126,6 +127,7 @@ def _render_loaded_dataset_summary(df: pd.DataFrame, *, demo_mode: bool) -> None
 
 
 def main() -> None:
+    require_auth()
     config = AppConfig()
     inject_base_styles(max_width=2800)
 

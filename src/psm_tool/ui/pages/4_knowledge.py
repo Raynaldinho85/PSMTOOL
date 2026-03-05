@@ -13,6 +13,7 @@ from psm_tool.io.validate import (
     REQUIRED_COLUMNS,
     template_columns,
 )
+from psm_tool.ui.auth import require_auth
 from psm_tool.ui.knowledge_content import (
     get_knowledge_markdown_de,
     get_knowledge_markdown_en,
@@ -171,6 +172,7 @@ def _render_tab_content(
 
 
 def main() -> None:
+    require_auth()
     inject_base_styles(max_width=2800)
     st.markdown('<p class="psm-page-eyebrow">Reference</p>', unsafe_allow_html=True)
     st.title("Knowledge & Methodology")

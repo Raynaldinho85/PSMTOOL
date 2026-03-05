@@ -5,6 +5,26 @@ from typing import Any
 
 import pandas as pd
 
+_FORMULA_PREFIXES = ("=", "+", "-", "@")
+
+
+def _sanitize_excel_cell(value: Any) -> Any:
+    if isinstance(value, str) and value.startswith(_FORMULA_PREFIXES):
+        return f"'{value}"
+    return value
+
+
+def _sanitize_excel_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    if frame.empty:
+        return frame.copy()
+    sanitized = frame.copy()
+    for column in sanitized.columns:
+        if pd.api.types.is_object_dtype(sanitized[column]) or pd.api.types.is_string_dtype(
+            sanitized[column]
+        ):
+            sanitized[column] = sanitized[column].map(_sanitize_excel_cell)
+    return sanitized
+
 
 def _summary_frame(analyses: list[dict[str, Any]]) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
@@ -46,8 +66,8 @@ def build_excel_report(report_payload: dict[str, Any]) -> bytes:
 
     output = BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        summary.to_excel(writer, sheet_name="kpis", index=False)
-        curves.to_excel(writer, sheet_name="curves", index=False)
+        _sanitize_excel_frame(summary).to_excel(writer, sheet_name="kpis", index=False)
+        _sanitize_excel_frame(curves).to_excel(writer, sheet_name="curves", index=False)
         nms_rows = []
         turnover_rows: list[pd.DataFrame] = []
         for analysis in analyses:
@@ -82,10 +102,14 @@ def build_excel_report(report_payload: dict[str, Any]) -> bytes:
             if nms_result is not None or turnover_result is not None or profit_result is not None:
                 nms_rows.append(row)
         if nms_rows:
-            pd.DataFrame(nms_rows).to_excel(writer, sheet_name="nms_kpis", index=False)
+            _sanitize_excel_frame(pd.DataFrame(nms_rows)).to_excel(
+                writer, sheet_name="nms_kpis", index=False
+            )
         if turnover_rows:
-            pd.concat(turnover_rows, ignore_index=True).to_excel(
-                writer, sheet_name="turnover_index", index=False
+            _sanitize_excel_frame(pd.concat(turnover_rows, ignore_index=True)).to_excel(
+                writer,
+                sheet_name="turnover_index",
+                index=False,
             )
 
     return output.getvalue()

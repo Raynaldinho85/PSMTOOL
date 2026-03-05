@@ -10,6 +10,7 @@ from psm_tool.plots.render_static import BrowserPreflightError, check_kaleido_br
 from psm_tool.report.excel_export import build_excel_report
 from psm_tool.report.payload_builder import build_export_payload_from_dataset
 from psm_tool.report.pptx_builder import build_pptx_report
+from psm_tool.ui.auth import require_auth
 from psm_tool.ui.page_nav import render_page_nav_bottom, render_page_nav_top
 from psm_tool.ui.style import inject_base_styles, render_notice
 
@@ -63,6 +64,7 @@ def _build_bulk_payload(analysis_payload: dict) -> dict:
 
 
 def main() -> None:
+    require_auth()
     inject_base_styles(max_width=2800)
     st.title("3. Export")
     render_page_nav_top("export")
