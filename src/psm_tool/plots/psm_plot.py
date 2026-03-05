@@ -13,7 +13,9 @@ def resolve_opp_idp_label_sides(opp: float, idp: float) -> dict[str, str]:
         return {"opp": "right", "idp": "right"}
     stress = float(opp) - float(idp)
     if abs(stress) <= 5.0:
-        return {"opp": "right", "idp": "right"}
+        if float(opp) <= float(idp):
+            return {"opp": "left", "idp": "right"}
+        return {"opp": "right", "idp": "left"}
     if stress > 0:
         return {"opp": "right", "idp": "left"}
     return {"opp": "left", "idp": "right"}
@@ -141,7 +143,15 @@ def make_psm_figure(curves: pd.DataFrame, kpis: PSMKPIResult | None = None) -> g
                 side = side_rules["idp"]
             else:
                 side = "right"
-            xanchor, xshift = _annotation_anchor_for_side(side)
+            if (
+                key in {"OPP", "IDP"}
+                and math.isfinite(float(kpis.price_stress))
+                and abs(float(kpis.price_stress)) <= 5.0
+            ):
+                xanchor = "right" if side == "left" else "left"
+                xshift = -10 if side == "left" else 10
+            else:
+                xanchor, xshift = _annotation_anchor_for_side(side)
             fig.add_annotation(
                 x=value_float,
                 y=base_y,

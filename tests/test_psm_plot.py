@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from psm_tool.core.metrics import compute_psm_kpis
+from psm_tool.core.intersections import IntersectionResult
+from psm_tool.core.metrics import PSMKPIResult, compute_psm_kpis
 from psm_tool.plots.psm_plot import make_psm_figure, resolve_opp_idp_label_sides
 
 
@@ -72,7 +73,63 @@ def test_resolve_opp_idp_label_sides_large_negative_stress_flips_lower_left() ->
 
 def test_resolve_opp_idp_label_sides_small_stress_keeps_both_right() -> None:
     sides = resolve_opp_idp_label_sides(opp=103.0, idp=100.0)
-    assert sides == {"opp": "right", "idp": "right"}
+    assert sides == {"opp": "right", "idp": "left"}
+
+
+def _kpis_for_annotation_test(*, opp: float, idp: float) -> PSMKPIResult:
+    stress = float(opp - idp)
+    if stress > 0:
+        stress_flag = "positive"
+    elif stress < 0:
+        stress_flag = "negative"
+    else:
+        stress_flag = "neutral"
+    return PSMKPIResult(
+        pmi=IntersectionResult(value=30.0, status="clean"),
+        opp=IntersectionResult(value=float(opp), status="clean"),
+        idp=IntersectionResult(value=float(idp), status="clean"),
+        pme=IntersectionResult(value=70.0, status="clean"),
+        accepted_low=30.0,
+        accepted_high=70.0,
+        price_stress=stress,
+        stress_flag=stress_flag,
+    )
+
+
+def _label_annotations(fig) -> dict[str, object]:
+    return {
+        str(annotation.text): annotation
+        for annotation in fig.layout.annotations
+        if str(annotation.text) in {"PMI", "OPP", "IDP", "PME"}
+    }
+
+
+def test_psm_small_negative_stress_places_smaller_left_and_larger_right() -> None:
+    fig = make_psm_figure(_sample_curves(), _kpis_for_annotation_test(opp=47.0, idp=50.0))
+    labels = _label_annotations(fig)
+    assert str(labels["OPP"].xanchor) == "right"
+    assert int(labels["OPP"].xshift) == -10
+    assert str(labels["IDP"].xanchor) == "left"
+    assert int(labels["IDP"].xshift) == 10
+    assert float(labels["OPP"].y) == float(labels["IDP"].y) == float(labels["PMI"].y)
+
+
+def test_psm_small_positive_stress_places_smaller_left_and_larger_right() -> None:
+    fig = make_psm_figure(_sample_curves(), _kpis_for_annotation_test(opp=54.0, idp=50.0))
+    labels = _label_annotations(fig)
+    assert str(labels["IDP"].xanchor) == "right"
+    assert int(labels["IDP"].xshift) == -10
+    assert str(labels["OPP"].xanchor) == "left"
+    assert int(labels["OPP"].xshift) == 10
+
+
+def test_psm_large_positive_stress_keeps_existing_annotation_offsets() -> None:
+    fig = make_psm_figure(_sample_curves(), _kpis_for_annotation_test(opp=62.0, idp=50.0))
+    labels = _label_annotations(fig)
+    assert str(labels["IDP"].xanchor) == "right"
+    assert int(labels["IDP"].xshift) == -6
+    assert str(labels["OPP"].xanchor) == "left"
+    assert int(labels["OPP"].xshift) == 6
 
 
 def test_psm_legend_title_is_hidden() -> None:
