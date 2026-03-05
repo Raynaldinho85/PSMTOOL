@@ -18,20 +18,43 @@ class PSMKPIResult:
     price_stress: float
     stress_flag: str
 
+    @staticmethod
+    def _bounds(result: IntersectionResult) -> tuple[float | None, float | None]:
+        if result.status != "interval":
+            return None, None
+        return result.low, result.high
+
     def as_dict(self) -> dict[str, float | str]:
+        pmi_low, pmi_high = self._bounds(self.pmi)
+        opp_low, opp_high = self._bounds(self.opp)
+        idp_low, idp_high = self._bounds(self.idp)
+        pme_low, pme_high = self._bounds(self.pme)
+        has_unstable = any(
+            status != "clean"
+            for status in (self.pmi.status, self.opp.status, self.idp.status, self.pme.status)
+        )
         return {
             "pmi": self.pmi.value,
             "pmi_status": self.pmi.status,
+            "pmi_low": pmi_low,
+            "pmi_high": pmi_high,
             "opp": self.opp.value,
             "opp_status": self.opp.status,
+            "opp_low": opp_low,
+            "opp_high": opp_high,
             "idp": self.idp.value,
             "idp_status": self.idp.status,
+            "idp_low": idp_low,
+            "idp_high": idp_high,
             "pme": self.pme.value,
             "pme_status": self.pme.status,
+            "pme_low": pme_low,
+            "pme_high": pme_high,
             "accepted_low": self.accepted_low,
             "accepted_high": self.accepted_high,
             "price_stress": self.price_stress,
             "stress_flag": self.stress_flag,
+            "has_unstable_intersections": has_unstable,
         }
 
     def as_frame(self) -> pd.DataFrame:

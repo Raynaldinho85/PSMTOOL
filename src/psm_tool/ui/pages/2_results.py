@@ -107,8 +107,27 @@ def _on_selection_change(product_key: str, country_key: str) -> None:
 
 
 def _render_kpi_card(*, title: str, subtitle: str | None, value: str) -> None:
+    subtitle_clean = escape(subtitle) if subtitle else ""
+    lens_html = ""
+    caution_html = ""
+    if subtitle and "[Lens:" in subtitle:
+        parts = subtitle.split("]")
+        subtitle_clean = escape(parts[-1].strip()) if len(parts) > 1 else escape(subtitle)
+        lens_label = subtitle.split("[Lens:", 1)[1].split("]", 1)[0].strip()
+        if lens_label:
+            lens_html = f"<span class='psm-kpi-badge'>{escape(lens_label)}</span>"
+    if subtitle and "[Caution:" in subtitle:
+        caution_label = subtitle.split("[Caution:", 1)[1].split("]", 1)[0].strip()
+        if caution_label:
+            caution_html = f"<span class='psm-kpi-badge psm-kpi-badge--warn'>{escape(caution_label)}</span>"
+        subtitle_clean = subtitle_clean.replace(f"[Caution:{caution_label}]", "").strip()
+    badges_html = (
+        f"<div class='psm-kpi-badges'>{lens_html}{caution_html}</div>"
+        if lens_html or caution_html
+        else ""
+    )
     subtitle_html = (
-        f"<div class='psm-kpi-sub'>{escape(subtitle)}</div>"
+        f"<div class='psm-kpi-sub'>{subtitle_clean}</div>{badges_html}"
         if subtitle
         else "<div class='psm-kpi-sub psm-kpi-sub--empty'>&nbsp;</div>"
     )
@@ -124,49 +143,106 @@ def _render_kpi_card(*, title: str, subtitle: str | None, value: str) -> None:
     )
 
 
+def _subtitle_with_badges(base: str, *, lens: str, caution: str | None = None) -> str:
+    caution_part = f" [Caution:{caution}]" if caution else ""
+    return f"[Lens:{lens}]{caution_part} ({base})"
+
+
+def _format_intersection_value(
+    kpis: dict[str, float | str],
+    *,
+    key: str,
+    price_symbol: str,
+) -> tuple[str, str | None]:
+    status = str(kpis.get(f"{key}_status", "closest"))
+    value = float(kpis.get(key, float("nan")))
+    if status == "clean":
+        return f"{price_symbol}{value:.2f}", None
+    if status == "interval":
+        low = kpis.get(f"{key}_low")
+        high = kpis.get(f"{key}_high")
+        if low is None or high is None:
+            return f"{price_symbol}{value:.2f} (≈ mid)", "interval"
+        return f"{price_symbol}{float(low):.2f} - {price_symbol}{float(high):.2f} (≈ {price_symbol}{value:.2f})", "interval"
+    return f"{price_symbol}{value:.2f} (diagnostic)", "closest"
+
+
 def _render_kpi_cards(price_symbol: str, kpis: dict[str, float | str]) -> None:
+    pmi_value, pmi_caution = _format_intersection_value(kpis, key="pmi", price_symbol=price_symbol)
+    opp_value, opp_caution = _format_intersection_value(kpis, key="opp", price_symbol=price_symbol)
+    idp_value, idp_caution = _format_intersection_value(kpis, key="idp", price_symbol=price_symbol)
+    pme_value, pme_caution = _format_intersection_value(kpis, key="pme", price_symbol=price_symbol)
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         _render_kpi_card(
             title="PMI",
-            subtitle="(Point of Marginal Inexpensiveness)",
-            value=f"{price_symbol}{kpis['pmi']:.2f}",
+            subtitle=_subtitle_with_badges(
+                "Point of Marginal Inexpensiveness", lens="Perception", caution=pmi_caution
+            ),
+            value=pmi_value,
         )
     with col2:
         _render_kpi_card(
             title="OPP",
-            subtitle="(Optimal Pricing Point)",
-            value=f"{price_symbol}{kpis['opp']:.2f}",
+            subtitle=_subtitle_with_badges(
+                "Optimal Pricing Point", lens="Perception", caution=opp_caution
+            ),
+            value=opp_value,
         )
     with col3:
         _render_kpi_card(
             title="IDP",
-            subtitle="(Indifference Pricing Point)",
-            value=f"{price_symbol}{kpis['idp']:.2f}",
+            subtitle=_subtitle_with_badges(
+                "Indifference Pricing Point", lens="Perception", caution=idp_caution
+            ),
+            value=idp_value,
         )
     with col4:
         _render_kpi_card(
             title="PME",
-            subtitle="(Point of Marginal Expensiveness)",
-            value=f"{price_symbol}{kpis['pme']:.2f}",
+            subtitle=_subtitle_with_badges(
+                "Point of Marginal Expensiveness", lens="Perception", caution=pme_caution
+            ),
+            value=pme_value,
         )
     st.markdown("<div class='psm-kpi-row-gap'></div>", unsafe_allow_html=True)
 
+    pmi_clean = str(kpis.get("pmi_status", "")) == "clean"
+    pme_clean = str(kpis.get("pme_status", "")) == "clean"
+    opp_clean = str(kpis.get("opp_status", "")) == "clean"
+    idp_clean = str(kpis.get("idp_status", "")) == "clean"
+
     col5, col6 = st.columns(2)
     with col5:
-        accepted_range_value = (
-            f"{price_symbol}{kpis['accepted_low']:.2f} - {price_symbol}{kpis['accepted_high']:.2f}"
-        )
+        if pmi_clean and pme_clean:
+            accepted_range_value = (
+                f"{price_symbol}{kpis['accepted_low']:.2f} - {price_symbol}{kpis['accepted_high']:.2f}"
+            )
+            accepted_caution = None
+        else:
+            accepted_range_value = "—"
+            accepted_caution = "unstable"
         _render_kpi_card(
             title="Accepted Range",
-            subtitle="(Range consumers find acceptable)",
+            subtitle=_subtitle_with_badges(
+                "Range consumers find acceptable", lens="Perception", caution=accepted_caution
+            ),
             value=accepted_range_value,
         )
     with col6:
+        if opp_clean and idp_clean:
+            stress_value = f"{kpis['price_stress']:.2f} ({kpis['stress_flag']})"
+            stress_caution = None
+        else:
+            stress_value = "—"
+            stress_caution = "unstable"
         _render_kpi_card(
             title="Price Stress",
-            subtitle="(Difference between OPP and IDP)",
-            value=f"{kpis['price_stress']:.2f} ({kpis['stress_flag']})",
+            subtitle=_subtitle_with_badges(
+                "Difference between OPP and IDP", lens="Perception", caution=stress_caution
+            ),
+            value=stress_value,
         )
     st.markdown("<div class='psm-kpi-row-gap'></div>", unsafe_allow_html=True)
 
@@ -832,6 +908,9 @@ def main() -> None:
                     currency=currency,
                     segment_label=str(selected_segment),
                     source=turnover_source,
+                    kpi_statuses={
+                        "opp": str(kpi_dict.get("opp_status", "closest")),
+                    },
                 )
                 st.markdown(" ".join(summary_lines))
 
@@ -905,6 +984,10 @@ def main() -> None:
                     currency=currency,
                     segment_label=str(selected_segment),
                     product_label=str(selected_product),
+                    kpi_statuses={
+                        "pmi": str(kpi_dict.get("pmi_status", "closest")),
+                        "pme": str(kpi_dict.get("pme_status", "closest")),
+                    },
                 )
                 st.markdown(" ".join(summary_lines))
 

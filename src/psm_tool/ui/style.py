@@ -255,6 +255,31 @@ div[data-testid="stMetricValue"] {{
     color: transparent;
 }}
 
+.psm-kpi-badges {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.22rem;
+    margin-top: 0.22rem;
+}}
+
+.psm-kpi-badge {{
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--psm-border);
+    border-radius: 999px;
+    padding: 0.06rem 0.36rem;
+    font-size: 0.64rem;
+    line-height: 1.05;
+    color: #57534e;
+    background: #fafaf9;
+}}
+
+.psm-kpi-badge--warn {{
+    border-color: rgba(255, 87, 34, 0.33);
+    color: #9a3412;
+    background: rgba(255, 87, 34, 0.08);
+}}
+
 .psm-kpi-value {{
     color: #1c1917;
     font-size: 1.15rem;
