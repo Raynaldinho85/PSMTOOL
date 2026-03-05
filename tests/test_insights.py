@@ -48,9 +48,11 @@ def test_build_psm_summary_negative_stress_branch() -> None:
     kpis["idp"] = 100.0
     lines = build_psm_summary(kpis, currency="EUR", segment_label="DE")
 
-    assert lines[0] == "The accepted price range is between 90.00 EUR (PMI) and 110.00 EUR (PME)."
-    assert lines[1] == "The optimal pricing point (OPP) is around 90.00 EUR."
+    assert lines[0].startswith("Perception: Model suggests")
+    assert "under current assumptions" in lines[0]
+    assert lines[1].startswith("Perception: Model suggests")
     assert any("Price stress is negative" in line for line in lines)
+    assert any("No competition/substitution model is included." in line for line in lines)
 
 
 def test_build_psm_summary_balanced_and_narrow_note() -> None:
@@ -61,6 +63,7 @@ def test_build_psm_summary_balanced_and_narrow_note() -> None:
     kpis["idp"] = 100.0
 
     lines = build_psm_summary(kpis, currency="EUR", segment_label="DE")
+    assert all(line.startswith("Perception:") for line in lines[:-1])
     assert any("balanced pricing position" in line for line in lines)
     assert any("narrow" in line for line in lines)
 
@@ -77,6 +80,7 @@ def test_build_psm_summary_positive_stress_and_wide_note_and_caution() -> None:
     assert any("Price stress is positive" in line for line in lines)
     assert any("wide" in line for line in lines)
     assert any("not clean" in line for line in lines)
+    assert any("no target-price recommendation is issued" in line for line in lines)
 
 
 def test_build_psm_summary_excludes_turnover_trial_and_includes_idp_sentence() -> None:
@@ -135,10 +139,11 @@ def test_build_nms_summary_aligned_peaks() -> None:
     nms_result = _base_nms_result()
     nms_result["max_revenue_price"] = 90.0
     lines = build_nms_summary(nms_result, currency="EUR", segment_label="DE")
-    assert lines[0] == "The highest trial is at 90.00 EUR."
-    assert lines[1] == "The highest modeled revenue is at 90.00 EUR."
+    assert lines[0].startswith("Modeled demand: Model suggests")
+    assert lines[1].startswith("Modeled demand: Model suggests")
     assert any("align at the same price level" in line for line in lines)
     assert any("uses 80 of 100 respondents" in line for line in lines)
+    assert any("No competition/substitution model is included." in line for line in lines)
 
 
 def test_build_nms_summary_tradeoff_and_weight_fallback_note() -> None:
@@ -179,9 +184,10 @@ def test_build_turnover_explanations_and_summary() -> None:
         segment_label="DE",
         source="ladder",
     )
-    assert lines[0] == ("The highest turnover can be achieved by setting the price at 200.00 EUR.")
+    assert lines[0].startswith("Economics proxy: Model suggests")
     assert any("turnover index reaches 100.00" in line for line in lines)
-    assert any("PI source in this chart: PI ladder." in line for line in lines)
+    assert any("PI source in this chart: PI ladder" in line for line in lines)
+    assert any("No competition/substitution model is included." in line for line in lines)
 
 
 def test_describe_turnover_source_for_nms_fallback_is_explicit() -> None:
@@ -209,12 +215,9 @@ def test_build_profit_explanations_and_summary() -> None:
         segment_label="DE",
         product_label="Classic",
     )
-    assert lines[0] == (
-        "Given unit cost 75.00 EUR, the highest profit proxy is achieved at 180.00 EUR."
-    )
+    assert lines[0].startswith("Economics proxy: Model suggests")
     assert any("profit index reaches 100.00" in line for line in lines)
-    assert any(
-        "For Classic in DE, the break-even marker is set at 75.00 EUR." in line for line in lines
-    )
+    assert any("For Classic in DE, the break-even marker is set at 75.00 EUR" in line for line in lines)
     assert any("above break-even" in line for line in lines)
-    assert any("Context: DE." in line for line in lines)
+    assert any("Context: DE" in line for line in lines)
+    assert any("No competition/substitution model is included." in line for line in lines)

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from textwrap import dedent
 
+from psm_tool.report.wording_policy import apply_wording_policy, competition_caveat_line
+
 
 def _format_currency_snap(config_snapshot: dict) -> str:
     mapping = config_snapshot.get("default_currency_snap", {})
@@ -69,6 +71,18 @@ def get_knowledge_markdown_en(config_snapshot: dict, sav_available: bool) -> dic
     )
     statuses = _indent_following_lines(_format_intersection_statuses(config_snapshot))
     pi_unit_line = _pi_unit_behavior_line(config_snapshot)
+    perception_example = apply_wording_policy(
+        "Set price at the accepted range center.",
+        lens="Perception",
+    )
+    demand_example = apply_wording_policy(
+        "Use price where modeled trial is highest.",
+        lens="Modeled demand",
+    )
+    economics_example = apply_wording_policy(
+        "Optimal price is where turnover is highest.",
+        lens="Economics proxy",
+    )
 
     return {
         "Overview": dedent(
@@ -100,6 +114,19 @@ def get_knowledge_markdown_en(config_snapshot: dict, sav_available: bool) -> dic
             - **Threshold columns:** `too_cheap`, `bargain`, `expensive_acceptable`, `too_expensive`
             - **Accepted range:** `[PMI, PME]`
             - **Turnover index:** `price * PI`, normalized to max = 100
+
+            ## Model Layers
+            - **Perception layer (PSM):** price perception boundaries (PMI/OPP/IDP/PME).
+            - **Modeled demand layer (NMS/PI):** modeled purchase-intention curves from anchor assumptions.
+            - **Economics proxy layer:** turnover/profit proxies derived from modeled PI.
+
+            PSM measures price perception boundaries, not observed market demand under competition.
+            {competition_caveat_line()}
+
+            ### Wording policy examples
+            - `{perception_example}`
+            - `{demand_example}`
+            - `{economics_example}`
             """
         ).strip(),
         "PSM (Price Sensitivity Meter)": dedent(
@@ -326,6 +353,18 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
     )
     statuses = _indent_following_lines(_format_intersection_statuses(config_snapshot))
     pi_unit_line = _pi_unit_behavior_line(config_snapshot)
+    perception_example = apply_wording_policy(
+        "Set price at the accepted range center.",
+        lens="Perception",
+    )
+    demand_example = apply_wording_policy(
+        "Use price where modeled trial is highest.",
+        lens="Modeled demand",
+    )
+    economics_example = apply_wording_policy(
+        "Optimal price is where turnover is highest.",
+        lens="Economics proxy",
+    )
 
     return {
         "Overview": dedent(
@@ -356,6 +395,19 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
             - **Schwellen-Spalten:** `too_cheap`, `bargain`, `expensive_acceptable`, `too_expensive`
             - **Akzeptable Spanne:** `[PMI, PME]`
             - **Turnover-Index:** `Preis * PI`, normiert auf max = 100
+
+            ## Model Layers
+            - **Perception layer (PSM):** Wahrnehmungsgrenzen (PMI/OPP/IDP/PME).
+            - **Modeled demand layer (NMS/PI):** modellierte Kaufwahrscheinlichkeitskurven aus PI-Ankern.
+            - **Economics proxy layer:** Turnover/Profit-Proxies aus modellierter PI.
+
+            PSM measures price perception boundaries, not observed market demand under competition.
+            {competition_caveat_line()}
+
+            ### Wording-Policy Beispiele
+            - `{perception_example}`
+            - `{demand_example}`
+            - `{economics_example}`
             """
         ).strip(),
         "PSM (Price Sensitivity Meter)": dedent(
