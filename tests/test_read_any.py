@@ -119,3 +119,17 @@ def test_read_pi_ladder_rejects_values_above_100() -> None:
     )
     with pytest.raises(ValueError, match="must be in range 0..100"):
         read_pi_ladder(payload, filename="device_pi.csv")
+
+
+def test_read_pi_ladder_treats_negative_prices_as_missing_rows() -> None:
+    payload = (
+        pd.DataFrame({"price": [-10, 100], "purchase_intention_pct": [70, 40]})
+        .to_csv(index=False)
+        .encode("utf-8")
+    )
+    parsed = read_pi_ladder(payload, filename="device_pi.csv")
+    assert len(parsed) == 1
+    assert float(parsed["price"].iloc[0]) == 100.0
+    assert "Negative ladder prices treated as missing" in str(
+        parsed.attrs.get("price_sanitization_note", "")
+    )

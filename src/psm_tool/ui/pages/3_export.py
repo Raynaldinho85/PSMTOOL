@@ -8,8 +8,10 @@ from psm_tool.core.nms import NMSResult
 from psm_tool.core.turnover_index import ProfitProxyResult, TurnoverIndexResult
 from psm_tool.plots.render_static import BrowserPreflightError, check_kaleido_browser
 from psm_tool.report.excel_export import build_excel_report
+from psm_tool.report.payload_builder import build_export_payload_from_dataset
 from psm_tool.report.pptx_builder import build_pptx_report
-from psm_tool.ui.style import inject_base_styles
+from psm_tool.ui.page_nav import render_page_nav_bottom, render_page_nav_top
+from psm_tool.ui.style import inject_base_styles, render_notice
 
 
 def _materialize_payload(analysis_payload: dict) -> dict:
@@ -38,19 +40,64 @@ def _materialize_payload(analysis_payload: dict) -> dict:
     return {"analyses": [export_analysis]}
 
 
+def _build_bulk_payload(analysis_payload: dict) -> dict:
+    input_df = st.session_state.get("psm_input_df")
+    if input_df is None:
+        return _materialize_payload(analysis_payload)
+    pi_ladder_df = st.session_state.get("psm_pi_ladder_df")
+    outlier_settings = analysis_payload.get("outlier_settings", {})
+    payload = build_export_payload_from_dataset(
+        input_df,
+        pi_ladder_df=pi_ladder_df,
+        plausibility_filter_applied=bool(analysis_payload.get("plausibility_filter_applied", True)),
+        outlier_enabled=bool(outlier_settings.get("enabled", False)),
+        outlier_level=str(outlier_settings.get("level", "medium")),
+        puki_threshold=int(analysis_payload.get("puki_threshold", 2)),
+        snap_enabled=True,  # export follows auto grid behavior
+        unit_cost_by_key=dict(st.session_state.get("unit_cost_by_product", {})),
+        economics_enabled_by_key=dict(st.session_state.get("economics_enabled_by_product", {})),
+    )
+    if not payload.get("analyses"):
+        return _materialize_payload(analysis_payload)
+    return payload
+
+
 def main() -> None:
-    inject_base_styles(max_width=1380)
+    inject_base_styles(max_width=2800)
     st.title("3. Export")
+    render_page_nav_top("export")
     analysis_payload = st.session_state.get("psm_analysis_payload")
+    dataset_loaded = st.session_state.get("psm_input_df") is not None
     if analysis_payload is None:
-        st.warning("No analysis available. Run page '2 Results' first.")
+        if dataset_loaded:
+            render_notice(
+                "No analysis available yet. Start from Upload to change data, "
+                "then run Results to compute KPIs before export."
+            )
+            nav_col1, nav_col2 = st.columns(2)
+            if nav_col1.button("Go to Upload", width="stretch", key="export_go_upload_btn"):
+                st.switch_page("pages/1_upload.py")
+            if nav_col2.button(
+                "Go to Results",
+                width="stretch",
+                key="export_go_results_btn",
+            ):
+                st.switch_page("pages/2_results.py")
+        else:
+            render_notice(
+                "No dataset loaded. Run page '1 Upload' first (or again) to enable "
+                "Results and Export."
+            )
+            if st.button("Go to Upload", width="stretch", key="export_go_upload_only_btn"):
+                st.switch_page("pages/1_upload.py")
+        render_page_nav_bottom("export")
         return
 
     st.caption("Exports are generated in-memory and are not written to disk by default.")
     with st.container(border=True):
         st.markdown(
-            "This page exports exactly the currently visible analysis state "
-            "(selection, filters, and KPI values)."
+            "This page exports all available Product x Country combinations using "
+            "the current filter configuration and auto-grid behavior."
         )
 
     preflight_ok = True
@@ -65,21 +112,22 @@ def main() -> None:
         preflight_message = f"Static export preflight failed: {exc}"
 
     if preflight_ok:
-        st.success(preflight_message)
+        render_notice(preflight_message, tone="positive")
     else:
-        st.error(preflight_message)
+        render_notice(preflight_message)
 
-    payload = _materialize_payload(analysis_payload)
+    payload = _build_bulk_payload(analysis_payload)
     template_path = Path("assets/template.pptx")
     use_template = template_path.exists()
+    analyses = payload.get("analyses", [])
     with st.container(border=True):
         col1, col2, col3 = st.columns(3)
         col1.metric("PPTX template", "yes" if use_template else "no")
-        col2.metric("Product", str(analysis_payload["product_id"]))
-        col3.metric("Segment", str(analysis_payload["segment"]))
+        col2.metric("Product x Country", str(len(analyses)))
+        col3.metric("Export mode", "Auto-grid batch")
 
     if not preflight_ok:
-        st.info("Resolve static rendering preflight errors before generating export files.")
+        render_notice("Resolve static rendering preflight errors before generating export files.")
         return
 
     pptx_bytes = build_pptx_report(payload, template_path=template_path if use_template else None)
@@ -94,15 +142,16 @@ def main() -> None:
         data=pptx_bytes,
         file_name=f"psm_report_{product}_{segment}.pptx",
         mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        use_container_width=True,
+        width="stretch",
     )
     export_col2.download_button(
         "Download Excel export",
         data=excel_bytes,
         file_name=f"psm_export_{product}_{segment}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
+        width="stretch",
     )
+    render_page_nav_bottom("export")
 
 
 if __name__ == "__main__":

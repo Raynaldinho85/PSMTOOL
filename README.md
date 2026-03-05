@@ -45,8 +45,8 @@ Optional:
 
 - `weight`
 - `puki` (1..5)
-- `pi_bargain_pct` (0..100)
-- `pi_expensive_pct` (0..100)
+- `pi_bargain_pct` (percent 0..100, fraction 0..1, or coded 1..11)
+- `pi_expensive_pct` (percent 0..100, fraction 0..1, or coded 1..11)
 
 Supported uploads:
 
@@ -65,6 +65,8 @@ Behavior:
 - PSM curves/KPIs are computed on valid respondents only
 - Inconsistent and missing cases stay visible in QC reporting
 - Missing values are excluded metric-wise during curve computation
+- Negative price values are treated as missing (not clamped), then excluded identically
+  to other missing values across PSM/NMS/Turnover/Revenue calculations
 
 ## PSM Computation
 
@@ -122,6 +124,13 @@ Respondent-level piecewise curve:
 - `(too_expensive, 0)`
 
 PI values are clamped to `[0, 100]`. No monotonic forcing is applied.
+
+PI preprocessing guardrails:
+
+- If both PI columns are detected as coded scale `1..11`, they are mapped to percent via
+  `pct = 10 + (code - 1) * 9`.
+- If both PI columns are detected as fractions `0..1`, they are normalized to percent
+  with conservative safeguards.
 
 Population default:
 

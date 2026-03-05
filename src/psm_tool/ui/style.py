@@ -1,22 +1,36 @@
 from __future__ import annotations
 
+from html import escape
+
 import streamlit as st
+import streamlit.components.v1 as components
 
 BASE_STYLE_TEMPLATE = """
 <style>
 :root {{
-    --psm-accent: #f59e0b;
-    --psm-accent-soft: rgba(245, 158, 11, 0.10);
-    --psm-accent-soft-2: rgba(245, 158, 11, 0.03);
+    --psm-accent: #ff5722;
+    --psm-positive: #16a34a;
+    --psm-accent-soft: rgba(255, 87, 34, 0.10);
+    --psm-accent-soft-2: rgba(255, 87, 34, 0.03);
+    --psm-sidebar-tint-1: rgba(255, 87, 34, 0.10);
+    --psm-sidebar-tint-2: rgba(255, 87, 34, 0.05);
+    --psm-sidebar-tint-3: rgba(255, 87, 34, 0.02);
     --psm-muted: #57534e;
     --psm-border: #e7e5e4;
     --psm-surface: #ffffff;
     --psm-radius: 12px;
+    --psm-main-gap: 12px;
+    --psm-main-max-width: 1100px;
 }}
 
-section.main > div.block-container {{
-    max-width: {max_width}px;
-    padding-top: 0.9rem;
+section.main > div.block-container,
+div[data-testid="stMainBlockContainer"],
+div[data-testid="stAppViewBlockContainer"] > div {{
+    max-width: min({max_width}px, var(--psm-main-max-width)) !important;
+    width: min(100%, var(--psm-main-max-width)) !important;
+    margin-left: var(--psm-main-gap) !important;
+    margin-right: auto !important;
+    padding-top: 2.35rem;
     padding-left: 1.25rem;
     padding-right: 1.25rem;
     padding-bottom: 1.75rem;
@@ -39,9 +53,61 @@ h3 {{
     letter-spacing: 0.01em;
 }}
 
+div[data-testid="stTabs"] div[data-testid="stMarkdownContainer"],
+div[data-testid="stExpander"] div[data-testid="stMarkdownContainer"] {{
+    font-family: "Source Sans Pro", "Segoe UI", "Helvetica Neue", Arial, sans-serif !important;
+}}
+
+div[data-testid="stTabs"] div[data-testid="stMarkdownContainer"] p,
+div[data-testid="stTabs"] div[data-testid="stMarkdownContainer"] li,
+div[data-testid="stExpander"] div[data-testid="stMarkdownContainer"] p,
+div[data-testid="stExpander"] div[data-testid="stMarkdownContainer"] li {{
+    font-size: 0.96rem !important;
+    line-height: 1.52 !important;
+}}
+
+div[data-testid="stTabs"] div[data-testid="stMarkdownContainer"] h1,
+div[data-testid="stTabs"] div[data-testid="stMarkdownContainer"] h2,
+div[data-testid="stTabs"] div[data-testid="stMarkdownContainer"] h3 {{
+    margin-top: 0.35rem !important;
+}}
+
+div[data-testid="stTabs"] div[data-testid="stMarkdownContainer"] h1 {{
+    font-size: 1.52rem !important;
+    line-height: 1.28 !important;
+    margin-bottom: 0.55rem !important;
+}}
+
+div[data-testid="stTabs"] div[data-testid="stMarkdownContainer"] h2 {{
+    font-size: 1.20rem !important;
+    line-height: 1.34 !important;
+    margin-bottom: 0.42rem !important;
+}}
+
+div[data-testid="stTabs"] div[data-testid="stMarkdownContainer"] h3 {{
+    font-size: 1.02rem !important;
+    line-height: 1.36 !important;
+    margin-bottom: 0.35rem !important;
+}}
+
 div[data-testid="stCaptionContainer"] p {{
     color: var(--psm-muted) !important;
     font-size: 0.88rem !important;
+}}
+
+div[data-testid="stAlert"] {{
+    border: 1px solid rgba(255, 87, 34, 0.33) !important;
+    border-radius: 10px !important;
+    background: #f5f5f4 !important;
+}}
+
+div[data-testid="stAlert"] p {{
+    color: var(--psm-accent) !important;
+}}
+
+div[data-testid="stAlert"] svg {{
+    color: var(--psm-accent) !important;
+    fill: var(--psm-accent) !important;
 }}
 
 div[data-testid="stVerticalBlockBorderWrapper"] {{
@@ -52,6 +118,96 @@ div[data-testid="stVerticalBlockBorderWrapper"] {{
         var(--psm-accent-soft) 0%,
         var(--psm-accent-soft-2) 52%,
         #f5f5f4 100%
+    );
+}}
+
+div[data-testid="stVerticalBlock"]:has(> div[data-testid="stVerticalBlockBorderWrapper"]) {{
+    margin-bottom: 0.85rem;
+}}
+
+div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {{
+    padding: 0.78rem 0.9rem 0.74rem 0.9rem;
+    row-gap: 0.46rem;
+}}
+
+div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stHeadingWithActionElements"] {{
+    margin: 0 0 0.18rem 0 !important;
+}}
+
+div[data-testid="stVerticalBlockBorderWrapper"] h3 {{
+    margin-top: 0 !important;
+    margin-bottom: 0.24rem !important;
+}}
+
+section[data-testid="stSidebar"] > div:first-child {{
+    background: linear-gradient(
+        90deg,
+        var(--psm-sidebar-tint-1) 0%,
+        var(--psm-sidebar-tint-2) 28%,
+        var(--psm-sidebar-tint-3) 58%,
+        rgba(255, 87, 34, 0) 84%,
+        rgba(250, 250, 249, 0) 100%
+    ) !important;
+}}
+
+section[data-testid="stSidebar"] {{
+    border-left: 1px solid rgba(255, 87, 34, 0.75) !important;
+    background: transparent !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] a[aria-current="page"] {{
+    background: linear-gradient(
+        90deg,
+        rgba(255, 87, 34, 0.26) 0%,
+        rgba(255, 87, 34, 0.15) 28%,
+        rgba(255, 87, 34, 0.06) 46%,
+        rgba(255, 87, 34, 0.00) 58%,
+        rgba(255, 87, 34, 0.00) 100%
+    ) !important;
+    border-radius: 8px;
+    box-shadow: inset 1.5px 0 0 rgba(255, 87, 34, 0.65);
+    color: #7c2d12 !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] a:hover {{
+    background: linear-gradient(
+        90deg,
+        rgba(120, 120, 120, 0.16) 0%,
+        rgba(120, 120, 120, 0.09) 42%,
+        rgba(120, 120, 120, 0.00) 62%,
+        rgba(120, 120, 120, 0.00) 100%
+    ) !important;
+    border-radius: 8px;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] a[aria-current="page"]:hover {{
+    background: linear-gradient(
+        90deg,
+        rgba(255, 87, 34, 0.28) 0%,
+        rgba(255, 87, 34, 0.17) 30%,
+        rgba(255, 87, 34, 0.07) 48%,
+        rgba(255, 87, 34, 0.00) 60%,
+        rgba(255, 87, 34, 0.00) 100%
+    ) !important;
+}}
+
+div[data-testid="stFileUploaderDropzone"] {{
+    border: 1px dashed rgba(255, 87, 34, 0.45) !important;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 87, 34, 0.08) 0%,
+        rgba(255, 87, 34, 0.03) 48%,
+        rgba(255, 87, 34, 0.00) 100%
+    );
+}}
+
+div[data-testid="stFileUploaderDropzone"]:hover {{
+    border-color: rgba(255, 87, 34, 0.7) !important;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 87, 34, 0.12) 0%,
+        rgba(255, 87, 34, 0.05) 48%,
+        rgba(255, 87, 34, 0.00) 100%
     );
 }}
 
@@ -72,12 +228,66 @@ div[data-testid="stMetricValue"] {{
     line-height: 1.2 !important;
 }}
 
+.psm-kpi-card {{
+    background: var(--psm-surface);
+    border: 1px solid var(--psm-border);
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+    min-height: 6.35rem;
+}}
+
+.psm-kpi-title {{
+    color: #78716c;
+    font-size: 0.76rem;
+    line-height: 1.2;
+    margin: 0;
+}}
+
+.psm-kpi-sub {{
+    color: #78716c;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    margin-top: 0.02rem;
+    min-height: 1.0rem;
+}}
+
+.psm-kpi-sub--empty {{
+    color: transparent;
+}}
+
+.psm-kpi-value {{
+    color: #1c1917;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 0.32rem;
+}}
+
+.psm-kpi-row-gap {{
+    height: 0.78rem;
+}}
+
 .psm-page-eyebrow {{
+    display: block;
     color: var(--psm-muted);
     font-size: 0.82rem;
+    line-height: 1.45;
     letter-spacing: 0.05em;
     text-transform: uppercase;
+    margin-top: 0 !important;
     margin-bottom: 0.2rem;
+    padding-top: 0.18rem;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"]::before {{
+    content: "PRICEY";
+    display: block;
+    color: var(--psm-accent);
+    font-size: 1.20rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.0;
+    margin: 0.2rem 0.15rem 0.65rem 0.2rem;
 }}
 
 .psm-card-title {{
@@ -94,6 +304,15 @@ div[data-testid="stMetricValue"] {{
     margin: 0;
 }}
 
+.psm-step-card {{
+    min-height: 7.1rem;
+    padding: 0.25rem 0.05rem 0.15rem 0.05rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.35rem;
+}}
+
 .psm-muted {{
     color: var(--psm-muted);
     font-size: 0.92rem;
@@ -103,13 +322,21 @@ div[data-testid="stMetricValue"] {{
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.6rem;
+    width: 100%;
 }}
 
 .psm-context-chip {{
-    background: rgba(255, 255, 255, 0.88);
+    background: transparent;
     border: 1px solid var(--psm-border);
     border-radius: 10px;
     padding: 0.45rem 0.65rem;
+}}
+
+.psm-context-banner {{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.2rem 0.05rem 0.72rem 0.05rem;
 }}
 
 .psm-context-chip .label {{
@@ -128,14 +355,63 @@ div[data-testid="stMetricValue"] {{
     margin-top: 0.1rem;
 }}
 
-.psm-upload-state {{
-    color: #292524;
-    font-size: 0.92rem;
-    margin: 0;
+.psm-notice {{
+    border-radius: 10px;
+    background: #f5f5f4;
+    color: #1c1917;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    padding: 0.8rem 0.95rem;
+    margin: 0.2rem 0 0.85rem 0;
 }}
 
-.psm-upload-state strong {{
-    color: #1c1917;
+.psm-notice--negative {{
+    border: 1px solid rgba(255, 87, 34, 0.33);
+    color: var(--psm-accent);
+}}
+
+.psm-notice--negative strong {{
+    color: var(--psm-accent);
+}}
+
+.psm-notice--positive {{
+    border: 1px solid rgba(22, 163, 74, 0.38);
+    color: #166534;
+}}
+
+.psm-notice--positive strong {{
+    color: var(--psm-positive);
+}}
+
+div[data-testid="stPageLink"] > a {{
+    border: 0 !important;
+    background: transparent !important;
+    padding: 0.05rem 0.0rem !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    color: var(--psm-accent) !important;
+    font-size: 0.84rem !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+}}
+
+div[data-testid="stPageLink"] > a:hover {{
+    color: var(--psm-accent) !important;
+    text-decoration: underline !important;
+}}
+
+div[data-testid="stPageLink"] {{
+    margin-top: 0.15rem !important;
+    margin-bottom: 0.15rem !important;
+}}
+
+div[data-testid="stPageLink"][data-psm-quick-nav="true"] {{
+    display: none !important;
+}}
+
+body[data-psm-sidebar-collapsed="true"]
+div[data-testid="stPageLink"][data-psm-quick-nav="true"] {{
+    display: block !important;
 }}
 
 @media (max-width: 980px) {{
@@ -146,6 +422,66 @@ div[data-testid="stMetricValue"] {{
 </style>
 """
 
+DEFAULT_DESKTOP_MAX_WIDTH = 2800
 
-def inject_base_styles(*, max_width: int = 1500) -> None:
+
+def inject_base_styles(*, max_width: int = DEFAULT_DESKTOP_MAX_WIDTH) -> None:
     st.markdown(BASE_STYLE_TEMPLATE.format(max_width=max_width), unsafe_allow_html=True)
+    components.html(
+        """
+        <script>
+        (function() {
+          const parentDoc = window.parent && window.parent.document;
+          if (!parentDoc) return;
+
+          function updateSidebarState() {
+            const sidebar = parentDoc.querySelector('[data-testid="stSidebar"]');
+            if (!sidebar || !parentDoc.body) return;
+
+            let collapsed = false;
+            const ariaExpanded = sidebar.getAttribute("aria-expanded");
+            if (ariaExpanded === "false") {
+              collapsed = true;
+            } else if (ariaExpanded === "true") {
+              collapsed = false;
+            } else {
+              const width = sidebar.getBoundingClientRect().width;
+              collapsed = width > 0 && width < 120;
+            }
+
+            parentDoc.body.setAttribute(
+              "data-psm-sidebar-collapsed",
+              collapsed ? "true" : "false"
+            );
+
+            const pageLinkBlocks = parentDoc.querySelectorAll('div[data-testid="stPageLink"]');
+            pageLinkBlocks.forEach(function(block) {
+              const label = (block.textContent || "").trim();
+              const isQuickNav = label.startsWith("↑ ") || label.endsWith(" ↓");
+              if (!isQuickNav) return;
+              block.setAttribute("data-psm-quick-nav", "true");
+              block.style.display = collapsed ? "block" : "none";
+            });
+          }
+
+          updateSidebarState();
+          window.addEventListener("resize", updateSidebarState);
+          parentDoc.addEventListener("click", function() {
+            setTimeout(updateSidebarState, 40);
+          });
+          setInterval(updateSidebarState, 500);
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
+
+def render_notice(message: str, *, tone: str = "negative") -> None:
+    tone_normalized = "positive" if tone == "positive" else "negative"
+    css_class = f"psm-notice psm-notice--{tone_normalized}"
+    st.markdown(
+        f"<div class='{css_class}'>{escape(message)}</div>",
+        unsafe_allow_html=True,
+    )

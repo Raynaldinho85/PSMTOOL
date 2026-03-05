@@ -13,416 +13,504 @@ def _format_currency_snap(config_snapshot: dict) -> str:
     return "\n".join(lines)
 
 
-def get_knowledge_markdown_en(config_snapshot: dict, sav_available: bool) -> dict[str, str]:
-    default_currency_snap = _format_currency_snap(config_snapshot)
-    sav_text = (
-        "CSV, XLSX, SAV (optional support is installed in this environment)."
-        if sav_available
-        else "CSV, XLSX. SAV support is optional; not installed in this environment."
+def _format_supported_files(sav_available: bool) -> str:
+    if sav_available:
+        return "- CSV, XLSX, SAV (SAV support is installed in this environment)."
+    return "- CSV, XLSX. SAV support is optional and not installed in this environment."
+
+
+def _format_intersection_statuses(config_snapshot: dict) -> str:
+    statuses = config_snapshot.get("intersection_statuses", [])
+    if not isinstance(statuses, list) or not statuses:
+        return "- clean\n- interval\n- closest"
+    lines = [f"- {str(status)}" for status in statuses]
+    return "\n".join(lines)
+
+
+def _indent_following_lines(text: str, *, spaces: int = 12) -> str:
+    lines = text.splitlines()
+    if not lines:
+        return text
+    indent = " " * spaces
+    return "\n".join([lines[0], *[f"{indent}{line}" for line in lines[1:]]])
+
+
+def _pi_unit_behavior_line(config_snapshot: dict) -> str:
+    normalized = bool(config_snapshot.get("pi_normalization_note_available", False))
+    tiny_warning = bool(config_snapshot.get("pi_tiny_note_available", False))
+    if normalized and tiny_warning:
+        return (
+            "PI unit handling: internal invariant is percent 0..100. "
+            "If both PI columns look like coded scale 1..11, the tool maps them to percent with "
+            "pct = 10 + (code - 1) * 9. "
+            "If both PI columns look like 0..1 fractions with strong evidence, the tool normalizes to 0..100 and adds a warning. "
+            "If both columns look like fractions but are extremely tiny, it does not auto-scale and warns. "
+            "Mixed units across PI columns raise a validation error."
+        )
+    if normalized:
+        return (
+            "PI unit handling: internal invariant is percent 0..100. "
+            "If both PI columns look like coded scale 1..11, the tool maps them to percent with pct = 10 + (code - 1) * 9. "
+            "If both PI columns clearly look like 0..1 fractions, the tool normalizes to 0..100 and adds a warning."
+        )
+    return (
+        "PI unit expectation: internal calculations assume percent 0..100. "
+        "If source data is in 1..11 coded scale or 0..1 fractions and is not normalized, PI can look compressed."
     )
+
+
+def get_knowledge_markdown_en(config_snapshot: dict, sav_available: bool) -> dict[str, str]:
+    default_currency_snap = _indent_following_lines(_format_currency_snap(config_snapshot))
+    supported_files = _format_supported_files(sav_available)
+    ordering_rule = str(
+        config_snapshot.get(
+            "ordering_rule", "too_cheap < bargain < expensive_acceptable < too_expensive"
+        )
+    )
+    statuses = _indent_following_lines(_format_intersection_statuses(config_snapshot))
+    pi_unit_line = _pi_unit_behavior_line(config_snapshot)
 
     return {
         "Overview": dedent(
             f"""
             # Knowledge & Methodology
 
-            This section explains what the tool calculates, why it calculates it that way, and how to interpret the outputs. Everything here is deterministic and based on the tool’s implemented rules (no AI).
+            This page documents exactly what this tool does in code. The logic is deterministic, rule-based, and reproducible.
 
-            ## What this tool does
-            The tool supports two complementary views on pricing:
+            ## What this tool computes
+            The tool combines two pricing lenses:
 
-            - **Price perception (PSM / Van Westendorp):** derives an **acceptable price range** and key price points from four open price thresholds per respondent.
-            - **Purchase intention (NMS-style extension):** derives a **purchase intention curve** and a **turnover index** from two purchase-intention questions anchored at each respondent’s “reasonable” and “expensive-but-acceptable” prices (or from an optional explicit price ladder, if provided).
+            - **PSM (perception boundaries):** derives PMI, OPP, IDP, PME and accepted range from four threshold questions.
+            - **Purchase Intention + Turnover/Profit proxies:** derives PI-over-price and index curves from respondent PI anchors (or optional PI ladder input).
 
-            Use PSM to understand **perceived price boundaries**. Use Purchase Intention / Turnover to understand **reach vs. revenue trade-offs**.
-
-            ## Typical workflow
-            1) Upload a CSV/XLSX (optional SAV if enabled)
-            2) Validate and review QC
-            3) Inspect PSM chart and KPIs
-            4) If PI data is present: inspect PI + Turnover (and optional profit proxy if enabled)
-            5) Export PPTX / Excel for reporting
-
-            ### Quick glossary
-            - **Threshold questions:** “too cheap”, “reasonable”, “expensive but acceptable”, “too expensive”
-            - **Accepted range:** the pricing window perceived as “fitting”
-            - **Turnover index:** price × purchase intention, normalized to max = 100
+            ## Runtime workflow in this app
+            1) Read file into a canonical DataFrame (`read_any`)
+            2) Validate schema and numeric coercion (`validate_template`)
+            3) Select product/segment in Results
+            4) Build analysis base (plausibility filter toggle, then optional outlier filter)
+            5) Build grid (`build_price_grid_details`)
+            6) Compute PSM curves/KPIs
+            7) Compute NMS/PI and turnover/profit proxies when PI exists
+            8) Export PPTX/Excel from the same payload
 
             ### Supported file types (runtime)
-            - {sav_text}
+            {supported_files}
+
+            ### Quick glossary
+            - **Threshold columns:** `too_cheap`, `bargain`, `expensive_acceptable`, `too_expensive`
+            - **Accepted range:** `[PMI, PME]`
+            - **Turnover index:** `price * PI`, normalized to max = 100
             """
         ).strip(),
         "PSM (Price Sensitivity Meter)": dedent(
-            """
+            f"""
             # PSM (Price Sensitivity Meter)
 
-            ## Inputs (per respondent)
-            The PSM model uses four price thresholds:
+            ## Inputs and validity rule
+            PSM uses four threshold columns per respondent:
+            - `too_cheap`
+            - `bargain`
+            - `expensive_acceptable`
+            - `too_expensive`
 
-            - **Too cheap:** below this price, the product may feel “too cheap” (quality doubt)
-            - **Bargain / Reasonable:** up to this price, the product feels “good value”
-            - **Expensive (still acceptable):** up to this price, the product feels expensive but still acceptable
-            - **Too expensive:** above this price, the product is too expensive to consider
+            Strict ordering rule used by code:
+            `{ordering_rule}`
 
-            ### Plausibility rule (strict)
-            Respondents are considered valid for PSM only if:
+            In Results, this plausibility filter is a user toggle:
+            - ON (default): only ordered respondents enter PSM/NMS analysis
+            - OFF: non-ordered respondents can remain in analysis and are explicitly reported in QC
 
-            `too_cheap < bargain < expensive_acceptable < too_expensive`
+            ## Curve construction (exact definitions)
+            On each grid price `p`:
+            - Too Cheap(p): share with `too_cheap >= p`
+            - Bargain(p): share with `bargain >= p`
+            - Expensive(p): share with `expensive_acceptable <= p`
+            - Too Expensive(p): share with `too_expensive <= p`
+            - Not Bargain(p) = `100 - Bargain(p)`
+            - Not Expensive(p) = `100 - Expensive(p)`
 
-            Invalid cases are excluded from PSM calculations and reported in the QC table.
+            Weight behavior:
+            - If `weight` exists and usable (sum of non-negative weights > 0), weighted shares are used.
+            - If `weight` is missing/invalid/all-zero, the tool falls back to unweighted calculation (and reports this in UI/QC).
 
-            ## Curves (how the chart is built)
-            On a price grid, the tool computes the share of respondents for each perception:
+            ## KPI intersections
+            Intersections are solved on the grid with linear interpolation:
+            - PMI: Too Cheap x Not Bargain
+            - OPP: Too Cheap x Too Expensive
+            - IDP: Bargain x Expensive
+            - PME: Too Expensive x Not Expensive
 
-            - **Too Cheap(p):** share with `too_cheap >= p` (decreasing)
-            - **Bargain(p):** share with `bargain >= p` (decreasing)
-            - **Expensive(p):** share with `expensive_acceptable <= p` (increasing)
-            - **Too Expensive(p):** share with `too_expensive <= p` (increasing)
+            Status values implemented:
+            {statuses}
 
-            Derived:
-            - **Not Bargain(p) = 100 − Bargain(p)**
-            - **Not Expensive(p) = 100 − Expensive(p)**
+            Meaning:
+            - `clean`: sign-change crossing found
+            - `interval`: overlapping segment; tool reports midpoint and interval bounds
+            - `closest`: no crossing; tool reports closest approach on grid
 
-            If a weight column is present, the tool uses weighted shares.
-
-            ## Key points (intersections) and what they mean
-            The tool finds intersections via linear interpolation:
-
-            - **PMI (Point of Marginal Inexpensiveness):** Too Cheap × Not Bargain
-              → lower acceptable price limit
-            - **PME (Point of Marginal Expensiveness):** Too Expensive × Not Expensive
-              → upper acceptable price limit
-            - **OPP (Optimal Pricing Point):** Too Cheap × Too Expensive
-              → minimal overall resistance (“too cheap” = “too expensive”)
-            - **IDP (Indifference Pricing Point):** Bargain × Expensive
-              → perceived “normal” / category-typical price center
-
-            ### Accepted price range
-            **Accepted Range = [PMI, PME]**
-
-            A price inside this range is generally perceived as fitting.
-
-            ### Price stress
-            **Price Stress = OPP − IDP**
-
-            Interpretation (rule of thumb):
-            - Negative stress (OPP < IDP): weaker price image / higher resistance around “normal” prices
-            - Positive stress (OPP > IDP): potential for premium positioning / acceptance of higher prices
-            - Near zero: balanced and stable price image
-
-            ## Intersection quality flags
-            Intersections can have different statuses:
-
-            - **clean:** curves cross (sign change) on the grid
-            - **interval:** curves overlap for a price interval (the tool reports a range)
-            - **closest:** curves do not cross on the grid (the tool reports the closest approach)
-
-            If you see “interval” or “closest”, interpret KPIs with additional caution and review the curve shapes.
+            Derived KPIs:
+            - Accepted Range = `[min(PMI, PME), max(PMI, PME)]`
+            - Price Stress = `OPP - IDP`
             """
         ).strip(),
-        "Purchase Intention & Turnover": dedent(
-            """
-            # Purchase Intention & Turnover
+        "NMS (Newton-Miller-Smith)": dedent(
+            f"""
+            # NMS (Newton-Miller-Smith)
 
-            This section is available when purchase-intention data is present (either as respondent-level PI anchors or as an explicit price ladder).
+            Purchase Intention & Turnover
 
-            ## PI inputs (NMS-style, respondent level)
-            Two PI questions are used:
+            ## PI sources and priority
+            The tool resolves PI curve source in this order:
+            1) Explicit PI ladder (`price`, `purchase_intention_pct`) for selected segment/currency/product
+            2) NMS modeled trial curve from respondent-level PI anchors
 
-            - PI at each respondent’s **bargain/reasonable** price: `pi_bargain_pct`
-            - PI at each respondent’s **expensive acceptable** price: `pi_expensive_pct`
+            ## Respondent-level NMS model (when no ladder is used)
+            Required PI columns:
+            - `pi_bargain_pct`
+            - `pi_expensive_pct`
 
-            Expected unit: **percent 0..100**.
+            Per respondent, the tool builds a piecewise-linear curve with four anchors:
+            `(too_cheap, 0) -> (bargain, PI_bargain) -> (expensive_acceptable, PI_expensive) -> (too_expensive, 0)`
+            Then it averages curves over the active analysis base (weighted if usable).
 
-            ### Base population and filters
-            By default, purchase intention analysis uses:
-            - **PSM-valid respondents only**, and
-            - optionally a “high baseline interest” filter if available (e.g., `puki <= 2`; optionally `<= 3`)
+            Base population is the current Results analysis base, plus optional PUKI filter:
+            - default: `puki <= 2` if `puki` exists
+            - optional: `puki <= 3`
+            - if `puki` missing: filter is not applied and this is reported
 
-            The QC section reports the resulting base sizes.
+            ## PI unit invariant and guardrails
+            Accepted PI input representations:
+            - percent `0..100`
+            - fraction `0..1` (normalized with guardrails when detected)
+            - coded scale `1..11` (mapped as `pct = 10 + (code - 1) * 9`)
 
-            ## Building a full PI (Trial) curve from two points
-            To obtain a PI curve over a price grid, the tool uses a deterministic piecewise-linear model per respondent:
+            {pi_unit_line}
 
-            (too_cheap, 0) → (bargain, PI_bargain) → (expensive_acceptable, PI_expensive) → (too_expensive, 0)
+            ## Turnover Index (0-100)
+            - `revenue_raw(p) = price(p) * (PI(p)/100)`
+            - `turnover_index(p) = revenue_raw(p) / max(revenue_raw) * 100` (or 0 if max is 0)
+            - max-turnover price tie-break: lowest price among equal maxima
 
-            These respondent-level curves are evaluated on the grid and averaged (weighted if weights are present).
+            Why turnover can look plausible while PI is wrong:
+            - normalization to max=100 can preserve shape even when PI is scaled incorrectly.
 
-            Important: This is a modeled curve, not a guarantee of real market demand.
-
-            ## Turnover Index (0–100)
-            Turnover is derived from price and purchase intention:
-
-            - `revenue_raw(p) = price(p) × (PI(p)/100)`
-            - `turnover_index(p) = revenue_raw(p) / max(revenue_raw) × 100`
-
-            The maximum is marked as “Maximum Turnover”.
-
-            ### Why Turnover Index can still look “fine” when PI looks wrong
-            Because the turnover index is normalized to max=100, a PI scaling error (e.g., 0..1 instead of 0..100) can visually compress the PI curve while leaving the index curve shape mostly unchanged. If PI appears extremely small, check PI units.
-
-            ## Optional: explicit price ladder PI
-            If an explicit price ladder is provided (price → purchase_intention_pct), the tool will prioritize that curve instead of the NMS reconstruction, because it is directly measured across many price points.
+            ## Optional Profit Proxy mode
+            If unit cost is entered in Results:
+            - `profit_proxy_per_100 = (price - cost) * (PI/100) * 100`
+            - `profit_index = profit_proxy / max(profit_proxy) * 100` (or 0 if max <= 0)
+            - max-profit tie-break: lowest price among equal maxima
             """
         ).strip(),
         "Quality & Grid": dedent(
             f"""
             # Quality & Grid
 
-            ## Data quality checks (QC)
-            The tool reports:
-            - total respondents
-            - PSM-valid count (strict ordering)
-            - missingness per column
-            - purchase intention base after filters (if applicable)
-            - outlier and “suspicious units” warnings (if implemented)
+            ## QC fields reported by code
+            QC includes:
+            - total rows
+            - PSM-valid rows
+            - exclusions due to ordering or missing thresholds
+            - PUKI pass/excluded counts (if `puki` exists)
+            - outlier filter settings and excluded count
+            - analysis N after outlier filtering
+            - weighting fallback indicators
 
-            Recommended practice:
-            - Segment results require adequate base sizes. Very small bases can produce unstable intersections.
+            ## Data validation rule: price inputs
+            Rule: **Negative price values are treated as missing.**
 
-            ## Price grid: auto vs manual
-            PSM and PI curves are evaluated on a price grid.
+            Description:
+            - any threshold value `< 0` is converted to missing in preprocessing
+            - negative values are excluded exactly like other missing values
+            - no clamping and no transformation is applied
 
-            Auto grid behavior (default):
-            - derive min/max from observed thresholds
-            - choose a “nice” step size to create a smooth curve (roughly ~100 points)
-            - apply currency snapping if enabled
+            Scope:
+            - PSM calculations
+            - Purchase Intention calculations
+            - Turnover Index calculations
+            - NMS Trial/Revenue calculations
 
-            Manual override:
-            - you can override min, max, and step to focus the chart on the relevant range (useful when outliers stretch the axis).
+            ## Outlier filter (Results control)
+            Optional row-level exclusion using quantile bands per price column:
+            - Mild: 0.5%..99.5%
+            - Medium: 1%..99%
+            - Strict: 5%..95%
+            A row is excluded if at least one threshold is outside bounds.
 
-            ### Currency snapping (defaults)
-            Default snap increments (from config):
+            ## Auto grid algorithm (as implemented)
+            The auto grid uses PSM-valid thresholds:
+            1) flatten all threshold values
+            2) compute p05 and p95 when enough values are available
+            3) span = p95 - p05
+            4) grid_min = max(0, p05 - 0.25 * span)
+            5) grid_max fallback = p95 + 0.25 * span
+            6) upper guardrail: if median(`expensive_acceptable`) is finite and >0, use `round_up_to_100(2 * median_expensive_acceptable)` as grid_max
+            7) derive nice step, target about 100 points
+            8) apply currency snap when enabled (floor min / ceil max, step aligned to increment)
+            9) ensure sorted unique grid and include max
+            10) fallback to legacy min/max logic if quantile path is not usable
+
+            ## Manual grid override
+            You can force `min`, `max`, `step` in Results.
+            This is useful when outliers or unit issues stretch the axis.
+
+            ### Currency snapping defaults
             {default_currency_snap}
-
-            Snapping makes axis labels and recommended prices easier to read and communicate.
             """
         ).strip(),
         "Exports & Privacy": dedent(
             """
             # Exports & Privacy
 
-            ## Exports
-            The tool can generate:
-            - **PPTX** (charts embedded as images)
-            - **Excel** (KPIs and curve tables for reproducibility)
+            ## Export outputs
+            - PPTX with static chart images and KPI text
+            - Excel with KPI summary and curve tables
 
-            ### Static chart rendering requirement
-            To embed charts into PPTX, the tool renders Plotly figures to PNG.
-            This requires a working **Chrome/Chromium** environment. If missing, the export preflight will show an actionable error.
+            ## Static image rendering requirement
+            PPTX export converts Plotly figures to PNG via Kaleido.
+            A working Chrome/Chromium runtime is required.
+            The app performs an export preflight and shows an actionable error if browser rendering is unavailable.
 
             ## Privacy posture
-            - Uploaded files are processed **in-memory** by default.
-            - The public demo should not be used for sensitive client data.
-            - For client work, run the tool locally or on a controlled internal server.
-            - The repository is configured to avoid committing private datasets (use `data_private/` locally).
+            - Uploaded files are processed in memory in normal app flow.
+            - Public demo should only use synthetic/non-sensitive data.
+            - Private client datasets should stay local and outside versioned paths.
             """
         ).strip(),
         "FAQ": dedent(
             """
             # FAQ / Troubleshooting
 
-            ## “Purchase Intention is extremely low”
-            Most common causes:
-            - PI values are provided in **0..1** fractions instead of **0..100** percent
-            - mixed units across PI columns (one percent, one fraction)
-            - wrong base population (filters not intended for this analysis)
+            ## Purchase Intention is unexpectedly low
+            Check in this order:
+            - PI units (`pi_bargain_pct`, `pi_expensive_pct`) are correctly interpreted:
+              percent `0..100`, fraction `0..1`, or coded `1..11`
+            - no mixed PI units across the two PI columns
+            - expected PUKI threshold is selected
+            - plausibility/outlier filters are intentionally set
 
-            ## “The chart axis is huge / most data is squeezed”
-            - Outliers or unit mismatches can stretch the price grid.
-            - Use manual grid overrides (min/max/step) to focus on the relevant range.
-            - Check currency consistency within a segment.
+            ## Axis is stretched and curves are compressed
+            Common causes:
+            - outliers in threshold columns
+            - broad segment mix
+            - manual grid not set for focused view
 
-            ## “Export to PPTX fails”
-            - PNG rendering requires Chrome/Chromium.
-            - Install Chrome/Chromium or use the documented helper command.
-            - Re-run export after the preflight check succeeds.
+            Use:
+            - outlier filter and/or
+            - manual min/max/step override.
 
-            ## “Intersections show closest/interval instead of clean”
-            - This can happen with small bases, noisy answers, or unusual distributions.
-            - Review the curve shapes and QC counts.
-            - Consider comparing segments or widening the grid range.
+            ## Turnover index looks fine but PI does not
+            This can happen because turnover is normalized to max=100.
+            Verify PI units and PI source mode (ladder vs modeled NMS curve).
+
+            ## PPTX export fails
+            Reason is typically missing browser runtime for PNG rendering.
+            Ensure Chrome/Chromium is available in the runtime environment and rerun export.
+
+            ## closest/interval intersection status appears
+            Interpretation:
+            - `closest`: no crossing on current grid
+            - `interval`: overlap over a range
+            In both cases, read KPIs with caution and inspect curve shape/QC.
             """
         ).strip(),
     }
 
 
 def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dict[str, str]:
-    default_currency_snap = _format_currency_snap(config_snapshot)
-    sav_text = (
-        "CSV, XLSX, SAV (optionale SAV-Unterstützung ist in dieser Umgebung installiert)."
-        if sav_available
-        else "CSV, XLSX. SAV-Unterstützung ist optional und in dieser Umgebung nicht installiert."
+    default_currency_snap = _indent_following_lines(_format_currency_snap(config_snapshot))
+    supported_files = _format_supported_files(sav_available)
+    ordering_rule = str(
+        config_snapshot.get(
+            "ordering_rule", "too_cheap < bargain < expensive_acceptable < too_expensive"
+        )
     )
+    statuses = _indent_following_lines(_format_intersection_statuses(config_snapshot))
+    pi_unit_line = _pi_unit_behavior_line(config_snapshot)
 
     return {
         "Overview": dedent(
             f"""
             # Wissen & Methodik
 
-            Dieser Bereich erklärt, was das Tool berechnet, warum es so berechnet wird und wie die Ergebnisse zu lesen sind. Alles ist deterministisch und basiert auf den im Tool implementierten Regeln (keine KI).
+            Diese Seite beschreibt exakt, was das Tool im Code tut. Die Logik ist deterministisch, regelbasiert und reproduzierbar.
 
-            ## Was das Tool leistet
-            Das Tool unterstützt zwei Blickwinkel auf Pricing:
+            ## Was das Tool berechnet
+            Das Tool kombiniert zwei Pricing-Perspektiven:
+            - **PSM (Preiswahrnehmung):** PMI, OPP, IDP, PME und akzeptable Preisspanne aus vier Preis-Schwellen.
+            - **Kaufwahrscheinlichkeit + Turnover/Profit-Proxies:** PI-Kurve und Index-Kurven aus PI-Ankern (oder optionaler Preisleiter).
 
-            - **Preiswahrnehmung (PSM / Van Westendorp):** leitet eine **akzeptable Preisspanne** und zentrale Preiskennzahlen aus vier offenen Preis-Schwellen pro Befragtem ab.
-            - **Kaufwahrscheinlichkeit (NMS-Extension):** leitet eine **Kaufwahrscheinlichkeitskurve** und einen **Turnover-Index** aus zwei Kaufwahrscheinlichkeitsfragen ab (verankert am individuell genannten „angemessenen“ und „teuer, aber akzeptablen“ Preis) – oder optional aus einer expliziten Preisleiter, falls vorhanden.
+            ## Ablauf im App-Code
+            1) Datei in kanonisches DataFrame laden (`read_any`)
+            2) Schema/Numerik validieren (`validate_template`)
+            3) Produkt/Segment in Results waehlen
+            4) Analysebasis bilden (Plausibilitaets-Filter, danach optionaler Ausreisserfilter)
+            5) Preisgrid bauen (`build_price_grid_details`)
+            6) PSM-Kurven/KPIs berechnen
+            7) NMS/PI und Turnover/Profit berechnen (falls PI vorhanden)
+            8) PPTX/Excel aus demselben Payload exportieren
 
-            PSM = Grenzen der Preiswahrnehmung.
-            PI/Turnover = Trade-off zwischen Reichweite und Umsatz-Proxy.
-
-            ## Typischer Ablauf
-            1) Datei hochladen (CSV/XLSX, optional SAV falls installiert)
-            2) Validierung und QC prüfen
-            3) PSM-Chart + KPIs interpretieren
-            4) Wenn PI vorhanden: PI + Turnover (und optional Profit-Proxy) interpretieren
-            5) PPTX/Excel exportieren
+            ### Unterstuetzte Dateitypen (Laufzeit)
+            {supported_files}
 
             ### Kurzglossar
-            - **Schwellenfragen:** „zu günstig“, „angemessen“, „teuer aber akzeptabel“, „zu teuer“
-            - **Akzeptable Preisspanne:** Preisfenster, das insgesamt als passend empfunden wird
-            - **Turnover-Index:** Preis × Kaufwahrscheinlichkeit, normiert auf max = 100
-
-            ### Unterstützte Dateitypen (Laufzeit)
-            - {sav_text}
+            - **Schwellen-Spalten:** `too_cheap`, `bargain`, `expensive_acceptable`, `too_expensive`
+            - **Akzeptable Spanne:** `[PMI, PME]`
+            - **Turnover-Index:** `Preis * PI`, normiert auf max = 100
             """
         ).strip(),
         "PSM (Price Sensitivity Meter)": dedent(
-            """
+            f"""
             # PSM (Price Sensitivity Meter)
 
-            ## Inputs (pro Befragtem)
-            Vier Preis-Schwellen:
+            ## Inputs und Plausi-Regel
+            PSM nutzt vier Schwellen je Respondent:
+            - `too_cheap`
+            - `bargain`
+            - `expensive_acceptable`
+            - `too_expensive`
 
-            - **Zu günstig:** darunter wirkt das Produkt ggf. „zu billig“ (Qualitätszweifel)
-            - **Günstig/angemessen (Bargain):** bis dahin wirkt es als „gutes Preis-Leistungs-Verhältnis“
-            - **Teuer, aber akzeptabel:** bis dahin ist es teuer, aber noch akzeptiert
-            - **Zu teuer:** darüber wird es abgelehnt
+            Strenge Ordnungsregel im Code:
+            `{ordering_rule}`
 
-            ### Plausi-Regel (streng)
-            Ein Befragter gilt nur als PSM-valid, wenn:
+            In Results ist dies ein Schalter:
+            - ON (Default): nur geordnete Respondents gehen in PSM/NMS
+            - OFF: ungeordnete Respondents koennen enthalten sein; QC weist das explizit aus
 
-            `zu_günstig < angemessen < teuer_akzeptabel < zu_teuer`
+            ## Kurvendefinitionen (exakt)
+            Fuer jeden Grid-Preis `p`:
+            - Too Cheap(p): Anteil mit `too_cheap >= p`
+            - Bargain(p): Anteil mit `bargain >= p`
+            - Expensive(p): Anteil mit `expensive_acceptable <= p`
+            - Too Expensive(p): Anteil mit `too_expensive <= p`
+            - Not Bargain(p) = `100 - Bargain(p)`
+            - Not Expensive(p) = `100 - Expensive(p)`
 
-            Ungültige Fälle werden ausgeschlossen und im QC ausgewiesen.
+            Gewichtung:
+            - Wenn `weight` vorhanden und nutzbar ist (Summe nicht-negativer Gewichte > 0), wird gewichtet gerechnet.
+            - Sonst faellt das Tool auf ungewichtete Berechnung zurueck (Hinweis in UI/QC).
 
-            ## Kurven (so entsteht der Chart)
-            Auf einem Preisgrid berechnet das Tool Anteile:
+            ## KPI-Schnittpunkte
+            Schnittpunkte werden per linearer Interpolation auf dem Grid bestimmt:
+            - PMI: Too Cheap x Not Bargain
+            - OPP: Too Cheap x Too Expensive
+            - IDP: Bargain x Expensive
+            - PME: Too Expensive x Not Expensive
 
-            - **Zu günstig(p):** Anteil mit `zu_günstig >= p` (fallend)
-            - **Angemessen(p):** Anteil mit `angemessen >= p` (fallend)
-            - **Teuer(p):** Anteil mit `teuer_akzeptabel <= p` (steigend)
-            - **Zu teuer(p):** Anteil mit `zu_teuer <= p` (steigend)
+            Implementierte Status:
+            {statuses}
 
-            Abgeleitet:
-            - **Nicht angemessen(p) = 100 − Angemessen(p)**
-            - **Nicht teuer(p) = 100 − Teuer(p)**
+            Bedeutung:
+            - `clean`: klare Kreuzung per Vorzeichenwechsel
+            - `interval`: Ueberlappung auf Intervall; Tool berichtet Mittelpunkt plus Bounds
+            - `closest`: keine Kreuzung auf Grid; Tool berichtet naechste Annaeherung
 
-            Falls Gewichte vorhanden sind, werden gewichtete Anteile verwendet.
-
-            ## Schnittpunkte/KPIs und Bedeutung
-            Schnittpunkte werden per linearer Interpolation bestimmt:
-
-            - **PMI (Marginal Inexpensive):** Zu günstig × Nicht angemessen
-              → Untergrenze akzeptabler Preise
-            - **PME (Marginal Expensive):** Zu teuer × Nicht teuer
-              → Obergrenze akzeptabler Preise
-            - **OPP (Optimal):** Zu günstig × Zu teuer
-              → minimaler Widerstand („zu günstig“ = „zu teuer“)
-            - **IDP (Indifference):** Angemessen × Teuer
-              → „Normalpreis“ / Preisimage-Mitte
-
-            ### Akzeptable Preisspanne
-            **Accepted Range = [PMI, PME]**
-
-            Ein Preis in diesem Fenster wird insgesamt als passend wahrgenommen.
-
-            ### Price Stress
-            **Price Stress = OPP − IDP**
-
-            Daumenregel:
-            - negativ (OPP < IDP): eher schwächeres Preisimage / höhere Widerstände um „Normalpreis“
-            - positiv (OPP > IDP): eher Premium-/Innovationspotenzial
-            - nahe 0: stabil/balanciert
-
-            ## Schnittpunkt-Qualität (Status)
-            - **clean:** Kurven schneiden sich klar
-            - **interval:** Überlappung über ein Intervall (Tool berichtet eine Range)
-            - **closest:** kein Schnittpunkt auf dem Grid (Tool berichtet nächstbeste Annäherung)
-
-            Bei interval/closest: KPIs mit zusätzlicher Vorsicht interpretieren.
+            Abgeleitete KPIs:
+            - Accepted Range = `[min(PMI, PME), max(PMI, PME)]`
+            - Price Stress = `OPP - IDP`
             """
         ).strip(),
-        "Purchase Intention & Turnover": dedent(
-            """
-            # Kaufwahrscheinlichkeit & Turnover
+        "NMS (Newton-Miller-Smith)": dedent(
+            f"""
+            # NMS (Newton-Miller-Smith)
 
-            Verfügbar, wenn PI-Daten vorhanden sind (Respondent-Level-Anker oder Preisleiter).
+            Kaufwahrscheinlichkeit & Turnover
 
-            ## PI-Inputs (NMS, Respondent-Level)
-            Zwei Fragen:
+            ## PI-Quelle und Prioritaet
+            Die PI-Kurve wird in dieser Reihenfolge bestimmt:
+            1) Explizite Preisleiter (`price`, `purchase_intention_pct`) fuer Segment/Waehrung/Produkt
+            2) NMS-Modellkurve aus Respondent-PI-Ankern
 
-            - PI am „angemessenen“ Preis: `pi_bargain_pct`
-            - PI am „teuer, aber akzeptabel“-Preis: `pi_expensive_pct`
+            ## NMS-Modell (wenn keine Preisleiter genutzt wird)
+            Erforderliche PI-Spalten:
+            - `pi_bargain_pct`
+            - `pi_expensive_pct`
 
-            Erwartete Einheit: **Prozent 0..100**.
+            Pro Respondent wird eine piecewise-lineare Kurve gebaut:
+            `(too_cheap, 0) -> (bargain, PI_bargain) -> (expensive_acceptable, PI_expensive) -> (too_expensive, 0)`
+            Danach Mittelung ueber die aktive Analysebasis (optional gewichtet).
 
-            ### Grundgesamtheit / Filter
-            Standard:
-            - nur **PSM-valid**, plus
-            - optional „hohes Basisinteresse“-Filter, falls vorhanden (z. B. `puki <= 2`, optional `<= 3`)
+            Analysebasis:
+            - aktuelle Results-Basis (inkl. Plausi-/Ausreisser-Einstellungen)
+            - optionaler PUKI-Filter:
+              - Default `puki <= 2`
+              - optional `puki <= 3`
+              - ohne `puki`: kein Filter, wird ausgewiesen
 
-            QC zeigt die jeweiligen Bases.
+            ## PI-Einheiten und Guardrails
+            Unterstuetzte PI-Eingabedarstellungen:
+            - Prozent `0..100`
+            - Fraction `0..1` (wird bei Erkennung mit Guardrails normalisiert)
+            - Code-Skala `1..11` (Mapping: `pct = 10 + (code - 1) * 9`)
 
-            ## PI-Kurve aus zwei Punkten (deterministisch)
-            Pro Befragtem wird eine piecewise-lineare Kurve gebaut:
+            {pi_unit_line}
 
-            (zu_günstig, 0) → (angemessen, PI_angemessen) → (teuer_akzeptabel, PI_teuer) → (zu_teuer, 0)
+            ## Turnover-Index (0-100)
+            - `revenue_raw(p) = price(p) * (PI(p)/100)`
+            - `turnover_index(p) = revenue_raw(p) / max(revenue_raw) * 100` (oder 0 wenn max = 0)
+            - Tie-break bei Maximum: niedrigster Preis bei Gleichstand
 
-            Diese Kurven werden auf dem Grid ausgewertet und gemittelt (optional gewichtet).
+            Warum Turnover gut aussehen kann, obwohl PI falsch ist:
+            - Normierung auf max=100 kann den Verlauf stabil wirken lassen, obwohl PI skaliert falsch ist.
 
-            Wichtig: Das ist ein Modell/Proxy – kein garantierter Marktabsatz.
-
-            ## Turnover-Index (0–100)
-            - `revenue_raw(p) = price(p) × (PI(p)/100)`
-            - `turnover_index(p) = revenue_raw(p) / max(revenue_raw) × 100`
-
-            Maximum wird als „Maximum Turnover“ markiert.
-
-            ### Warum Turnover „gut“ aussehen kann, obwohl PI falsch skaliert ist
-            Da der Turnover-Index auf max=100 normiert wird, kann ein PI-Skalierungsfehler
-            (0..1 statt 0..100) PI visuell stark komprimieren, während der Indexverlauf
-            ähnlich bleibt. Bei extrem niedriger PI: Einheiten prüfen.
-
-            ## Optional: Preisleiter
-            Wenn eine explizite Preisleiter (Preis → PI) vorhanden ist, wird diese bevorzugt
-            verwendet, da sie direkt gemessen ist.
+            ## Optional: Profit-Proxy-Modus
+            Wenn Unit Cost in Results gesetzt ist:
+            - `profit_proxy_per_100 = (price - cost) * (PI/100) * 100`
+            - `profit_index = profit_proxy / max(profit_proxy) * 100` (oder 0 bei max <= 0)
+            - Tie-break Maximum Profit: niedrigster Preis bei Gleichstand
             """
         ).strip(),
         "Quality & Grid": dedent(
             f"""
-            # Qualität & Grid
+            # Qualitaet & Grid
 
-            ## QC
-            Ausgewiesen werden:
-            - Gesamtfälle
-            - PSM-valid (strenge Ordnung)
-            - Missingness je Variable
-            - PI-Base nach Filtern (falls relevant)
-            - Hinweise zu Ausreißern/Einheiten (falls implementiert)
+            ## QC-Felder aus dem Code
+            QC weist aus:
+            - Gesamtfaelle
+            - PSM-valid N
+            - Ausschluesse wegen Ordnung/Missingness
+            - PUKI Pass/Excluded (wenn `puki` vorhanden)
+            - Ausreisser-Settings und excluded N
+            - Analysis N nach Ausreisserfilter
+            - Weight-Fallback-Hinweise
 
-            ## Preisgrid: Auto vs. Manuell
-            Auto (Default):
-            - min/max aus den beobachteten Schwellen
-            - „nice“ step für glatte Kurven (~100 Punkte)
-            - Currency snapping, wenn aktiviert
+            ## Datenvalidierungsregel: Preis-Inputs
+            Regel: **Negative Preiswerte werden als Missing behandelt.**
 
-            Manuell:
-            - min/max/step überschreiben, um den relevanten Bereich zu fokussieren
-              (hilft bei Ausreißern).
+            Beschreibung:
+            - jeder Schwellenwert `< 0` wird im Preprocessing zu Missing
+            - negative Werte werden identisch zu anderen Missing-Werten ausgeschlossen
+            - kein Clamping und keine Transformation
 
-            ### Currency snapping (Defaults)
-            Default increments (aus config):
+            Scope:
+            - PSM-Berechnungen
+            - Purchase-Intention-Berechnungen
+            - Turnover-Index-Berechnungen
+            - NMS Trial/Revenue-Berechnungen
+
+            ## Ausreisserfilter (Results)
+            Optionales Zeilen-Excluding ueber Quantil-Baender je Preisspalte:
+            - Mild: 0.5%..99.5%
+            - Medium: 1%..99%
+            - Strict: 5%..95%
+            Zeile wird ausgeschlossen, wenn mindestens eine Schwelle ausserhalb liegt.
+
+            ## Auto-Grid-Algorithmus (implementiert)
+            Das Auto-Grid nutzt PSM-valide Schwellen:
+            1) alle Schwellen flatten
+            2) p05/p95 berechnen (bei ausreichender Datenlage)
+            3) span = p95 - p05
+            4) grid_min = max(0, p05 - 0.25 * span)
+            5) grid_max fallback = p95 + 0.25 * span
+            6) obere Guardrail: wenn median(`expensive_acceptable`) > 0, dann `round_up_to_100(2 * median_expensive_acceptable)` als grid_max
+            7) nice step fuer ca. 100 Punkte
+            8) optional Currency-Snap (min floor, max ceil, step aligned)
+            9) sortiert/eindeutig, max enthalten
+            10) legacy fallback falls Quantil-Pfad nicht nutzbar ist
+
+            ## Manuelles Grid
+            `min`, `max`, `step` koennen in Results ueberschrieben werden.
+
+            ### Currency-Snapping Defaults
             {default_currency_snap}
             """
         ).strip(),
@@ -430,46 +518,56 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
             """
             # Export & Datenschutz
 
-            ## Export
-            - PPTX (Charts als Bild)
-            - Excel (KPIs + Kurvendaten)
+            ## Exporte
+            - PPTX mit statischen Chart-Bildern und KPI-Text
+            - Excel mit KPI-Summary und Kurventabellen
 
-            ### Voraussetzung für PPTX-Chart-Rendering
-            Für PPTX werden Plotly-Charts als PNG gerendert.
-            Dafür wird eine funktionierende Chrome/Chromium-Umgebung benötigt.
-            Bei fehlendem Browser gibt es einen Preflight-Fehler mit konkreten Hinweisen.
+            ## Voraussetzung fuer statisches Rendering
+            PPTX-Export rendert Plotly-Charts als PNG ueber Kaleido.
+            Dafuer wird eine funktionierende Chrome/Chromium-Runtime benoetigt.
+            Vor Export gibt es einen Preflight mit konkreter Fehlermeldung.
 
-            ## Datenschutz / Demo-Betrieb
-            - Uploads werden standardmäßig in-memory verarbeitet.
-            - Öffentliche Demo nicht für vertrauliche Kundendaten verwenden.
-            - Für Kundenprojekte lokal oder in kontrollierter Umgebung betreiben.
-            - Private Daten gehören in `data_private/` (Repo-Guardrails verhindern Commits).
+            ## Datenschutz
+            - Uploads werden im normalen App-Flow in-memory verarbeitet.
+            - Oeffentliche Demo nur mit synthetischen/nicht-sensitiven Daten.
+            - Vertrauliche Kundendaten lokal und ausserhalb versionierter Pfade halten.
             """
         ).strip(),
         "FAQ": dedent(
             """
             # FAQ / Troubleshooting
 
-            ## “Purchase Intention ist extrem niedrig”
+            ## Purchase Intention ist unerwartet niedrig
+            In dieser Reihenfolge pruefen:
+            - PI-Einheiten (`pi_bargain_pct`, `pi_expensive_pct`) korrekt interpretiert:
+              Prozent `0..100`, Fraction `0..1` oder Code-Skala `1..11`
+            - keine gemischten PI-Einheiten
+            - erwarteter PUKI-Threshold gesetzt
+            - Plausi-/Ausreisserfilter bewusst gesetzt
+
+            ## Achse ist zu breit, Kurven wirken gequetscht
             Typische Ursachen:
-            - PI liegt in 0..1 statt 0..100 vor
-            - gemischte Einheiten über PI-Spalten
-            - falsche Filter/Grundgesamtheit
+            - Ausreisser in Preisspalten
+            - breite Segmentmischung
+            - fehlendes manuelles Grid fuer Fokusbereich
 
-            ## “Achse ist riesig / alles zusammengedrückt”
-            - Ausreißer oder Einheitenmix strecken das Grid.
-            - Manuelles Grid setzen (min/max/step).
-            - Currency je Segment prüfen.
+            Optionen:
+            - Ausreisserfilter aktivieren und/oder
+            - manuelles Grid setzen (`min`, `max`, `step`)
 
-            ## “PPTX Export schlägt fehl”
-            - PNG Rendering braucht Chrome/Chromium.
-            - Browser installieren oder den im Tool beschriebenen Helper nutzen.
-            - Export erneut ausführen.
+            ## Turnover sieht okay aus, PI nicht
+            Kann durch Normierung auf max=100 passieren.
+            PI-Einheiten und PI-Quelle (Preisleiter vs NMS-Modellkurve) pruefen.
 
-            ## “Schnittpunkte sind closest/interval”
-            - möglich bei kleinen Bases / Rauschen / ungewöhnlichen Verteilungen
-            - Kurvenform + QC prüfen
-            - Segmentvergleiche/robustere Einstellungen nutzen
+            ## PPTX-Export faellt aus
+            Meist fehlt Browser-Runtime fuer PNG-Rendering.
+            Chrome/Chromium sicherstellen und Export erneut starten.
+
+            ## closest/interval statt clean
+            Bedeutung:
+            - `closest`: keine Kreuzung auf aktuellem Grid
+            - `interval`: Ueberlappung ueber Bereich
+            KPIs dann vorsichtig interpretieren und Kurven/QC mitpruefen.
             """
         ).strip(),
     }

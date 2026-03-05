@@ -15,7 +15,8 @@ from psm_tool.io.read_any import (
     read_optional_pi_ladder,
 )
 from psm_tool.io.validate import template_columns, validate_template
-from psm_tool.ui.style import inject_base_styles
+from psm_tool.ui.page_nav import render_page_nav_bottom, render_page_nav_top
+from psm_tool.ui.style import inject_base_styles, render_notice
 from psm_tool.ui.upload_state import clear_loaded_dataset_state, has_loaded_dataset
 
 
@@ -88,14 +89,20 @@ def _store_dataset(
         st.session_state["psm_input_df"] = None
 
 
+def _display_source_name(source_name: str) -> str:
+    if source_name.strip().lower() == "sample_psm.csv":
+        return "demo_psm.csv (synthetic example dataset)"
+    return source_name
+
+
 def _render_validation_messages() -> None:
     errors = st.session_state.get("psm_validation_errors", [])
     warnings = st.session_state.get("psm_validation_warnings", [])
 
     for error in errors:
-        st.error(error)
+        render_notice(str(error))
     for warning in warnings:
-        st.warning(warning)
+        render_notice(str(warning))
 
 
 def _render_loaded_dataset_summary(df: pd.DataFrame, *, demo_mode: bool) -> None:
@@ -106,7 +113,7 @@ def _render_loaded_dataset_summary(df: pd.DataFrame, *, demo_mode: bool) -> None
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Rows", f"{len(df)}")
     col2.metric("Columns", f"{len(df.columns)}")
-    col3.metric("Segments", f"{segments}")
+    col3.metric("Countries", f"{segments}")
     col4.metric("Product Categories", f"{products}")
     col5.metric("Currencies", f"{currencies}")
 
@@ -115,16 +122,17 @@ def _render_loaded_dataset_summary(df: pd.DataFrame, *, demo_mode: bool) -> None
         return
 
     with st.expander("Preview first 30 rows", expanded=False):
-        st.dataframe(df.head(30), use_container_width=True)
+        st.dataframe(df.head(30), width="stretch")
 
 
 def main() -> None:
     config = AppConfig()
-    inject_base_styles(max_width=1400)
+    inject_base_styles(max_width=2800)
 
     st.markdown('<p class="psm-page-eyebrow">Data Intake</p>', unsafe_allow_html=True)
     st.title("1. Upload")
     st.caption("Accepted formats: CSV, XLSX, SAV")
+    render_page_nav_top("upload")
 
     with st.container(border=True):
         st.markdown(
@@ -144,7 +152,7 @@ def main() -> None:
                 data=_csv_template_bytes(),
                 file_name="psm_template.csv",
                 mime="text/csv",
-                use_container_width=True,
+                width="stretch",
             )
         with col2:
             st.download_button(
@@ -152,7 +160,7 @@ def main() -> None:
                 data=_xlsx_template_bytes(),
                 file_name="psm_template.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
+                width="stretch",
             )
         with col3:
             sav_bytes, sav_hint = _sav_template_bytes()
@@ -161,31 +169,25 @@ def main() -> None:
                 data=sav_bytes if sav_bytes is not None else b"",
                 file_name="psm_template.sav",
                 mime="application/octet-stream",
-                use_container_width=True,
+                width="stretch",
                 disabled=sav_bytes is None,
                 help=sav_hint if sav_hint else "SPSS template with the required schema.",
             )
         with col4:
-            if st.button("Load example dataset", use_container_width=True):
+            if st.button("Load example dataset", width="stretch"):
                 _store_dataset(
                     _load_sample_dataset(),
                     source_name="sample_psm.csv",
                     pi_ladder_df=None,
                 )
-                st.success("Loaded synthetic packaged example dataset.")
 
     with st.container(border=True):
         st.markdown('<div class="psm-card-title">Upload Input File</div>', unsafe_allow_html=True)
         if has_loaded_dataset(st.session_state):
             source = str(st.session_state.get("psm_input_source") or "loaded dataset")
-            st.markdown(
-                (
-                    "<p class='psm-upload-state'>Current dataset loaded: "
-                    f"<strong>{source}</strong></p>"
-                ),
-                unsafe_allow_html=True,
-            )
-            if st.button("Remove current dataset", type="secondary", use_container_width=True):
+            source = _display_source_name(source)
+            render_notice(f"Current dataset loaded: {source}", tone="positive")
+            if st.button("Remove current dataset", type="secondary", width="stretch"):
                 clear_loaded_dataset_state(st.session_state)
                 st.rerun()
         else:
@@ -199,12 +201,12 @@ def main() -> None:
                     payload = uploaded.getvalue()
                     frame = read_any(payload, filename=uploaded.name)
                 except SAVDependencyError as exc:
-                    st.error(str(exc))
+                    render_notice(str(exc))
                 except Exception as exc:
-                    st.error(f"Failed to read '{uploaded.name}': {exc}")
+                    render_notice(f"Failed to read '{uploaded.name}': {exc}")
                 else:
                     if config.demo_mode and len(frame) > config.max_rows_demo:
-                        st.error(
+                        render_notice(
                             "DEMO_MODE upload limit exceeded: "
                             f"{len(frame)} rows provided, max {config.max_rows_demo} allowed."
                         )
@@ -215,23 +217,30 @@ def main() -> None:
                             source_name=uploaded.name,
                             pi_ladder_df=auto_ladder,
                         )
-                        st.success(f"Loaded '{uploaded.name}' with {len(frame)} rows.")
+                        render_notice(
+                            f"Loaded '{uploaded.name}' with {len(frame)} rows.",
+                            tone="positive",
+                        )
                         if auto_ladder is not None:
-                            st.info(
+                            render_notice(
                                 "Detected optional purchase intention ladder table "
-                                "(sheet 'purchase_intention')."
+                                "(sheet 'purchase_intention').",
+                                tone="positive",
                             )
 
     _render_validation_messages()
 
     current_df = st.session_state.get("psm_input_df")
     if current_df is None:
-        st.info("No valid dataset loaded yet.")
+        render_notice("No valid dataset loaded yet.")
+        render_page_nav_bottom("upload")
         return
 
     with st.container(border=True):
-        st.success("Dataset is valid for analysis.")
+        render_notice("Dataset loaded and valid for analysis.", tone="positive")
         _render_loaded_dataset_summary(current_df, demo_mode=config.demo_mode)
+
+    render_page_nav_bottom("upload")
 
 
 if __name__ == "__main__":

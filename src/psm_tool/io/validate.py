@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+import numpy as np
 import pandas as pd
+
+from psm_tool.io.price_sanitization import sanitize_negative_price_columns
 
 REQUIRED_COLUMNS = {
     "respondent_id",
@@ -26,6 +29,7 @@ NUMERIC_COLUMNS = [
     "pi_bargain_pct",
     "pi_expensive_pct",
 ]
+PRICE_THRESHOLD_COLUMNS = ["too_cheap", "bargain", "expensive_acceptable", "too_expensive"]
 
 
 @dataclass(slots=True)
@@ -38,6 +42,9 @@ class ValidationResult:
 
 PI_UNIT_NORMALIZED_WARNING = (
     "PI unit normalized: detected fraction scale (0..1) and converted to percent (0..100)."
+)
+PI_CODE11_NORMALIZED_WARNING = (
+    "PI unit normalized: detected coded scale (1..11) and converted to percent (0..100)."
 )
 PI_UNIT_TINY_WARNING = (
     "PI values look like fractions but are extremely small; not auto-scaled. Confirm units."
@@ -127,6 +134,47 @@ def detect_pi_unit_mode(values: pd.Series) -> Literal["percent", "fraction", "un
     return "unknown"
 
 
+def detect_pi_code11_mode(values: pd.Series) -> bool:
+    numeric = pd.to_numeric(values, errors="coerce").dropna()
+    if numeric.empty:
+        return False
+    within_bounds = bool(((numeric >= 1.0) & (numeric <= 11.0)).all())
+    if not within_bounds:
+        return False
+    rounded = np.round(numeric.to_numpy(dtype=float))
+    integer_like = bool(np.all(np.isclose(numeric.to_numpy(dtype=float), rounded, atol=1e-6)))
+    return integer_like
+
+
+def normalize_pi_code11_pair(
+    df: pd.DataFrame,
+    *,
+    col_a: str = "pi_bargain_pct",
+    col_b: str = "pi_expensive_pct",
+) -> tuple[pd.DataFrame, str | None]:
+    if col_a not in df.columns or col_b not in df.columns:
+        return df, None
+
+    out = df.copy()
+    series_a = pd.to_numeric(out[col_a], errors="coerce")
+    series_b = pd.to_numeric(out[col_b], errors="coerce")
+
+    if not (detect_pi_code11_mode(series_a) and detect_pi_code11_mode(series_b)):
+        return out, None
+
+    combined = pd.concat([series_a, series_b], ignore_index=True).dropna()
+    if combined.empty:
+        return out, None
+
+    has_strong_code_evidence = float(combined.max()) >= 10.0
+    if not has_strong_code_evidence:
+        return out, None
+
+    out[col_a] = 10.0 + ((series_a - 1.0) * 9.0)
+    out[col_b] = 10.0 + ((series_b - 1.0) * 9.0)
+    return out, PI_CODE11_NORMALIZED_WARNING
+
+
 def _fraction_strong_evidence(values: pd.Series) -> bool:
     numeric = pd.to_numeric(values, errors="coerce").dropna()
     if numeric.empty:
@@ -210,7 +258,14 @@ def validate_template(df: pd.DataFrame) -> ValidationResult:
         normalized["product_id"] = "default_product"
 
     _coerce_numeric(normalized, warnings)
+    normalized, negative_counts = sanitize_negative_price_columns(
+        normalized, PRICE_THRESHOLD_COLUMNS
+    )
+    for column, count in negative_counts.items():
+        if count > 0:
+            warnings.append(f"Column '{column}' has {count} negative values; treated as missing.")
     try:
+        normalized, pi_code11_note = normalize_pi_code11_pair(normalized)
         normalized, pi_unit_note = normalize_pi_pair_units(normalized)
     except ValueError as exc:
         errors.append(str(exc))
@@ -220,6 +275,8 @@ def validate_template(df: pd.DataFrame) -> ValidationResult:
             warnings=warnings,
             normalized_df=normalized,
         )
+    if pi_code11_note is not None:
+        warnings.append(pi_code11_note)
     if pi_unit_note is not None:
         warnings.append(pi_unit_note)
     _range_checks(normalized, warnings)

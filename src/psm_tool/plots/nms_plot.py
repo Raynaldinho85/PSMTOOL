@@ -36,22 +36,39 @@ def make_nms_figure(result: NMSResult) -> go.Figure:
         line_dash="dot",
         line_color="#1f77b4",
         annotation_text="MaxTrial",
+        annotation_position="top left",
     )
     figure.add_vline(
         x=result.max_revenue_price,
         line_dash="dot",
         line_color="#d62728",
         annotation_text="MaxRevenue",
+        annotation_position="top right",
     )
 
     figure.update_xaxes(title_text="Price")
     figure.update_yaxes(title_text="Trial %", secondary_y=False)
     figure.update_yaxes(title_text="Revenue / 100", secondary_y=True)
     figure.update_layout(
-        title="NMS Trial and Revenue",
+        title={
+            "text": "NMS Trial + Revenue",
+            "x": 0.0,
+            "xanchor": "left",
+            "y": 0.99,
+            "yanchor": "top",
+            "pad": {"t": 0, "b": 30},
+        },
         template="plotly_white",
         hovermode="x unified",
-        height=460,
-        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
+        height=500,
+        legend={
+            "title": {"text": ""},
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.01,
+            "xanchor": "center",
+            "x": 0.5,
+        },
+        margin={"t": 62, "r": 64, "b": 30, "l": 56},
     )
     return figure

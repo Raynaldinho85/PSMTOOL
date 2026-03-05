@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from psm_tool.io.validate import normalize_pi_pair_units
+from psm_tool.io.validate import normalize_pi_code11_pair, normalize_pi_pair_units
 
 
 @dataclass(slots=True)
@@ -129,9 +129,14 @@ def compute_nms(
     base_n = int(len(df_group))
     selected, filter_applied, note = _select_population(df_group, puki_threshold=puki_threshold)
     try:
+        selected, pi_code11_note = normalize_pi_code11_pair(selected)
         selected, pi_unit_note = normalize_pi_pair_units(selected)
     except ValueError as exc:
         raise ValueError(str(exc)) from exc
+    if pi_code11_note is not None and pi_unit_note is not None:
+        pi_unit_note = f"{pi_code11_note} {pi_unit_note}"
+    elif pi_code11_note is not None:
+        pi_unit_note = pi_code11_note
     selected = selected.dropna(subset=required).copy()
     included_n = int(len(selected))
     threshold_out = puki_threshold if filter_applied else None

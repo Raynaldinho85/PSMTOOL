@@ -90,3 +90,57 @@ def test_validate_warns_for_tiny_fraction_like_pi_without_scaling() -> None:
     assert result.normalized_df["pi_bargain_pct"].iloc[0] == 0.01
     assert result.normalized_df["pi_expensive_pct"].iloc[0] == 0.02
     assert any("extremely small; not auto-scaled" in warning for warning in result.warnings)
+
+
+def test_validate_maps_code11_pi_scale_to_percent() -> None:
+    df = _valid_base_frame()
+    df["pi_bargain_pct"] = [1]
+    df["pi_expensive_pct"] = [11]
+
+    result = validate_template(df)
+    assert result.is_valid is True
+    assert result.normalized_df["pi_bargain_pct"].iloc[0] == 10.0
+    assert result.normalized_df["pi_expensive_pct"].iloc[0] == 100.0
+    assert any("detected coded scale (1..11)" in warning for warning in result.warnings)
+
+
+def test_validate_maps_full_code11_distribution_linearly() -> None:
+    df = pd.DataFrame(
+        {
+            "respondent_id": ["A1", "A2", "A3"],
+            "segment": ["DE", "DE", "DE"],
+            "currency": ["EUR", "EUR", "EUR"],
+            "too_cheap": [10, 10, 10],
+            "bargain": [20, 20, 20],
+            "expensive_acceptable": [30, 30, 30],
+            "too_expensive": [40, 40, 40],
+            "pi_bargain_pct": [1, 6, 11],
+            "pi_expensive_pct": [2, 7, 10],
+        }
+    )
+    result = validate_template(df)
+    assert result.is_valid is True
+    assert result.normalized_df["pi_bargain_pct"].tolist() == [10.0, 55.0, 100.0]
+    assert result.normalized_df["pi_expensive_pct"].tolist() == [19.0, 64.0, 91.0]
+
+
+def test_validate_does_not_autonormalize_non_clear_decimal_code11_like_values() -> None:
+    df = _valid_base_frame()
+    df["pi_bargain_pct"] = [1.5]
+    df["pi_expensive_pct"] = [10.5]
+
+    result = validate_template(df)
+    assert result.is_valid is True
+    assert result.normalized_df["pi_bargain_pct"].iloc[0] == 1.5
+    assert result.normalized_df["pi_expensive_pct"].iloc[0] == 10.5
+    assert not any("detected coded scale (1..11)" in warning for warning in result.warnings)
+
+
+def test_validate_treats_negative_price_values_as_missing() -> None:
+    df = _valid_base_frame()
+    df["too_cheap"] = [-1]
+    df["bargain"] = [20]
+    result = validate_template(df)
+    assert result.is_valid is True
+    assert pd.isna(result.normalized_df["too_cheap"].iloc[0])
+    assert any("negative values; treated as missing" in warning for warning in result.warnings)

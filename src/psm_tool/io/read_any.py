@@ -7,6 +7,7 @@ from typing import BinaryIO
 
 import pandas as pd
 
+from psm_tool.io.price_sanitization import sanitize_negative_price_columns
 from psm_tool.io.validate import normalize_single_pi_series
 
 
@@ -74,6 +75,7 @@ def _canonicalize_pi_ladder(frame: pd.DataFrame) -> pd.DataFrame:
     out = renamed.copy()
     out["price"] = pd.to_numeric(out["price"], errors="coerce")
     out["purchase_intention_pct"] = pd.to_numeric(out["purchase_intention_pct"], errors="coerce")
+    out, negative_price_counts = sanitize_negative_price_columns(out, ["price"])
     out = out.dropna(subset=["price", "purchase_intention_pct"]).copy()
 
     lower_bound_violation = bool((out["purchase_intention_pct"] < 0.0).any())
@@ -103,6 +105,11 @@ def _canonicalize_pi_ladder(frame: pd.DataFrame) -> pd.DataFrame:
         out["product_id"] = out["product_id"].astype(str)
     if pi_unit_note:
         out.attrs["pi_unit_note"] = pi_unit_note
+    negative_price_count = int(negative_price_counts.get("price", 0))
+    if negative_price_count > 0:
+        out.attrs["price_sanitization_note"] = (
+            f"Negative ladder prices treated as missing: {negative_price_count} rows."
+        )
     return out
 
 

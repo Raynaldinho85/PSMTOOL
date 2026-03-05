@@ -15,7 +15,15 @@ def _base_layout(fig: go.Figure) -> None:
         template="plotly_white",
         hovermode="x unified",
         height=500,
-        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0},
+        legend={
+            "title": {"text": ""},
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.05,
+            "xanchor": "center",
+            "x": 0.5,
+        },
+        margin={"t": 82, "r": 20, "b": 30, "l": 56},
     )
 
 
@@ -63,21 +71,42 @@ def make_pi_economics_figure(
                 opacity=0.35,
             )
         )
-        marker_text = f"Maximum Profit Proxy {profit_result.max_profit_price:.2f} {currency}"
         fig.add_vline(
             x=profit_result.max_profit_price,
             line_dash="dot",
             line_color="#111827",
-            annotation_text=marker_text,
-            annotation_position="top",
+        )
+        fig.add_annotation(
+            x=profit_result.max_profit_price,
+            y=1.004,
+            xref="x",
+            yref="paper",
+            text="Maximum Profit Proxy",
+            showarrow=False,
+            xanchor="left",
+            yanchor="bottom",
+            xshift=6,
+            align="left",
+            font={"size": 12, "color": "#64748b"},
         )
         if unit_cost is not None:
             fig.add_vline(
                 x=float(unit_cost),
                 line_dash="dash",
                 line_color="#b91c1c",
-                annotation_text=f"Break-even (Cost) {float(unit_cost):.2f} {currency}",
-                annotation_position="bottom",
+            )
+            fig.add_annotation(
+                x=float(unit_cost),
+                y=1.004,
+                xref="x",
+                yref="paper",
+                text="Break-even (Cost)",
+                showarrow=False,
+                xanchor="right",
+                yanchor="bottom",
+                xshift=-6,
+                align="right",
+                font={"size": 12, "color": "#64748b"},
             )
         fig.update_layout(title="Purchase Intention & Profit Index (0-100)")
     else:
@@ -95,10 +124,33 @@ def make_pi_economics_figure(
             x=turnover_result.max_turnover_price,
             line_dash="dot",
             line_color="#111827",
-            annotation_text=marker_text,
-            annotation_position="top",
+        )
+        fig.add_annotation(
+            x=turnover_result.max_turnover_price,
+            y=1.004,
+            xref="x",
+            yref="paper",
+            text=marker_text,
+            showarrow=False,
+            xanchor="left",
+            yanchor="bottom",
+            xshift=6,
+            align="left",
+            font={"size": 12, "color": "#64748b"},
         )
         fig.update_layout(title="Purchase Intention & Turnover Index (0-100)")
+
+    if fig.layout.title and fig.layout.title.text:
+        fig.update_layout(
+            title={
+                "text": str(fig.layout.title.text),
+                "x": 0.0,
+                "xanchor": "left",
+                "y": 0.99,
+                "yanchor": "top",
+                "pad": {"t": 0, "b": 30},
+            }
+        )
 
     _base_layout(fig)
     return fig

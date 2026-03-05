@@ -153,3 +153,45 @@ def test_nms_rejects_mixed_pi_units_in_defensive_path() -> None:
     )
     with np.testing.assert_raises_regex(ValueError, "Mixed PI units detected"):
         compute_nms(df, np.array([20.0], dtype=float), puki_threshold=2)
+
+
+def test_nms_code11_pi_matches_equivalent_percent_pi() -> None:
+    percent_df = pd.DataFrame(
+        {
+            "too_cheap": [10, 12],
+            "bargain": [20, 22],
+            "expensive_acceptable": [30, 32],
+            "too_expensive": [40, 42],
+            "pi_bargain_pct": [73.0, 91.0],  # equivalent to codes 8 and 10
+            "pi_expensive_pct": [55.0, 64.0],  # equivalent to codes 6 and 7
+            "puki": [1, 2],
+            "weight": [1.0, 1.0],
+        }
+    )
+    code_df = percent_df.copy()
+    code_df["pi_bargain_pct"] = [8.0, 10.0]
+    code_df["pi_expensive_pct"] = [6.0, 7.0]
+
+    prices = np.array([10, 15, 20, 25, 30, 35, 40], dtype=float)
+    percent_nms = compute_nms(percent_df, prices, weight_col="weight", puki_threshold=2)
+    code_nms = compute_nms(code_df, prices, weight_col="weight", puki_threshold=2)
+
+    assert (
+        code_nms.pi_unit_note is not None
+        and "detected coded scale (1..11)" in code_nms.pi_unit_note
+    )
+    assert np.allclose(
+        percent_nms.curves["trial_pct"].to_numpy(dtype=float),
+        code_nms.curves["trial_pct"].to_numpy(dtype=float),
+        atol=0.2,
+    )
+    assert np.isclose(percent_nms.max_trial_price, code_nms.max_trial_price)
+    assert np.isclose(percent_nms.max_revenue_price, code_nms.max_revenue_price)
+
+    percent_turnover = compute_turnover_index(
+        prices, percent_nms.curves["trial_pct"].to_numpy(dtype=float)
+    )
+    code_turnover = compute_turnover_index(
+        prices, code_nms.curves["trial_pct"].to_numpy(dtype=float)
+    )
+    assert np.isclose(percent_turnover.max_turnover_price, code_turnover.max_turnover_price)

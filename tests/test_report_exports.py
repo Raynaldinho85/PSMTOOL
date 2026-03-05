@@ -99,8 +99,8 @@ def test_pptx_export_builds_report() -> None:
             if hasattr(shape, "text"):
                 text_chunks.append(shape.text)
     full_text = "\n".join(text_chunks)
-    assert "Purchase Intention & Turnover Index" in full_text
-    assert "The highest turnover can be achieved by setting the price at" in full_text
+    assert "Maximize turnover near" in full_text
+    assert "Set price in accepted range" in full_text
 
 
 def test_pptx_export_includes_profit_sentence_only_when_cost_is_provided() -> None:
@@ -125,6 +125,38 @@ def test_pptx_export_includes_profit_sentence_only_when_cost_is_provided() -> No
     assert "Given unit cost" in with_text
     assert "highest profit proxy is achieved at" in with_text
     assert "Given unit cost" not in without_text
+
+
+def test_pptx_export_adds_all_available_slides_for_each_analysis() -> None:
+    try:
+        check_kaleido_browser()
+    except BrowserPreflightError as exc:
+        pytest.skip(f"Browser unavailable for kaleido: {exc}")
+
+    payload = _sample_payload(with_cost=True)
+    analysis = payload["analyses"][0]
+    payload["analyses"] = [analysis, {**analysis, "product_id": "Premium", "segment": "CH"}]
+
+    presentation = Presentation(BytesIO(build_pptx_report(payload)))
+    # Per analysis: PSM + Turnover + Profit (+ NMS only when available; sample payload has no NMS)
+    assert len(presentation.slides) == 6
+
+
+def test_pptx_export_shapes_stay_within_slide_bounds() -> None:
+    try:
+        check_kaleido_browser()
+    except BrowserPreflightError as exc:
+        pytest.skip(f"Browser unavailable for kaleido: {exc}")
+
+    presentation = Presentation(BytesIO(build_pptx_report(_sample_payload(with_cost=True))))
+    for slide in presentation.slides:
+        slide_width = int(presentation.slide_width)
+        slide_height = int(presentation.slide_height)
+        for shape in slide.shapes:
+            assert int(shape.left) >= 0
+            assert int(shape.top) >= 0
+            assert int(shape.left + shape.width) <= slide_width
+            assert int(shape.top + shape.height) <= slide_height
 
 
 def test_excel_export_contains_expected_sheets() -> None:

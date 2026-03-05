@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any
 
 KPI_GLOSSARY: dict[str, str] = {
@@ -55,6 +56,21 @@ def _read_nms_field(nms_result: Any, field: str, default: Any = None) -> Any:
     return getattr(nms_result, field, default)
 
 
+def describe_turnover_source(source: str | None) -> tuple[str, str]:
+    if source == "ladder":
+        return (
+            "PI ladder",
+            "Uses explicit purchase-intention values from a provided price ladder table.",
+        )
+    return (
+        "NMS trial fallback",
+        (
+            "Uses the modeled NMS trial curve from respondent anchor points "
+            "when no explicit price ladder is provided."
+        ),
+    )
+
+
 def build_kpi_explanations(kpis: dict[str, Any]) -> list[dict[str, str]]:
     rows = [
         {
@@ -95,6 +111,7 @@ def build_psm_summary(
     kpis: dict[str, Any],
     currency: str,
     segment_label: str,
+    product_label: str | None = None,
     nms_kpis: dict[str, Any] | None = None,
 ) -> list[str]:
     pmi = _to_float(kpis.get("pmi", 0.0))
@@ -102,8 +119,17 @@ def build_psm_summary(
     opp = _to_float(kpis.get("opp", 0.0))
     idp = _to_float(kpis.get("idp", 0.0))
 
+    del nms_kpis  # PSM summary intentionally excludes PI/turnover statements.
+
+    product_clean = (product_label or "").strip()
+    country_clean = (segment_label or "").strip()
+    if product_clean and country_clean:
+        accepted_prefix = f"The accepted price range (for {product_clean} in {country_clean})"
+    else:
+        accepted_prefix = "The accepted price range"
+
     sentences: list[str] = [
-        f"The accepted price range is between {pmi:.2f} and {pme:.2f} {currency}.",
+        f"{accepted_prefix} is between {pmi:.2f} {currency} (PMI) and {pme:.2f} {currency} (PME).",
         f"The optimal pricing point (OPP) is around {opp:.2f} {currency}.",
     ]
 
@@ -113,18 +139,18 @@ def build_psm_summary(
 
     if stress_pct <= -0.05:
         stress_sentence = (
-            f"For {segment_label}, stress is negative (OPP below IDP), "
+            "Price stress is negative, because IDP is higher than OPP, "
             "which indicates downward pressure."
         )
     elif stress_pct >= 0.05:
         stress_sentence = (
-            f"For {segment_label}, stress is positive (OPP above IDP), "
+            "Price stress is positive, because OPP is higher than IDP, "
             "which indicates upward price headroom."
         )
     else:
         stress_sentence = (
-            f"For {segment_label}, OPP and IDP are closely aligned, "
-            "suggesting a balanced pricing position."
+            "Price stress is neutral, because OPP equals IDP, "
+            "which indicates a balanced pricing position."
         )
 
     if width_pct < 0.10:
@@ -147,14 +173,10 @@ def build_psm_summary(
             "should be interpreted with caution."
         )
 
-    if nms_kpis is not None:
-        max_revenue_price = _fmt_price(nms_kpis.get("max_revenue_price"))
-        max_trial_price = _fmt_price(nms_kpis.get("max_trial_price"))
-        sentences.append(
-            "The highest turnover is at "
-            f"{max_revenue_price} {currency}, while the highest trial is at "
-            f"{max_trial_price} {currency}."
-        )
+    sentences.append(
+        f"The Indifference Price Point of {idp:.2f} {currency} (IDP) marks the perceived "
+        "price balance where cheap and expensive perceptions are equal."
+    )
 
     return sentences
 
@@ -221,32 +243,29 @@ def build_nms_summary(
 
     sentences = [
         f"The highest trial is at {max_trial_text} {currency}.",
-        f"The highest turnover is at {max_revenue_text} {currency}.",
+        f"The highest modeled revenue is at {max_revenue_text} {currency}.",
     ]
 
     if max_trial_text != "n/a" and max_revenue_text != "n/a":
         delta = max_revenue_price - max_trial_price
         if abs(delta) < 1e-9:
-            sentences.append(
-                f"For {segment_label}, trial and turnover peaks align at the same price level."
-            )
+            sentences.append("Trial and revenue peaks align at the same price level.")
         elif delta > 0:
             sentences.append(
-                f"For {segment_label}, turnover peaks at a higher price than trial, indicating "
-                "upward monetization potential."
+                "Revenue peaks at a higher price than trial, indicating a monetization trade-off."
             )
         else:
             sentences.append(
-                f"For {segment_label}, turnover peaks at a lower price than trial, indicating "
-                "volume gains require earlier pricing."
+                "Revenue peaks at a lower price than trial, indicating earlier pricing maximizes "
+                "the model output."
             )
 
     included_n = _read_nms_field(nms_result, "included_n")
     base_n = _read_nms_field(nms_result, "base_n")
     if included_n is not None and base_n is not None:
         sentences.append(
-            f"NMS uses {included_n} of {base_n} respondents after eligibility and "
-            "completeness checks."
+            f"NMS uses {included_n} of {base_n} respondents after eligibility "
+            "and completeness checks."
         )
 
     if not bool(_read_nms_field(nms_result, "weighting_applied", False)):
@@ -258,6 +277,9 @@ def build_nms_summary(
     if filter_note:
         sentences.append(str(filter_note))
 
+    if segment_label:
+        sentences.append(f"Context: {segment_label}.")
+
     return sentences
 
 
@@ -267,7 +289,7 @@ def build_turnover_explanations(
     currency: str,
     source: str | None,
 ) -> list[dict[str, str]]:
-    source_label = "PI ladder" if source == "ladder" else "NMS trial fallback"
+    source_label, source_note = describe_turnover_source(source)
     return [
         {
             "label": "Max Turnover Price",
@@ -284,7 +306,7 @@ def build_turnover_explanations(
         {
             "label": "PI Source",
             "value": source_label,
-            "explanation": TURNOVER_GLOSSARY["PI Source"],
+            "explanation": f"{TURNOVER_GLOSSARY['PI Source']} {source_note}",
         },
     ]
 
@@ -298,12 +320,32 @@ def build_turnover_summary(
 ) -> list[str]:
     max_price = _fmt_price(getattr(turnover_result, "max_turnover_price", None))
     max_index = _fmt_price(getattr(turnover_result, "max_turnover_index", None))
-    source_label = "PI ladder" if source == "ladder" else "NMS trial fallback"
-    return [
+    frame = getattr(turnover_result, "df", None)
+    sentences = [
         f"The highest turnover can be achieved by setting the price at {max_price} {currency}.",
         f"At this point, the turnover index reaches {max_index} on the 0-100 scale.",
-        f"For {segment_label}, purchase intention is sourced from {source_label}.",
     ]
+    if frame is not None and hasattr(frame, "sort_values"):
+        sorted_frame = frame.sort_values("price").reset_index(drop=True)
+        if len(sorted_frame) > 1:
+            pi_peak_idx = int(sorted_frame["purchase_intention_pct"].astype(float).idxmax())
+            pi_peak_price = float(sorted_frame.loc[pi_peak_idx, "price"])
+            max_turnover_price = float(getattr(turnover_result, "max_turnover_price", 0.0))
+            if max_turnover_price > pi_peak_price:
+                sentences.append(
+                    "The turnover peak sits above the PI peak, indicating monetization favors "
+                    "a higher price than pure intent."
+                )
+            elif max_turnover_price < pi_peak_price:
+                sentences.append(
+                    "The turnover peak sits below the PI peak, indicating turnover is optimized "
+                    "before intent reaches its maximum."
+                )
+            else:
+                sentences.append("PI and turnover peak at the same price level in this view.")
+    source_label, _source_note = describe_turnover_source(source)
+    sentences.append(f"PI source in this chart: {source_label}.")
+    return sentences
 
 
 def build_profit_explanations(profit_result: Any, *, currency: str) -> list[dict[str, str]]:
@@ -339,15 +381,52 @@ def build_profit_summary(
     *,
     currency: str,
     segment_label: str,
+    product_label: str | None = None,
 ) -> list[str]:
     unit_cost = _fmt_price(getattr(profit_result, "unit_cost", None))
     max_price = _fmt_price(getattr(profit_result, "max_profit_price", None))
     max_index = _fmt_price(getattr(profit_result, "max_profit_index", None))
-    return [
+    unit_cost_num = _to_float(getattr(profit_result, "unit_cost", None), default=float("nan"))
+    max_price_num = _to_float(
+        getattr(profit_result, "max_profit_price", None), default=float("nan")
+    )
+
+    product_clean = (product_label or "").strip()
+    segment_clean = (segment_label or "").strip()
+    if product_clean and segment_clean:
+        break_even_context = f"For {product_clean} in {segment_clean}, "
+    elif product_clean:
+        break_even_context = f"For {product_clean}, "
+    elif segment_clean:
+        break_even_context = f"For {segment_clean}, "
+    else:
+        break_even_context = ""
+
+    sentences = [
         (
             f"Given unit cost {unit_cost} {currency}, the highest profit proxy is achieved "
             f"at {max_price} {currency}."
         ),
         f"At this point, the profit index reaches {max_index} on the 0-100 scale.",
-        f"For {segment_label}, the break-even marker is set at {unit_cost} {currency}.",
+        f"{break_even_context}the break-even marker is set at {unit_cost} {currency}.",
     ]
+    if math.isfinite(unit_cost_num) and math.isfinite(max_price_num):
+        delta = max_price_num - unit_cost_num
+        if delta > 0:
+            sentences.append(
+                "The maximum-profit price sits above break-even, indicating positive unit margin "
+                "at the optimum."
+            )
+        elif delta < 0:
+            sentences.append(
+                "The maximum-profit price sits below break-even, indicating the current setup "
+                "does not reach positive unit margin at the optimum."
+            )
+        else:
+            sentences.append(
+                "The maximum-profit price equals break-even, indicating a zero unit margin "
+                "at the optimum."
+            )
+    if segment_label:
+        sentences.append(f"Context: {segment_label}.")
+    return sentences

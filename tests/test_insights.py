@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pandas as pd
+
 from psm_tool.report.insights import (
     build_kpi_explanations,
     build_nms_explanations,
@@ -11,6 +13,7 @@ from psm_tool.report.insights import (
     build_psm_summary,
     build_turnover_explanations,
     build_turnover_summary,
+    describe_turnover_source,
 )
 
 
@@ -45,9 +48,9 @@ def test_build_psm_summary_negative_stress_branch() -> None:
     kpis["idp"] = 100.0
     lines = build_psm_summary(kpis, currency="EUR", segment_label="DE")
 
-    assert lines[0] == "The accepted price range is between 90.00 and 110.00 EUR."
+    assert lines[0] == "The accepted price range is between 90.00 EUR (PMI) and 110.00 EUR (PME)."
     assert lines[1] == "The optimal pricing point (OPP) is around 90.00 EUR."
-    assert any("stress is negative" in line for line in lines)
+    assert any("Price stress is negative" in line for line in lines)
 
 
 def test_build_psm_summary_balanced_and_narrow_note() -> None:
@@ -71,12 +74,12 @@ def test_build_psm_summary_positive_stress_and_wide_note_and_caution() -> None:
     kpis["opp_status"] = "closest"
 
     lines = build_psm_summary(kpis, currency="EUR", segment_label="DE")
-    assert any("stress is positive" in line for line in lines)
+    assert any("Price stress is positive" in line for line in lines)
     assert any("wide" in line for line in lines)
     assert any("not clean" in line for line in lines)
 
 
-def test_build_psm_summary_includes_nms_sentence() -> None:
+def test_build_psm_summary_excludes_turnover_trial_and_includes_idp_sentence() -> None:
     lines = build_psm_summary(
         _base_kpis(),
         currency="EUR",
@@ -84,8 +87,20 @@ def test_build_psm_summary_includes_nms_sentence() -> None:
         nms_kpis={"max_revenue_price": 120.0, "max_trial_price": 90.0},
     )
 
-    assert any("highest turnover is at 120.00 EUR" in line for line in lines)
-    assert any("highest trial is at 90.00 EUR" in line for line in lines)
+    assert not any("highest turnover" in line for line in lines)
+    assert not any("highest trial" in line for line in lines)
+    assert any("Indifference Price Point of" in line for line in lines)
+
+
+def test_build_psm_summary_with_product_country_parenthetical() -> None:
+    lines = build_psm_summary(
+        _base_kpis(),
+        currency="EUR",
+        segment_label="DE",
+        product_label="Classic",
+    )
+    assert "for Classic in DE" in lines[0]
+    assert "(PMI)" in lines[0]
 
 
 def _base_nms_result() -> dict[str, object]:
@@ -121,7 +136,7 @@ def test_build_nms_summary_aligned_peaks() -> None:
     nms_result["max_revenue_price"] = 90.0
     lines = build_nms_summary(nms_result, currency="EUR", segment_label="DE")
     assert lines[0] == "The highest trial is at 90.00 EUR."
-    assert lines[1] == "The highest turnover is at 90.00 EUR."
+    assert lines[1] == "The highest modeled revenue is at 90.00 EUR."
     assert any("align at the same price level" in line for line in lines)
     assert any("uses 80 of 100 respondents" in line for line in lines)
 
@@ -137,7 +152,16 @@ def test_build_nms_summary_tradeoff_and_weight_fallback_note() -> None:
 
 
 def test_build_turnover_explanations_and_summary() -> None:
-    turnover = SimpleNamespace(max_turnover_price=200.0, max_turnover_index=100.0)
+    turnover = SimpleNamespace(
+        max_turnover_price=200.0,
+        max_turnover_index=100.0,
+        df=pd.DataFrame(
+            {
+                "price": [100.0, 200.0, 300.0],
+                "purchase_intention_pct": [60.0, 50.0, 20.0],
+            }
+        ),
+    )
 
     rows = build_turnover_explanations(turnover, currency="EUR", source="ladder")
     assert [row["label"] for row in rows] == [
@@ -147,6 +171,7 @@ def test_build_turnover_explanations_and_summary() -> None:
     ]
     assert rows[0]["value"] == "200.00 EUR"
     assert rows[2]["value"] == "PI ladder"
+    assert "price ladder table" in rows[2]["explanation"]
 
     lines = build_turnover_summary(
         turnover,
@@ -156,7 +181,13 @@ def test_build_turnover_explanations_and_summary() -> None:
     )
     assert lines[0] == ("The highest turnover can be achieved by setting the price at 200.00 EUR.")
     assert any("turnover index reaches 100.00" in line for line in lines)
-    assert any("PI ladder" in line for line in lines)
+    assert any("PI source in this chart: PI ladder." in line for line in lines)
+
+
+def test_describe_turnover_source_for_nms_fallback_is_explicit() -> None:
+    label, note = describe_turnover_source("nms_trial")
+    assert label == "NMS trial fallback"
+    assert "NMS trial curve" in note
 
 
 def test_build_profit_explanations_and_summary() -> None:
@@ -176,9 +207,14 @@ def test_build_profit_explanations_and_summary() -> None:
         profit,
         currency="EUR",
         segment_label="DE",
+        product_label="Classic",
     )
     assert lines[0] == (
         "Given unit cost 75.00 EUR, the highest profit proxy is achieved at 180.00 EUR."
     )
     assert any("profit index reaches 100.00" in line for line in lines)
-    assert any("break-even marker is set at 75.00 EUR" in line for line in lines)
+    assert any(
+        "For Classic in DE, the break-even marker is set at 75.00 EUR." in line for line in lines
+    )
+    assert any("above break-even" in line for line in lines)
+    assert any("Context: DE." in line for line in lines)

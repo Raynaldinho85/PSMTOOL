@@ -17,12 +17,13 @@ from psm_tool.ui.knowledge_content import (
     get_knowledge_markdown_de,
     get_knowledge_markdown_en,
 )
-from psm_tool.ui.style import inject_base_styles
+from psm_tool.ui.page_nav import render_page_nav_top
+from psm_tool.ui.style import inject_base_styles, render_notice
 
 TAB_ORDER = [
     "Overview",
     "PSM (Price Sensitivity Meter)",
-    "Purchase Intention & Turnover",
+    "NMS (Newton-Miller-Smith)",
     "Quality & Grid",
     "Exports & Privacy",
     "FAQ",
@@ -62,15 +63,10 @@ def _render_tab_content(
     st.markdown(markdown_map[tab_name])
 
     if tab_name == "Overview":
-        st.info(
-            (
-                "Deterministic behavior only: all calculations and explanations "
-                "are static and rule-based."
-            )
+        render_notice(
+            ("Deterministic only: calculations and explanations are static and rule-based.")
             if language == "English"
-            else (
-                "Deterministisches Verhalten: alle Berechnungen und Erklärungen sind regelbasiert."
-            )
+            else "Deterministisch: Berechnungen und Erlaeuterungen sind regelbasiert."
         )
         with st.expander(
             "Input schema details" if language == "English" else "Input-Schema im Detail",
@@ -92,123 +88,93 @@ def _render_tab_content(
                 else "Optionale Spalten: " + ", ".join(config_snapshot["optional_columns"])
             )
             if sav_available:
-                st.info("SAV support is enabled in this environment.")
+                render_notice(
+                    "SAV support is enabled in this environment."
+                    if language == "English"
+                    else "SAV-Unterstuetzung ist in dieser Umgebung aktiv.",
+                )
             else:
-                st.warning(
+                render_notice(
                     "SAV support is optional; not installed in this environment."
                     if language == "English"
-                    else "SAV-Unterstützung ist optional und in dieser Umgebung nicht installiert."
+                    else "SAV-Unterstuetzung ist optional und in dieser Umgebung nicht installiert."
                 )
 
     if tab_name == "PSM (Price Sensitivity Meter)":
-        st.info(
+        render_notice(
             f"Validity rule used by code: `{config_snapshot['ordering_rule']}`"
             if language == "English"
-            else f"Im Code verwendete Plausi-Regel: `{config_snapshot['ordering_rule']}`"
+            else f"Plausi-Regel im Code: `{config_snapshot['ordering_rule']}`"
         )
         with st.expander(
-            "Intersection statuses in this tool"
+            "Intersection statuses implemented"
             if language == "English"
-            else "Schnittpunkt-Status in diesem Tool",
+            else "Implementierte Schnittpunkt-Status",
             expanded=False,
         ):
-            st.markdown("- clean")
-            st.markdown("- interval")
-            st.markdown("- closest")
+            for status in config_snapshot["intersection_statuses"]:
+                st.markdown(f"- {status}")
 
-    if tab_name == "Purchase Intention & Turnover":
+    if tab_name == "NMS (Newton-Miller-Smith)":
         if config_snapshot["pi_normalization_note_available"]:
-            st.info(
+            render_notice(
                 (
-                    "PI unit handling: internally PI is treated as 0..100 percent. "
-                    "When clear fraction-scale input (0..1) is detected, the tool can normalize "
-                    "it and report a warning note."
+                    "PI unit invariant: internal PI is percent 0..100. "
+                    "Fraction-scale input can be normalized with warning notes."
                 )
                 if language == "English"
                 else (
-                    "PI-Einheiten: intern wird PI als Prozent 0..100 behandelt. "
-                    "Wenn klarer 0..1-Input erkannt wird, kann das Tool normalisieren und "
-                    "einen Hinweis ausgeben."
+                    "PI-Invariante: intern ist PI Prozent 0..100. "
+                    "Fraction-Input kann mit Hinweis normalisiert werden."
                 )
             )
         else:
-            st.warning(
-                (
-                    "PI unit expectation: 0..100 percent. Fraction input (0..1) can compress PI "
-                    "curves and should be corrected before interpretation."
-                )
+            render_notice(
+                ("PI unit expectation is 0..100 percent. Fraction input can compress PI curves.")
                 if language == "English"
-                else (
-                    "Erwartete PI-Einheit: Prozent 0..100. 0..1-Eingaben können PI-Kurven "
-                    "komprimieren und sollten vor der Interpretation korrigiert werden."
-                )
-            )
-        with st.expander(
-            "Modeled vs measured PI curve"
-            if language == "English"
-            else "Modellierte vs. gemessene PI-Kurve",
-            expanded=False,
-        ):
-            st.markdown(
-                (
-                    "Without an explicit ladder, the curve is reconstructed "
-                    "from respondent anchors "
-                    "using a deterministic piecewise-linear model."
-                )
-                if language == "English"
-                else (
-                    "Ohne explizite Preisleiter wird die Kurve aus Respondent-Ankern über ein "
-                    "deterministisches piecewise-lineares Modell rekonstruiert."
-                )
+                else "Erwartete PI-Einheit ist 0..100 Prozent. Fraction-Input kann PI komprimieren."
             )
 
     if tab_name == "Quality & Grid":
-        st.info(
-            "Current default currency snapping values are loaded from configuration."
+        render_notice(
+            "Default currency snapping values are read from config."
             if language == "English"
-            else "Die aktuellen Currency-Snapping-Defaults werden aus der Konfiguration geladen."
+            else "Default-Currency-Snapping wird aus der Config gelesen."
         )
         with st.expander(
-            "Current config snapshot" if language == "English" else "Aktueller Config-Snapshot",
+            "Current snap mapping" if language == "English" else "Aktuelles Snap-Mapping",
             expanded=False,
         ):
             for currency, increment in config_snapshot["default_currency_snap"].items():
                 st.markdown(f"- {currency}: {increment:g}")
 
     if tab_name == "Exports & Privacy":
-        st.warning(
-            (
-                "For static chart export (PNG into PPTX), a working "
-                "Chrome/Chromium setup is required."
-            )
+        render_notice(
+            ("PPTX image export requires a working Chrome/Chromium runtime.")
             if language == "English"
-            else (
-                "Für statische Chart-Exports (PNG in PPTX) ist eine funktionierende "
-                "Chrome/Chromium-Umgebung erforderlich."
-            )
+            else "PPTX-Bildexport benoetigt eine funktionierende Chrome/Chromium-Runtime."
         )
 
     if tab_name == "FAQ":
         with st.expander(
-            "Practical checks before sharing results"
-            if language == "English"
-            else "Praktische Checks vor dem Teilen von Ergebnissen",
+            "Quick pre-share checks" if language == "English" else "Schnelle Checks vor dem Teilen",
             expanded=False,
         ):
             if language == "English":
-                st.markdown("- Verify PI units (`pi_bargain_pct`, `pi_expensive_pct`).")
+                st.markdown("- Verify PI units and PI source mode.")
                 st.markdown("- Verify segment/currency consistency.")
                 st.markdown("- Verify export preflight before PPTX generation.")
             else:
-                st.markdown("- PI-Einheiten (`pi_bargain_pct`, `pi_expensive_pct`) prüfen.")
-                st.markdown("- Segment-/Währungskonsistenz prüfen.")
-                st.markdown("- Export-Preflight vor PPTX-Generierung prüfen.")
+                st.markdown("- PI-Einheiten und PI-Quelle pruefen.")
+                st.markdown("- Segment-/Waehrungskonsistenz pruefen.")
+                st.markdown("- Export-Preflight vor PPTX pruefen.")
 
 
 def main() -> None:
-    inject_base_styles(max_width=1380)
+    inject_base_styles(max_width=2800)
     st.markdown('<p class="psm-page-eyebrow">Reference</p>', unsafe_allow_html=True)
     st.title("Knowledge & Methodology")
+    render_page_nav_top("knowledge")
 
     language = st.radio(
         "Language / Sprache",
@@ -237,7 +203,7 @@ def main() -> None:
     st.caption(
         "Back to Results: open page '2 Results' from the sidebar."
         if language == "English"
-        else "Zurück zu Results: öffne Seite '2 Results' in der Sidebar."
+        else "Zurueck zu Results: oeffne Seite '2 Results' in der Sidebar."
     )
 
 
