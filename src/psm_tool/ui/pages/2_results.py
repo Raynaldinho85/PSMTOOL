@@ -245,6 +245,14 @@ def _build_profit_summary_safe(
         )
 
 
+def _render_summary_bullets(summary_lines: list[str]) -> None:
+    if not summary_lines:
+        st.markdown("- No summary available.")
+        return
+    bullet_text = "\n".join(f"- {line}" for line in summary_lines)
+    st.markdown(bullet_text)
+
+
 def _render_kpi_cards(
     price_symbol: str,
     kpis: dict[str, float | str],
@@ -997,7 +1005,7 @@ def main() -> None:
                 segment_label=str(selected_segment),
                 product_label=str(selected_product),
             )
-            st.markdown(" ".join(summary_lines))
+            _render_summary_bullets(summary_lines)
 
     if "turnover" in tab_map and turnover_result is not None:
         with tab_map["turnover"]:
@@ -1118,7 +1126,7 @@ def main() -> None:
                         "opp": str(kpi_dict.get("opp_status", "closest")),
                     },
                 )
-                st.markdown(" ".join(summary_lines))
+                _render_summary_bullets(summary_lines)
 
     if "profit" in tab_map and turnover_result is not None and profit_result is not None:
         with tab_map["profit"]:
@@ -1245,7 +1253,7 @@ def main() -> None:
                         "pme": str(kpi_dict.get("pme_status", "closest")),
                     },
                 )
-                st.markdown(" ".join(summary_lines))
+                _render_summary_bullets(summary_lines)
 
     if "nms_trial_revenue" in tab_map and nms_result is not None:
         with tab_map["nms_trial_revenue"]:
@@ -1318,7 +1326,7 @@ def main() -> None:
                     currency=currency,
                     segment_label=str(selected_segment),
                 )
-                st.markdown(" ".join(summary_lines))
+                _render_summary_bullets(summary_lines)
 
     with tab_map["quality_control"]:
         st.dataframe(qc_df, width="stretch")

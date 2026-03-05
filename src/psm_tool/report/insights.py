@@ -62,6 +62,36 @@ def _read_nms_field(nms_result: Any, field: str, default: Any = None) -> Any:
     return getattr(nms_result, field, default)
 
 
+def _format_price_with_status(
+    kpis: dict[str, Any],
+    *,
+    key: str,
+    currency: str,
+) -> str:
+    status = str(kpis.get(f"{key}_status", "closest"))
+    value = _to_float(kpis.get(key), default=float("nan"))
+    if status == "clean":
+        return f"{value:.2f} {currency}"
+    if status == "interval":
+        low = kpis.get(f"{key}_low")
+        high = kpis.get(f"{key}_high")
+        if low is not None and high is not None:
+            return f"[{float(low):.2f}, {float(high):.2f}] {currency} (~ {value:.2f} {currency})"
+        return f"{value:.2f} {currency} (~mid)"
+    return f"{value:.2f} {currency} (diagnostic)"
+
+
+def _non_clean_status_note(kpi_statuses: dict[str, str] | None) -> str | None:
+    if not kpi_statuses:
+        return None
+    non_clean = [
+        f"{key.upper()}={value}" for key, value in kpi_statuses.items() if value != "clean"
+    ]
+    if not non_clean:
+        return None
+    return "Intersection status: " + ", ".join(non_clean) + "."
+
+
 def describe_turnover_source(source: str | None) -> tuple[str, str]:
     if source == "ladder":
         return (
@@ -140,46 +170,63 @@ def build_psm_summary(
         "idp": str(kpis.get("idp_status", "closest")),
         "pme": str(kpis.get("pme_status", "closest")),
     }
+    pmi_clean = statuses["pmi"] == "clean"
+    pme_clean = statuses["pme"] == "clean"
+    opp_clean = statuses["opp"] == "clean"
+    idp_clean = statuses["idp"] == "clean"
     recommendation_allowed = can_recommend(statuses, allow_interval=False)
     unstable = any(status != "clean" for status in statuses.values())
 
+    pmi_text = _format_price_with_status(kpis, key="pmi", currency=currency)
+    pme_text = _format_price_with_status(kpis, key="pme", currency=currency)
+    opp_text = _format_price_with_status(kpis, key="opp", currency=currency)
+    idp_text = _format_price_with_status(kpis, key="idp", currency=currency)
+
     sentences: list[str] = [
-        f"{accepted_prefix} is between {pmi:.2f} {currency} (PMI) and {pme:.2f} {currency} (PME).",
+        f"{accepted_prefix} is between {pmi_text} (PMI) and {pme_text} (PME).",
     ]
     if recommendation_allowed:
-        sentences.append(f"The optimal pricing point (OPP) is around {opp:.2f} {currency}.")
+        sentences.append(f"The optimal pricing point (OPP) is around {opp_text}.")
     else:
         sentences.append(
             "OPP is not used for a target-price recommendation because "
             "intersection quality is not clean."
         )
 
-    stress = opp - idp
-    stress_pct = (stress / idp) if idp > 0 else 0.0
-    width_pct = ((pme - pmi) / idp) if idp > 0 else 0.0
-
-    if stress_pct <= -0.05:
-        stress_sentence = (
-            "Price stress is negative, because IDP is higher than OPP, "
-            "which indicates downward pressure."
-        )
-    elif stress_pct >= 0.05:
-        stress_sentence = (
-            "Price stress is positive, because OPP is higher than IDP, "
-            "which indicates upward price headroom."
-        )
+    if opp_clean and idp_clean:
+        stress = opp - idp
+        stress_pct = (stress / idp) if idp > 0 else 0.0
+        if stress_pct <= -0.05:
+            stress_sentence = (
+                "Price stress is negative, because IDP is higher than OPP, "
+                "which indicates downward pressure."
+            )
+        elif stress_pct >= 0.05:
+            stress_sentence = (
+                "Price stress is positive, because OPP is higher than IDP, "
+                "which indicates upward price headroom."
+            )
+        else:
+            stress_sentence = (
+                "Price stress is neutral, because OPP equals IDP, "
+                "which indicates a balanced pricing position."
+            )
     else:
         stress_sentence = (
-            "Price stress is neutral, because OPP equals IDP, "
-            "which indicates a balanced pricing position."
+            "Price stress is reported as diagnostic only because OPP or IDP "
+            "intersection quality is not clean."
         )
 
-    if width_pct < 0.10:
-        stress_sentence += " The acceptable range is narrow, indicating high price sensitivity."
-    elif width_pct > 0.60:
-        stress_sentence += (
-            " The acceptable range is wide, indicating heterogeneous willingness to pay."
-        )
+    if pmi_clean and pme_clean and idp_clean:
+        width_pct = ((pme - pmi) / idp) if idp > 0 else 0.0
+        if width_pct < 0.10:
+            stress_sentence += " The acceptable range is narrow, indicating high price sensitivity."
+        elif width_pct > 0.60:
+            stress_sentence += (
+                " The acceptable range is wide, indicating heterogeneous willingness to pay."
+            )
+    else:
+        stress_sentence += " Accepted-range width classification is diagnostic only."
     sentences.append(stress_sentence)
 
     if unstable:
@@ -189,9 +236,12 @@ def build_psm_summary(
         )
 
     sentences.append(
-        f"The Indifference Price Point of {idp:.2f} {currency} (IDP) marks the perceived "
+        f"The Indifference Price Point of {idp_text} (IDP) marks the perceived "
         "price balance where cheap and expensive perceptions are equal."
     )
+    status_note = _non_clean_status_note(statuses)
+    if status_note:
+        sentences.append(status_note)
 
     policy_applied = [
         apply_wording_policy(
@@ -370,6 +420,9 @@ def build_turnover_summary(
             "because required PSM intersections are not clean.",
             f"The current turnover index diagnostic value is {max_index}.",
         ]
+    status_note = _non_clean_status_note(kpi_statuses)
+    if status_note:
+        sentences.append(status_note)
     if frame is not None and hasattr(frame, "sort_values"):
         sorted_frame = frame.sort_values("price").reset_index(drop=True)
         if len(sorted_frame) > 1:
@@ -482,6 +535,9 @@ def build_profit_summary(
             "because required PSM intersections are not clean.",
             f"{break_even_context}the break-even marker is set at {unit_cost} {currency}.",
         ]
+    status_note = _non_clean_status_note(kpi_statuses)
+    if status_note:
+        sentences.append(status_note)
     if math.isfinite(unit_cost_num) and math.isfinite(max_price_num):
         delta = max_price_num - unit_cost_num
         if delta > 0:

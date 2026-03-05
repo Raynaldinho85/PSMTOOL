@@ -75,12 +75,23 @@ def test_build_psm_summary_positive_stress_and_wide_note_and_caution() -> None:
     kpis["opp"] = 110.0
     kpis["idp"] = 100.0
     kpis["opp_status"] = "closest"
+    kpis["opp_low"] = 108.0
+    kpis["opp_high"] = 112.0
 
     lines = build_psm_summary(kpis, currency="EUR", segment_label="DE")
-    assert any("Price stress is positive" in line for line in lines)
-    assert any("wide" in line for line in lines)
+    assert any("diagnostic only" in line for line in lines)
     assert any("not clean" in line for line in lines)
     assert any("no target-price recommendation is issued" in line for line in lines)
+    assert any("OPP=closest" in line for line in lines)
+
+
+def test_build_psm_summary_formats_interval_prices() -> None:
+    kpis = _base_kpis()
+    kpis["pmi_status"] = "interval"
+    kpis["pmi_low"] = 88.0
+    kpis["pmi_high"] = 92.0
+    lines = build_psm_summary(kpis, currency="EUR", segment_label="DE")
+    assert any("[88.00, 92.00] EUR (~ 90.00 EUR)" in line for line in lines)
 
 
 def test_build_psm_summary_excludes_turnover_trial_and_includes_idp_sentence() -> None:
