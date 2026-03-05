@@ -217,7 +217,9 @@ def test_build_profit_explanations_and_summary() -> None:
     )
     assert lines[0].startswith("Economics proxy: Model suggests")
     assert any("profit index reaches 100.00" in line for line in lines)
-    assert any("For Classic in DE, the break-even marker is set at 75.00 EUR" in line for line in lines)
+    assert any(
+        "For Classic in DE, the break-even marker is set at 75.00 EUR" in line for line in lines
+    )
     assert any("above break-even" in line for line in lines)
     assert any("Context: DE" in line for line in lines)
     assert any("No competition/substitution model is included." in line for line in lines)

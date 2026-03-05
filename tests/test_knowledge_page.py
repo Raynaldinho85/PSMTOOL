@@ -76,9 +76,10 @@ def test_knowledge_markdown_contains_code_level_method_details() -> None:
     assert "coded scale `1..11`" in result_en["NMS (Newton-Miller-Smith)"]
     assert "pct = 10 + (code - 1) * 9" in result_en["NMS (Newton-Miller-Smith)"]
     assert "Model Layers" in result_en["Overview"]
-    assert "PSM measures price perception boundaries, not observed market demand under competition." in result_en[
-        "Overview"
-    ]
+    assert (
+        "PSM measures price perception boundaries, not observed market demand under competition."
+        in result_en["Overview"]
+    )
 
 
 def test_knowledge_page_file_imports_without_errors() -> None:

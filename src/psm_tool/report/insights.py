@@ -150,7 +150,8 @@ def build_psm_summary(
         sentences.append(f"The optimal pricing point (OPP) is around {opp:.2f} {currency}.")
     else:
         sentences.append(
-            "OPP is not used for a target-price recommendation because intersection quality is not clean."
+            "OPP is not used for a target-price recommendation because "
+            "intersection quality is not clean."
         )
 
     stress = opp - idp
@@ -365,7 +366,8 @@ def build_turnover_summary(
         ]
     else:
         sentences = [
-            "Turnover optimization is not used for a target-price recommendation because required PSM intersections are not clean.",
+            "Turnover optimization is not used for a target-price recommendation "
+            "because required PSM intersections are not clean.",
             f"The current turnover index diagnostic value is {max_index}.",
         ]
     if frame is not None and hasattr(frame, "sort_values"):
@@ -395,7 +397,10 @@ def build_turnover_summary(
         apply_wording_policy(
             sentence,
             lens="Economics proxy",
-            status_flags={"unstable": unstable, "recommendation_blocked": not recommendation_allowed},
+            status_flags={
+                "unstable": unstable,
+                "recommendation_blocked": not recommendation_allowed,
+            },
         )
         for sentence in sentences
     ]
@@ -473,7 +478,8 @@ def build_profit_summary(
         ]
     else:
         sentences = [
-            "Profit optimization is not used for a target-price recommendation because required PSM intersections are not clean.",
+            "Profit optimization is not used for a target-price recommendation "
+            "because required PSM intersections are not clean.",
             f"{break_even_context}the break-even marker is set at {unit_cost} {currency}.",
         ]
     if math.isfinite(unit_cost_num) and math.isfinite(max_price_num):
@@ -499,7 +505,10 @@ def build_profit_summary(
         apply_wording_policy(
             sentence,
             lens="Economics proxy",
-            status_flags={"unstable": unstable, "recommendation_blocked": not recommendation_allowed},
+            status_flags={
+                "unstable": unstable,
+                "recommendation_blocked": not recommendation_allowed,
+            },
         )
         for sentence in sentences
     ]
