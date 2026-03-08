@@ -1,0 +1,137 @@
+--- Page 1 ---
+Welche Preisvorstellungen haben Konsumenten/
+Kunden von meinem Produkt?
+Ipsos Marketing Science
+Price Sensitivity 
+Measurement
+
+
+--- Page 2 ---
+Das Price Sensitivity Measurement (PSM) wurde 1976 von Peter van Westendorp entwickelt. Es ist eine Methode zur 
+Abschätzung der akzeptablen Preisspanne für ein Produkt. Daneben kann ein Preis ermittelt werden, den möglichst viele der 
+potenziellen Käufer akzeptieren. Weiterhin liefert das PSM Information über Preiselastizität, maximale Reichweite, Umsatz-
+schätzungen und Preisschwellen.
+Grundannahme des PSM ist, dass die Befragten feste Vorstellungen darüber haben, was sie für ein Produkt ausgeben wür-
+den. Dabei kann ein Produkt auch zu billig sein – der Preis wird als ein Qualitätsmerkmal betrachtet.
+Bei dem PSM sind keine Vorab-Annahmen über den Preis erforderlich, es wird also vermieden, den Befragten einen Preis 
+zur Beurteilung vorzugeben. Die Methode eignet sich vor allem für eine erste grobe Einschätzung eines akzeptablen Preis -
+bereichs in der frühen Produktentwicklungsphase. Für die endgültige Preisfindung sollten weitergehende Analysen unter 
+Einbezug weiterer Einflüsse (z. B. der Kaufsituation und der Wettbewerber) durchgeführt werden. Anwendung findet das 
+PSM hauptsächlich als Modul in Konzept- und Produkttests. Das Verfahren ist in der Marktforschungspraxis bewährt, öko -
+nomisch und einfach durchführbar.
+Output und Interpretation
+Basierend auf Äußerungen der Befragten zu ihrer Kaufabsicht wird die Kaufwahrscheinlichkeit in Abhängigkeit vom Preis 
+dargestellt. Hier lässt sich ablesen, mit welchem Preis die höchste Reichweite erzielt werden kann (grüne Kurve). Wird die 
+Kurve mit dem Preis multipliziert, lässt sich daraus der Preis mit dem höchsten Umsatz  ermitteln (blaue Kurve). Entspre -
+chend der Zielsetzung des Herstellers lässt sich hieraus der strategisch optimale Preis ableiten.
+MaxTrial = 4,00
+MaxRevenue =  5,00
+0
+50
+100
+150
+200
+250
+300
+350
+0%
+10%
+20%
+30%
+40%
+50%
+60%
+70%
+0,00 1,00 2,00 3,00 4,00 5,00 6,00 7,00 8,00 9,00 10,00 11,00 12,00 13,00 14,00
+Revenue per 100 People (€)
+Likelihood to Buy
+Price (€)
+Trial Revenue
+
+--- Page 3 ---
+Diesem Chart liegt zugrunde, welche Preise die Befragten als zu günstig, günstig, teuer oder zu teuer empfinden. Daraus 
+ergeben sich sechs Kurven, deren Schnittpunkte wie folgt interpretiert werden:
+Optimalpreis (Optimal price): Der Anteil der Personen, die das Produkt zu teuer oder zu günstig finden (und es deshalb 
+nicht kaufen würden), ist gleich. Diesen Preis empfinden die Befragten als angemessen für das Testprodukt. 
+Indifferenzpreis (Indifference price): Gleich viele Personen empfinden das Produkt als günstig bzw. teuer. Dieser Gleichge-
+wichtspreis wird von den Befragten erwartet bzw. entspricht dem typischen Marktpreis in der Produktkategorie. 
+Niedrig-Preisgrenze (Marginally cheap): Unterhalb dieses Preises ist der Anteil der Personen, die nicht kaufen, weil der 
+Preis als zu niedrig wahrgenommen wird, höher als der Anteil derjenigen, die diesen Preis nicht günstig finden. Ein Preis 
+unterhalb dieser Grenze könnte potenzielle Kunden also vermehrt vom Kauf abhalten, da an der Qualität gezweifelt wird.
+Hoch-Preisgrenze (Marginally expensive): Oberhalb dieses Preises wird der Anteil derjenigen Personen, die das Produkt als 
+zu teuer empfinden, grösser als der Anteil derer, die diesen Preis nicht teuer finden. Ein Preis oberhalb dieser Grenze würde 
+vermehrt abgelehnt werden, da das Produkt vielen potenziellen Kunden zu teuer wäre.
+Der Bereich zwischen der Niedrig- und der Hoch-Preisgrenze wird als akzeptable Preisspanne  (Acceptable price range) 
+bezeichnet. Ein Preis innerhalb dieses Bereichs wird von den Befragten insgesamt als für das Produkt passend empfunden. 
+Die Kurvenverläufe selbst dienen zur Ermittlung relevanter Preisstufen. So wird in unserem Beispiel ein Preis von EUR 6,90 
+von den meisten Befragten zwar als teuer, aber noch akzeptabel empfunden. Eine geringe Erhöhung des Preises würde 
+jedoch zu einem sprunghaften Anstieg der Bewertung als „zu teuer“ führen. Die Identifikation dieser psychologischen 
+Preisschwellen liefert somit weitere Anhaltspunkte zur optimalen Preisgestaltung. 
+0%
+20%
+40%
+60%
+80%
+100%
+0,00 1,00 2,00 3,00 4,00 5,00 6,00 7,00 8,00 9,00 10,00 11,00 12,00 13,00 14,00
+Percent of Respondents
+Price (€)
+Too Cheap Bargain Expensive Too Expensive Not Bargain Not Expensive
+Marginally Cheap € 2,90 / Optimal Price € 4,90 / Indifference Price € 4,92 / Marginally Expensive € 7,00
+
+--- Page 4 ---
+Die Erhebung
+Die Methode basiert auf vier Fragen, um die Sensitivität des 
+Konsumenten in Bezug auf den Preis zu messen. Nachdem 
+der Testperson das betreffende Produkt vorgestellt wurde, 
+werden die PSM-Fragen gestellt:
+•  Bis zu welchem Preis würden Sie denken, dass das Pro-
+dukt günstig ist und ein Kauf für Sie in Frage kommt? 
+(Bargain)
+•  Bis zu welchem Preis würden Sie denken, dass das Pro-
+dukt zwar teuer ist, aber Sie zu einem Kauf noch bereit 
+wären? (Expensive) 
+•  Ab welchem Preis würden Sie denken, dass das Produkt 
+zu teuer ist, um einen Kauf in Betracht zu ziehen? (Too 
+expensive)
+•  Ab welchem Preis würden Sie denken, dass dieses Pro-
+dukt zu billig ist, so dass Sie an der Qualität zweifeln? 
+(Too cheap)
+Um Reichweite und Umsatz schätzen zu können (1. Chart), 
+müssen zwei weitere Fragen gestellt werden. Bei dieser 
+sogenannten Newton-Miller-Smith-Extension  (NMS) 
+wird das Kaufinteresse bei dem als günstig genannten Preis 
+und dem als teuer empfundenen Preis abgefragt. 
+Die Abfrage erfolgt offen. Gegebenenfalls können im Vor -
+feld Preise ähnlicher Produkte (z. B. der Wettbewerber) 
+gezeigt werden, um den Befragten bei neuartigen Produk -
+ten eine grobe Orientierung zu geben. Als Grundlage für 
+die Beantwortung der PSM-Fragen wird nicht unbedingt ein 
+fertig entwickeltes Produkt benötigt, allerdings sollte der 
+Testperson zumindest ein ausgearbeitetes Produktkonzept 
+vorgelegt werden. Die Fallzahl pro untersuchter Subgruppe 
+muss mindestens 150 betragen, besser sind 300.
+NOBODY‘S UNPREDICTABLE
+Ipsos Newsletter
+© März 2014 | Ipsos Visual Solutions, Germany 
+Über Ipsos:
+Ipsos ist ein unabhängiges und innovatives Dienstleis -
+tungsunternehmen, das weltweit Services rund um die 
+Markt- und Meinungsforschung anbietet. Um unseren 
+Kunden bestmöglichen Service zu bieten, haben wir 
+uns in sechs Forschungsbereichen spezialisiert. So 
+bestimmen unsere engagierten Forscher Marktpoten -
+ziale, zeigen Markttrends, testen Produkte, Werbung 
+und Dienstleistungen, erforschen die Wirkung von 
+Medien und geben der öffentlichen Meinung eine 
+Stimme. Und das in 86 Ländern auf allen Kontinenten. 
+In Deutschland beschäftigen wir in unserem „Home of 
+Researchers“ über 500 Mitarbeiter in Hamburg, Mölln, 
+München, Frankfurt und Berlin.  www.ipsos.de
+© alphaspirit - Fotolia.com
+Ihr Kontakt bei  
+Ipsos Marketing Science:
+Indra Rao
+Fon +49 (0)69 247 470 27 36
+Indra.Rao@ipsos.com
+

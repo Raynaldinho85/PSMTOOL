@@ -1,0 +1,1618 @@
+--- Page 1 ---
+ 
+Empirische Untersuchung zur Messung der 
+Preiswahrnehmung mittels  
+Pricesensitivity-Meter 
+ 
+ 
+Holger Müller 
+ 
+ 
+FEMM Working Paper No. 29, November 2008 
+OTTO-VON-GUERICKE -UNIVERSITY MAGDEBURG  
+FACULTY OF ECONOMICS AND MANAGEMENT 
+ 
+F E M M 
+Faculty of Economics and Management Magdeburg 
+ 
+ 
+ 
+ 
+Working Paper Series 
+Otto-von-Guericke-University Magdeburg 
+Faculty of Economics and Management 
+P.O. Box 4120 
+39016 Magdeburg, Germany 
+http://www.ww.uni-magdeburg.de/ 
+
+--- Page 2 ---
+ - 1 -
+Empirische Untersuchung zur Messung der  
+Preiswahrnehmung mittels Pricesensitivity-Meter 
+ 
+Holger Müller 
+Otto-von-Guericke-Universität Magdeburg 
+Fakultät für Wirtschaftswissenschaft 
+2008 
+Zusammenfassung:  
+Das Pricesensitivity-Meter (PSM) ist ein in der praktischen Preisforschung weit verbrei-
+tetes Instrument zur Erfassung der Prei swahrnehmung sowie zur Identifikation von 
+Preisschwellen und Referenzpreisen.  In der wissenschaftlichen Literatur wird das PSM 
+jedoch insbesondere infolge se iner direkten Abfragetechni k kritisiert und von einem 
+Einsatz prinzipiell abgeraten. Gleichwohl  fehlen bislang sowohl produktgruppenüber-
+greifende Erfahrungsberichte als auch aussa gekräftige Langzeitstudienstudien zu die-
+sem Thema. Vor diesem Hintergrund unter sucht der vorliegende Beitrag die grundsätz-
+liche Qualität und Konsistenz von PSM-Messu ngen. Hierzu wurde über einen Zeitraum 
+von insgesamt sechs Jahren eine aus vier  äquidistanten Wellen bestehende Längs-
+schnittmessung im nationalen Markt für Ziga retten realisiert. Die PSM-Ergebnisse bes-
+tätigen dabei die theoretisch zu erwarten den dynamischen Anpassungsprozesse subjek-
+tiver Preisakzeptanzbereiche und Referenzpreise an objektive Markpreise.   
+ Schlagworte:  
+ Preiswahrnehmung, Referenzpreis, Pricesensitivity-Meter, PSM 
+ 
+Summary:  
+Consumers´s perception of prices can be measured by using the Pricesensitivity-Meter 
+(PSM) developed by the dutch economist va n Westendorp. As a result of the PSM-
+Analysis, aggregated indicators of price pe rception like ranges of acceptable prices, 
+reference prices and price thresholds of th e particual product or market under examina-
+tion can be identified. This paper discusse s the validity of PSM-based pricesensitivity 
+measurements in general. For this purporse, results of a six-year longitudinal analysis in 
+the german market for cigarettes are presented. The findings support most of the theore-
+tically hypothesized relationships and confirm the dynamics by which consumers trans-
+late market prices into subjective price perceptions.  
+ Keywords:  
+ Price Perception, Reference Pri ce, Pricesensitivity-Meter, PSM 
+
+--- Page 3 ---
+ - 2 -
+Inhaltsverzeichnis 
+ 
+Abbildungsverzeichnis ................................................................................................... 3 
+Abkürzungs- und Symbolverzeichnis ........................................................................... 4 
+1 Einleitung ................................................................................................................ 5 
+2 Verhaltenswissenschaftliche Erklärungsansätze................................................. 6 
+3 Das Pricesensitivity-Meter................................................................................... 10 
+4 Zentrale Fragestellungen der Untersuchung ..................................................... 16 
+5 Grundlegendes Untersuchungsdesign und allgemeine    
+  Stichprobencharakteristika ................................................................................ 20  
+6 Empirische Befunde ............................................................................................. 23 
+7 Zusammenfassung und kritischer Ausblick....................................................... 33 
+Anhang........................................................................................................................... 37 
+Literaturverzeichnis ..................................................................................................... 40 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 4 ---
+ - 3 -
+Abbildungsverzeichnis  
+ 
+Abb. 1: Abfrageformulierung Pricesensitivity-Meter .................................................... 11 
+Abb. 2:  Verlauf von Konzentrationskurven im PSM ................................................... 12 
+Abb. 3: Aggregierte Preisschwellen anhand eines empirischen Beispiels ..................... 15 
+Abb. 4: Untersuchte Forschungsfragen der Studie......................................................... 19 
+Abb. 5: Letztkaufanteile in den Längsschnitten (Angaben in %)................................... 22 
+Abb. 6: Demographie und Käuferprofile der Stichproben (Angaben in %)................... 22 
+Abb. 7: Verteilungsfunktionen der Längsschnittmessung  PSM-08 .............................. 23 
+Abb. 8: Marktpreise und PSM-Kennwerte I (*)............................................................. 23 
+Abb. 9: Marktpreise und PSM-Kennwerte II (*)............................................................ 25 
+Abb. 10: Entwicklung der Marktpreise einer Beispielmarke ......................................... 26 
+Abb. 11: Entwicklung der durchschnittlichen Marktpreise (Cent je Zigarette) ............. 27 
+Abb. 12 : Dynamische Entwicklung der aggregierten PSM-Kennwerte........................ 28 
+Abb. 13: Signifikanztest der Dynamik individueller Preisurteile .................................. 29 
+Abb. 14: Segmentspezifische Besonderheiten der PSM-Kennwerte (*)........................ 30 
+Abb. 15: Vergleich direkter Preisurteile mit Kaufsimulationsdaten .............................. 32 
+Abb. 16: Konzentrationskurven K
+zt der Längsschnittmessungen .................................. 35 
+ 
+ 
+
+--- Page 5 ---
+ - 4 -
+Abkürzungs- und Symbolverzeichnis 
+ 
+e     Fehlerterm 
+ε     (Bogen-) Elastizität 
+IP     Indifferenzpreis 
+%IP-Fehler  Prozentuale Abweichung des I ndifferenz- vom Marktdurchschnittspreis 
+Knb    gespiegelte kumulierte Verteilungsfunktion von P b 
+Kzb    kumulierte Verteilungsfunktion von Pzb 
+Knt     gespiegelte kumulie rte Verteilungsfunktion von Pt 
+Kzt    kumulierte Verteilungsfunktion von Pzt 
+OP    Optimalpreis 
+OP%    Prozentuale Ausdehnung des Optimalpreisbereichs  
+p/α    Irrtumswahrscheinlichkeit 
+P
+MA    marktanteilsgewichteter Durchschnittspreis  
+PLK    letztkaufgewichteter Durchschnittspreis  
+Pb     Preisurteil „billig“ 
+Pt     Preisurteil „teuer“    
+Pzb    Preisurteil „zu billig“ 
+Pzt     Preisurteil „zu teuer“ 
+POG     Preisobergrenze 
+PUG     Preisuntergrenze 
+PMG    Preis der marginalen Günstigkeit 
+PMT    Preis der marginalen Teuerung 
+PSM    Pricesensitivity-Meter 
+PSM-02   Erste PSM-Messung im Mai/Juni 2002 
+PSM-04   Zweite PSM-Messung im Mai 2004  
+PSM-06   Dritte PSM-Messung im Mai/Juni 2006  
+PSM-08   Vierte PSM-Messung im Mai/Juni 2006  
+Preis-Range Aggregierte Preisklamme r (Bereich akzeptabler Preise) 
+Range%   Prozentuale Ausdehnung der Preisklammer (Preis-Range) 
+s     Standardabweichung  
+Z     Z-Wert (Prüfgröße statistischer Tests) 
+
+--- Page 6 ---
+ - 5 -
+ 
+1 Einleitung 
+Diametral zur klassischen unterstellt die verhaltenswissenschaftlich orientierte Preisthe-
+orie, dass anstelle realer Marktpreise primär deren individuelle Wahrnehmungen ent-
+scheidend für das Kaufverhalten der Konsum enten sind. Objektive Preisreize werden 
+dabei in einem je nach Produktgruppe mehr  oder minder komplex ablaufenden Prozess 
+der Informationsaufnahme, -verarbeitung und -speicherung subjektiv transformiert. 
+Die Preiswahrnehmung ist in diesem Kontext als kognitiver Prozess der selektiven, sen-
+sorischen Aufnahme und (Vor-) Verarbeitung von Preisinformationen zu verstehen, in 
+welchem objektive Marktpreise in subjekti ve Anmutungen über die relative Preishöhe 
+in ein individuelles Kategor iesystem enkodiert werden 1. Der Enkodierungsvorgang ba-
+siert auf Referenz- respektiv e Ankerpreisen. Grundsätzlich werden diese durch interne 
+(im Regelfall historische Preiserfahrungen)  und/oder externe Prei sinformationen (aktu-
+elle Marktpreise) geformt. Bei hinreich ender Verwendungserfahrung in einer Produkt-
+gruppe bildet der Konsument daher beispi elsweise ein als Referenzpunkt dienendes 
+mittleres Preisempfinden (wie etwa in Form  eines normalerweise für Artikel der Pro-
+duktgruppe gezahlten Preises) aus. Dieser Referenzpreis dient als Grundlage für die 
+Einstufung aktueller Marktpreise in meist or dinal strukturierte Preiswahrnehmungskate-
+gorien (zum Beispiel billig oder teuer). Du rch das psychologische Phänomen der Rela-
+tivität der Wahrnehmung sowie zeitliche Fl uktuationen objektiver Marktpreise unterlie-
+gen sowohl die Preiswahrnehmungskategorie n als auch die für ihre Abgrenzung maß-
+gebenden Referenzpreise dynamischen Veränderungen.  
+Der vorliegende Beitrag untersucht vor di esem Hintergrund erstens, ob subjektive 
+Preiswahrnehmungen den objektiven Marktpre isentwicklungen realiter wie theoretisch 
+postuliert nachfolgen. Dabei findet das auf den holländischen Ökonomen van Westen-
+dorp
+2 zurückgehende Pricesensi tivity-Meter (PSM) und somit ein klassisches Messin-
+strument zur Erfassung der Preiswahrneh mung Anwendung. Ein zweites Anliegen die-
+ser Studie besteht darin, die weite Verbre itung des PSM in der Preisforschungspraxis 
+insbesondere vor dem Hintergrund einer bi slang fehlenden fundierten wissenschaftli-
+chen Auseinandersetzung mit diesem Messinstrument kritisch zu hinterfragen 3. Hierzu 
+wurde über einen Zeitraum von insgesamt sechs Jahren eine aus vier äquidistanten Wel-
+ 
+1  Vgl. Diller (1994), S. 939   
+2  Vgl. Westendorp (1976)  
+3  Vgl. hierzu Völckner (2006), S. 56 
+
+--- Page 7 ---
+ - 6 -
+len bestehende Längsschnittmessung realisiert, welche die Preiswahrnehmung von Kon-
+sumenten mittels PSM im nationalen Markt für Zigaretten untersuchte.  
+ 
+2 Verhaltenswissenschaftliche Erklärungsansätze  
+Einer Vielzahl empirischer Studien zufolge ist die konsumentenseitige Kenntnis exakter 
+Angebotspreise produktgruppenübergreifend nur relativ sc hwach ausgeprägt4. So kann 
+beispielsweise selbst in kurz nach dem Ka uf durchgeführten Abfr agen nur etwa jede 
+fünfte Person Preise verschiedener Marken und nur jede zehnte verkaufsstellenbezogene 
+Preisunterschiede der Stammmarke korrekt wiedergeben. Im Gegensatz dazu werden 
+deutlich abstraktere Preisinformationen – wie etwa durchschnittlich für bestimmte Pro-
+dukte zu zahlende Preise, Markenpositionen in  bestimmten Preislagen oder allgemeine 
+obere Preisakzeptanzgrenzen – von mehr als 80% der Befragten valide beziffert5.  
+Die nachhaltige Verankerung derartiger Schl üsselinformationen im Gedächtnis ist im 
+Grunde lediglich Ausdruck von Vereinfachungsstrategien seitens der Konsumenten. Die 
+Abspeicherung konkreter Einzelpreise übers teigt die beschränkte individuelle Wahr-
+nehmungs-, Aufnahme- und Verarbeitungskapazität aufgrund der hinlänglich bekannten 
+Reizüberflutung und erfolgt häufig bestenfalls kurzfristig während des Kaufaktes6. Ver-
+allgemeinerte Schlüsselinformationen hingege n sind in der Regel zwar ungenauer, je-
+doch wesentlich einfacher abrufbar und einpr ägsam. Demzufolge sind sie für den Kon-
+sumenten in der jeweiligen Entscheidung ssituation als maßgebende Urteilsanker und 
+Referenzgrößen (zum Beispiel in Form eines mittleren Preisempfindens) unmittelbar 
+präsent
+7. Im Zuge der Preiswahrnehmung enkodier t der Konsument exakte Markenprei-
+se in relative Positionen zu solchen Referenzpreisen. Folgli ch werden langfristig auch 
+nur Positionen der Marken in meist ordinal strukturierten Preiskategorien im Gedächtnis 
+verankert. Die abgespeicherte Tiefe (Detailliertheit) dieser subjektiven Kodierung wird 
+ 
+4  Exemplarisch seien Studien von Mazumdar/Monroe (1990) sowie Dickson/Sawyer (1990) genannt. 
+Letztere befragten Konsumenten direkt am Point of Purchase unverzüglich nachdem Produkte aus 
+dem Regal in den eigenen Warenkorb gelegt wurden. Dabei konnten 32% lediglich inkorrekte (außer-
+halb eines Toleranzbereichs um den Marktpreis fallende) Preisschätzungen und 21% überhaupt keine 
+Aussagen zum Preis des soeben ausgewählten Produktes abgeben (Sawyer/Dickson 1990, S. 47). 
+5  Es handelte sich hier um telephonische Befragungen von Konsumenten, die bezüglich ihrer Preis-
+kenntnis in unterschiedlichen Produktgruppen befragt wurden. Vgl. detailliert Diller  (1988), S. 22 f. 
+6  Vgl. Schmalen (1995), S. 14 
+7  Vgl. Trommsdorff (1993), S. 85ff. 
+
+--- Page 8 ---
+ - 7 -
+als Elaboriertheit8 der Preiswahrnehmung bezeichnet und ist individuell äußerst hetero-
+gen. Grundsätzlich hängt sie vom Preisinter esse und weiteren kaufverhaltenswirksamen 
+Motiven des Konsumenten (wie etwa Prestige- oder Sparsamkeitsstreben) ab.   
+Den theoretischen Rahmen für die Ausb ildung und Dynamik wahrnehmungsbasierter 
+Referenzpreise bilden die Adaptions-Niveau-Theorie ( Helson), die Assimilations-
+Kontrast-Theorie ( Sherif/Hovland) sowie die Prospect-Theorie ( Kahnemann/Tversky)9. 
+Laut Adaptions-Niveau-Theorie wird ein wahrgenommener Reiz (Fokalstimulus) nicht 
+anhand seiner absoluten Größe, sondern in Abhängigkeit vom Umfeld, in welches er 
+eingebettet ist, beurteilt. Dabei dient das al s Punkt der subjektiven Indifferenz bezeich-
+nete mittlere Adaptionsni veau als Orientierungsgröße 10. Dieses Niveau lässt sich preis-
+theoretisch als Referenzpreis in Form ei nes mittleren Preisempfindens für Produktgrup-
+pen oder Marken interpretiere n, da die relative Position de r zu bewertenden Alternati-
+ven zu diesem komprimierten Urteilsanker für den Enkodierungsprozess verantwortlich 
+ist11. Mittlere Adaptionsniveaus bilden sich aus internen Residual- (durch Kauferfah-
+rung erlerntes Preiswissen) und externen K ontextreizen (aktuell beim Kauf erfasste 
+Marktpreise relevanter Alternativen). Speziell die Annahme primär residualreizbasierter 
+Ankerpreise ist durchaus plausi bel. Nachfrager memorieren  aufgrund historischer, vor 
+der momentanen Kaufentscheidung gesamme lter Erfahrungen mittlere Preisniveaus für 
+relevante Objekte, die im Rahmen der Kaufhandlung als Ankerpunkt zur Einordnung 
+aktueller Preise fungieren 12. Zeitliche Entwicklungen der als Kontextreize parallel wir-
+kenden aktuellen Marktpreise liefern in Verbindung damit erste Erklärungsansätze für 
+die Dynamik des Adaptionsniveaus. Eine ex emplarische preispolitische Implikation 
+hieraus besteht in der Vermeidung rhythmischer Preissonderangebote, da diese das mitt-
+lere Adaptionsniveau langfristig geradezu  systematisch herabsetzen und aktionsfreie 
+Preise in der Wahrnehmung der Nachfrager unattraktiv hoch erscheinen lassen13.   
+Auch die Prospect-Theorie setzt die Existenz von Referenzpreisen voraus, an denen alle 
+mit einer Transaktion verbundenen Preiskomponenten (wie zum Beispiel Angebotsprei-
+se, gewährte Rabatte) unte r der Annahme abnehmender Grenzraten als Gewinn respek-
+ 
+8  Vgl. Kaas/Hay (1984), S. 342 
+9  Vgl. Helson (1964); Sherif/Hovland (1961); Kahnemann/Tversky (1979) 
+10  Helson modelliert das Adaptionsniveau als logarithmisch lineare Funktion gewichteter geometrischer 
+Mittelwerte aller Stimuli aus den nachfolgend beschriebenen Reizkategorien (Helson 1964, S. 58f.). 
+11  Vgl. Diller (1988), S. 21 
+12  Vgl. Herrmann/Wricke/Huber (2000), S. 132  
+13  Vgl. Winer (1988);  Jacobson/Obermiller (1990), S. 420 
+
+--- Page 9 ---
+ - 8 -
+tive Verlust bewertet und sodann zu eine m empfundenen Wert der Gesamttransaktion 
+saldiert werden. Positive Differenzen (Ref erenzpreis > Fokalpreis) stellen wahrgenom-
+mene Gewinne dar, negative Beträge indes re präsentieren Verluste. Aus der Prospect-
+Theorie folgen einige, bereits empirisch nachgewiesene Besonderheiten der abgeleiteten 
+s-förmigen Nutzenfunktion des Entscheiders. So reagieren Nachfrager auf Überschrei-
+tungen des Referenzprei ses heftiger als auf Unterschreit ungen – Verluste werden folg-
+lich stärker als betragsgleiche Gewinne bewertet (loss aversion) 14. In preispolitischer 
+Konsequenz des Erklärungspotentials der Pros pect-Theorie empfiehlt sich beispielswei-
+se eine getrennte Kommunikation multipler Rabatte (Segregation von Gewinnen) oder 
+aber der Ausweis eines Komplettpreises anstelle von Einzelpreisen für gebündelt ver-
+kaufte Leistungskomponenten (Integration von Verlusten)15.  
+Gemäß Assimilations-Kontrast-Theorie vollzie ht sich die Beurteilung eines Stimulus 
+ebenfalls an mittleren Adaptionsniveaus. Diese als Referenzpreise zu interpretierenden 
+Urteilsanker positionieren sich innerhalb eines Intervalls akzep tierter Preise (latitude of 
+acceptance), welches durch individuelle obere und untere Preisgrenzen beschränkt wird. 
+Weicht ein Preis nur wenig vom Urteilsanke r ab, erfolgt eine Assimilation. Der ur-
+sprünglich neutrale Reiz wird dann in der Wahrnehmung des Nachfragers in das Akzep-
+tanzintervall integriert
+16. Als Konsequenz wird das Ad aptionsniveau in Richtung der 
+neuen Preisinformation verschoben und das Akzeptanzintervall entsprechend angepasst. 
+Zu hohe Abweichungen vom Ankerpreis bewi rken Kontrastierungseffekte und mithin 
+eine überproportionale Wahrnehmung und Ei nordnung als inakzeptabel (zu teuer/zu 
+billig). Eine etwaige Modifikation des individuellen mittleren Adaptionsniveaus respek-
+tive der oberen/unteren Preisgrenzen erfolgt dann nicht. Generell ist die Häufigkeit so-
+wie die spezifische Größenordnung, mit der ei n vom mittleren Urteilsanker abweichen-
+der Reiz auftritt, für dessen Assimilation ve rantwortlich. Je ungew öhnlicher sich eine 
+bestimmte Preishöhe folglich darstellt, um so wahrscheinlicher wird die Kontrastierung. 
+Wie empirische Studien belegen, sollten dahe r beispielsweise notwe ndige strukturelle 
+Preiserhöhungen schrittweise dur chgesetzt werden, so dass neue Preisniveaus nur mo-
+derat vom mittleren Preisempfinden abweiche n und noch in den aktuellen Bereich ak-
+ 
+14  Vgl. Kahneman/Tversky (1979), S. 263 
+15  Vgl. hierzu Thaler (1985), S. 202f.; von Nitzsch (1998), S. 625; Diller (2000), S. 134f.  
+16  Preisdifferenzen zwischen verschiedenen Produkten, die sich preislich innerhalb dieses Bereiches 
+positionieren, werden als Folge dieser Assimilationseffekte mitunter kaum wahrgenommen. 
+
+--- Page 10 ---
+ - 9 -
+zeptabler Preise fallen17. Im Zeitverlauf und mit fortschr eitender Assimilation adaptiert 
+der Nachfrager die sukzessiv höheren Preisn iveaus und verschiebt sowohl den Urteils-
+anker als auch das subjektive Akzeptanzin tervall mehr und mehr in deren Richtung 18. 
+Somit stützt auch die Assimilations-Kontra st-Theorie die Annahme langfristig dynami-
+scher und durch Marktpreise geformter Referenzpreise und Adaptionsniveaus. 
+Die Relevanz von Referenzpreisen für das Entscheidungsverhalten von Konsumenten  
+ist nach heutigem Kenntnisstand hinreichend nachgewiesen
+19. Deren Messung, die Iden-
+tifikation maßgebender Einflussgrößen, die Integration respektive adäquate Operationa-
+lisierung von Referenzpreisen beispielswei se in Prognosemodellen des Kaufverhaltens 
+sind dabei zu zentralen Schwerpunkten de r gegenwärtigen Prei sforschung geworden20. 
+Die Referenzpreise selbst stellen grunds ätzlich hypothetische, multidimensionale Kon-
+strukte dar, da zum Beispiel bei der Hera usbildung eines mittleren Preisempfindens im 
+Regelfall diverse Facetten historischer und aktueller Preise wirksam werden. Dies bestä-
+tigen empirische Untersuchungen, denen zufolge Nachfrager produktgruppenübergrei-
+fend heterogen agieren und rea liter tatsächlich zunehmend auf hybride Referenzpreise 
+zurückgreifen21. Ein Rückblick auf historische Studi en zeigt zudem, dass speziell im 
+Falle langlebiger Gebrauchsgüter außer den in- und externen Preisreizen auch Preiser-
+wartungen ein signifikanter Einfluss auf das Preisempfinden und speziell das Timing 
+des Kaufs zuzusprechen ist22. Prinzipiell resultiert hieraus neben den aus der Adaptions-
+Niveau-Theorie bekannten Residual- und Kont extstimuli eine weitere Reizkategorie in 
+Form antizipierter Preise. Der aktuelle Foka lpreis wird demnach um so (un-) günstiger 
+wahrgenommen, je höher (niedriger) die erwart eten zukünftigen Preise der Marke oder 
+Produktgruppe sind, was zum Auf- respektive Abbau etwaiger Vorratsbestände führt23.  
+In modernen Kaufverhaltensmodellen fließen Referenzpreise häufig in einen sogenann-
+ten Transaktionsnutzen (transaction utility) als Benchmarks ein, mit denen sodann Prei-
+ 
+17  Vgl. Kalyanaram/Little (1994), S. 416  
+18  Vgl. Wricke/Herrmann/Huber (2000),  S. 694 
+19 Vgl. hierzu abschließend Kalyaranam/Winer (1995) 
+20  Vgl. Boztug (2002), S. 26 
+21  Vgl. allgemein Mayhew/Winer (1992);  Loewengart/Mizhari (2000) sowie im Speziellen Kalyana-
+ram/Winer (1995), S. G167; Hruschka/Fettes/Probst (2002), S. 426  
+22  Vgl. Kalyaranam/Winer (1995) 
+23  Vgl. unter anderem Jacobson/Obermiller (1990), S. 422; Ferner weisen Natter/Hruschka (1997) die 
+Überlegenheit von Marktreaktionsmodellen mit Berücksichtigung dynamischer Referenzpreise nach.   
+
+--- Page 11 ---
+ - 10 -
+se einzelner Alternativen saldiert werden 24. Dabei ist eine differenzierte Parametrisie-
+rung von Beträgen aus Über- und Unterschreit ungen der Referenzpreise üblich, um die 
+aus der Prospect-Theorie abgeleitete und empirisch bewiesene stärkere Bewertung von 
+Verlusten (loss aversion ) zu berücksichtigen 25. Die konkrete Operationalisierung von 
+Referenzpreisen in der Preisforschung orientiert sich in der Regel an internen Residual-
+stimuli (zum Beispiel den zu letzt oder am häufigsten vo m Konsument gezahlten Prei-
+sen), an externen Kontextreizen (wie etwa durchschnittlichen/meistbeobachteten Preisen 
+in Produktgruppen oder Preisen eines Marktführers) sowie an antizipierten Preisen (sub-
+jektive Erwartungen der Preisentwicklung hi nsichtlich selektiert er Marken oder Pro-
+duktgruppen)26.  
+ 
+3 Das Pricesensitivity-Meter  
+Das Pricesensitivity-Meter geht auf den holländischen Ökonomen P. H. van Westen-
+dorp zurück und wurde erstmals im Jahre 1976 dokumentiert. Das PSM berücksichtigt 
+den dualen Charakter von Preisen, infolge dess en von Preissignalen sowohl eine Allo-
+kations- als auch eine Informationsfunktion au sgeht. Erstere beschreibt die eher mikro-
+ökonomische Verteilungsfunktion, wonach Pr eise die Aufteilung des knappen Budgets 
+der Nachfrager auf konkurrierende Wirtschaft sgüter steuern. Budgetmindernde höhere 
+Preise werden als größeres Opfer empfunden, wirken negativ auf den wahrgenommenen 
+Nettonutzen einer Transaktion und mithin n achfragesenkend. Gemäß der Informations-
+funktion geht von der Preishöhe allerdings auch ein positi ves, das Risiko eines Kaufs 
+schlechter Qualität minimierendes Signal aus, weswegen der Preis unter bestimmten 
+Bedingungen gleichsam zu einem nutzenstiftend en Element wird. Somit lässt sich die 
+empirisch erwiesene Existenz oberer und unte rer individueller Pr eisakzeptanzgrenzen 
+ 
+24   Im Rahmen der Theorie des Mental Accounting wird unterstellt, dass sich der durch den Kauf von 
+Wirtschaftsgütern gestiftete Gesamtnutzen additiv aus einem mit der mikroökonomischen Konsumen-
+tenrente vergleichbaren Aquisitionsnutzen sowie einem referenzpreisorientierten Transaktionsnutzen 
+(transaction utility respektive „sticker shock“) zusammensetzt. Vgl. Thaler (1985), S. 205).     
+25  Vgl. hierzu exemplarisch die Modellspezifikation bei Gillbride/Guiltinan/Urbany (2008), S. 129f. Die 
+Autoren untersuchen, inwieweit spezifische Framingeffekte (Ausgestaltung der Preispräsentation) das 
+Kaufverhalten der Konsumenten bei gemischter Prei sbündelung beeinflussen. Allerdings stellen sie 
+(im Gegensatz zu den zentralen Aussagen der Prospect- und Mental-Accounting-Theorie sowie Er-
+gebnissen früherer empirischer Studien) fest, dass sich in der betrachteten Produktgruppe nur eine 
+Minderheit der Befragten tatsächlich bei Wahlentscheidungen an Referenzpreisen orientiert.  
+26  Zusammenfassende, hier nicht näher dargestellte Übersichten bezüglich relevanter Definitionen und 
+Operationalisierungen von Referenzpreisen finden sich abschließend bei Winer (1988); Wri-
+cke/Herrmann/Huber (2000); Müller (2005b). 
+
+--- Page 12 ---
+ - 11 -
+auch theoretisch erklären. In Verbindung dieser beiden Perspe ktiven lassen sich mittels 
+PSM aussagekräftige Kennwerte bezüglic h der Preiswahrnehmung von Konsumenten 
+für ein Objekt X (Produktgruppe/Marke/Artik el) gewinnen. Die erforderlichen Bewer-
+tungen bezieht das PSM im Gegensatz zum Konzept der Buy-Response-Curve 27 nicht 
+über Kaufbereitschaftsabfragen, sondern über eine direkte Preisbereitschaftsabfrage. 
+Diese gestaltet sich vierstufig und ist im Originalartikel wie folgt formuliert28:  
+Abb. 1: Abfrageformulierung Pricesensitivity-Meter 
+ 1)  At which price on this scale are you beginning to experience X as cheap? 
+ 2)  At which price on this scale are you beginning to experience X as expensive? 
+ 3)  At which price on this scale you are beginning to experience X as too expensive –  
+   so that you would never consider buying it yourself? 
+ 4)  At which price on this scale you are beginning to experience X as too cheap –    
+    so that you say at this price the quality cannot be good? 
+ 
+ 
+Anhand physisch vorgelegter Preisskalen be wertet der Proband das Untersuchungsob-
+jekt X somit durch vier zentrale Preisurteile: billig (P b), teuer (P t), zu billig (P zb), zu 
+teuer (Pzt)29. Kumuliert über alle befragten Person en ergeben sich die im folgenden mit 
+den entsprechenden Indizes verseh enen Konzentrationskurven K b, Kt, Kzb und K zt. Die 
+kumulierten Verteilungen K b und K zb sind im PSM als monoton fallende Funktionen 
+modelliert, da sie die Informationsfunktion repräsentieren: höhere Preise werden von 
+weniger Personen als billig respektive zu bil lig (im Sinne zweifelhafter Qualität) wahr-
+genommen. Die Kurven Kt, und Kzt hingegen verlaufen logischerweise steigend: Perso-
+nen, die einen bestimmten Preis als (zu) teuer empfinden, nehmen auch alle höheren 
+Preise als (zu) teuer wahr. Die nachsteh ende Abbildung visualisiert aus Vereinfa-
+chungsgründen neben den Verteilungsfunk tionen der individuellen Preisunter- und 
+Obergrenzen (K zb, K zt) mathematische Spiegelfunktionen von K b und K t
+30. Diese mit 
+Knb und K nt titulierten Verteilungen drücken den kumulierten Anteil der Personen aus, 
+die ein bestimmtes Preisniveau P als nicht billig/nicht teuer wahrnehmen.  
+ 
+27  Präzise formuliert, leiten Gabor/Granger Kaufbereitschaftskurven sowohl aus direkten Preisbereit-
+schaftsabfragen nach oberen und unteren Preisgrenzen (Methode A) als auch durch eine preisübergrei-
+fende Abfrage von Kaufbereitschaften (Methode B) ab. Vgl. Gabor/Granger (1966), S. 45ff. 
+28  Der aus in- und externen Referenzpreisen gebildete Urteilsanker des mittleren Preisempfindens ist 
+zumindest bei hinreichender Preiskenntnis der Nachfrager im betreffenden Markt durchaus über derar-
+tige direkte Abfragen ermittelbar. Vgl. Diller (2000), S. 149 
+29  Für alle Probanden gilt logischerweise folgendes ordinales Konsistenzkriterium:  P zb< Pb < Pt < Pzt  
+30  Es gilt: K nb(P) = 100% - Kb(P) beziehungsweise Knt(P) = 100% - Kt(P) 
+
+--- Page 13 ---
+ - 12 -
+Abb. 2:  Verlauf von Konzentrationskurven im PSM 31 
+POP PIP
+Preis
+Anzahl (kumulierte %)
+Kzb
+Knb
+Knt
+Kzt
+PMG PMT
+Akzeptable Preisrange
+POP PIP
+Preis
+Anzahl (kumulierte %)
+Kzb
+Knb
+Knt
+Kzt
+PMG PMT
+Akzeptable Preisrange
+ 
+ 
+Die Schnittpunkte {Knb, Knt}und {Kzb, Kzt}determinieren die Positionen der im Folgen-
+den als Indifferenzpreis (IP) und Optimal preis (OP) bezeichneten PSM-Kennwerte 32. 
+Wahrnehmungstheoretisch lässt sich der IP als Referenzgröße für das mittlere Preisemp-
+finden und mithin den Normalpreis des Unte rsuchungsobjektes X interpretieren. Dies 
+sei hier an einem fiktiven Beispiel erläut ert, in welchem der Sc hnittpunkt der beiden 
+Kurven Knb und Knt bei einem Preis von p = 3,50€ und 60% der kumulierten Nennungen 
+angenommen wird33. Im Umkehrschluss folgt hierau s, dass zum einen 40% der Perso-
+nen diesen und höhere Preise noch als billig wahrnehmen. Zum anderen stufen weitere 
+40% der Personen Preise bi s 3,50€ bereits als teuer ein. Wegen der Konsistenzbedin-
+gung (Pzb< Pb < Pt < Pzt bzw. Pb ≠ Pt) handelt es sich hierbei l ogischerweise um jeweils 
+unterschiedliche prozentuale Stichprobenanteile. Somit verbleiben exakt 20% der ge-
+samten Stichprobe (100% - 2 · 40%), die de n Preis von 3,50€ weder als billig noch als 
+teuer empfinden und ihn daher in die d azwischen liegende Wahrnehmungskategorie 
+normaler Preise einordnen. Empirisch hat si ch speziell in Produktgruppen mit habituali-
+siertem Kaufverhalten gezeigt, dass der Indi fferenzpreis einen Marktdurchschnittspreis, 
+den Median oder den Preis eines bedeutenden Marktführers darstellt. Ebenso gelang der 
+Nachweis, dass der IP auf historischen Ka uferfahrungen der Nachfrager basiert, seg-
+ 
+31  Vgl. Müller (2005a), S. 143 
+32  Im Originalartikel werden di ese Preispunkte als „Ind ifference-Price“ (IDP) und „Optimal Pricing 
+Point“ (OPP) bezeichnet. Vgl. Westendorp (1976), S. 147ff. 
+33  Somit empfinden jeweils 60% der Personen den Preis IP nicht mehr als billig/noch nicht als teuer. 
+
+--- Page 14 ---
+ - 13 -
+mentspezifische konsistente Besonderheiten aufweist 34 und sich Änderungen des 
+Marktumfeldes im Zeitverlauf anpasst. Somit lässt er sich gemäß Adaptions-Niveau-
+Theorie als dynamischer Referenzpreis interpretieren.  
+Durch den Schnittpunkt von (K
+zb, Kzt) wird der Optimalpreis OP determiniert, in dem 
+die Anzahl derer, die das Produkt weder als zu teuer noch als zu billig ansehen, überein-
+stimmt. Dieser Kennwert kann folglich als erwa rteter fairer Preis aufgefasst werden, bei 
+dem der durch die obere und unt ere Preisbereitschaftsgrenze bekundete Kaufwiderstand 
+der befragten Personen minimal wird 35. Empirisch umfasst der OP anstelle konkreter 
+Preispunkte bisweilen auch ga nze Preisintervalle, da die Konzentrationskurven K zb und 
+Kzt dann ohne Schnittpunkt voreinander auf 0% auslaufen. Wesentlich häufiger jedoch 
+positioniert sich OP als spezieller Preiske nnwert linksseitig zum Normalpreis IP. Die 
+Differenz (OP-IP) interpretiert Westendorp als (dann negatives) monetäres Stress-Maß 
+des Preisbewusstseins im betreffenden Mark t. Solche Konstellationen lassen sich bei-
+spielsweise auf Märkten beobachten, in de nen kürzlich scharfe Preisanhebungen statt-
+fanden. Diese sind zwar bereits in der No rmalpreiswahrnehmung enthalten, dennoch 
+existiert (noch) ein gewisses Ausmaß an Wi derstand gegen diesen bereits als Normal-
+preis adaptierten Anker 36. Die Bezeichnung „optimaler Preis“ ist im übrigen weniger 
+ökonomisch (etwa als marginalanalytisch au s Grenzerlösen und Grenzkosten abgeleite-
+ter gewinnoptimaler Preis eines Objektes) sondern vielmehr aus einer rein nachfrageori-
+entierten Perspektive zu verstehen.    
+Die Schnittpunkte {K
+nb, Kzb} und {Knt, Kzt} sind als Preise der marginalen Günstigkeit 
+(PMG) und Teuerung (PMT) interpretierbar. Sie stellen auf individuellen Preisober- und 
+Untergrenzen basierende Schranken des Interv alls der aggregierten Preisakzeptanz dar. 
+So gilt beispielsweise für alle unterhalb des PMT liegenden Preisniveaus, dass der An-
+teil der diese Preise als nicht teuer eins tufenden Personen noch größer ausfällt als der 
+Anteil derer, die diesen Preis be reits als zu teuer beurteilen (K
+nt > Kzt). Allein beim ex-
+akten PMT stimmen diese beiden Anteile quasi gleichgewichtig überein 37. PMG und 
+ 
+34  So variiert der als Normalpreis respektive mittleres Preisempfinden interpretierbare IP äußerst plausi-
+bel über preis- und markenbewusste Konsumenten, da  erstere (letztere) in diversen Experimenten 
+niedrigere (höhere) Normalpreise realisierten. Vgl. unter anderem Müller (2005b), S. 193 
+35  Vgl. Westendorp (1976), S. 150 
+36   Vgl. Westendorp (1976), S. 151 
+37  Eine analoge, hier nicht näher beschriebene Interpretation gilt für den unteren Grenzpreis PMG. Dort 
+entspricht die Anzahl derer, die einen Kauf aus Qua litätszweifeln unterlassen, exakt der Anzahl derer, 
+die das Produkt als nicht billig empfinden und auch niedrigere Preise akzeptieren würden. 
+
+--- Page 15 ---
+ - 14 -
+PMT begrenzen folglich einen aggregierten Bereich akzeptabler Preise (Preis-Range). 
+Empirisch konnten umfangreiche Studien belegen, dass diese Range zumeist den rele-
+vanten Wettbewerbsbereich eines Marktes abdeckt38.  
+Zusammengefasst basieren die Interpretationen der Kennwerte des PSM-Modells haupt-
+sächlich auf dem Erklärungspotential der dr ei oben aufgeführten Preiswahrnehmungs-
+theorien. So bestimmt das PSM mit der aggregierten Preis- Range ein Analogon zum 
+Akzeptanzintervall der Assimilations-Kontrast -Theorie (latitude of acceptance). Inner-
+halb dieses Bereichs werden Preise von den Konsumenten gemäß Adaptions-Niveau-
+Theorie relativ zu einem zentralen oder mehreren mittleren Adaptionsniveaus (gespei-
+cherte Referenzpreise in Form des IP und OP) in ordinal skalierte Wahrnehmungskate-
+gorien enkodiert. Die für die Einordnung maßgebenden Urteilsanker und Akzeptanzbe-
+reiche werden dabei im Zeitverlauf dynamisch den Marktgegebenheiten angepasst.  
+Neben den eigentlichen Kennwerten des PSM können indes auch rein visuelle Analysen 
+der einzelnen Funktionsverläufe aufschlussreic h sein. So deuten starke Knickstellen in 
+den Konzentrationskurven ge nerell auf die Existenz von Preisschwellen hin. Unter ag-
+gregierten Preisschwellen sind dabei einzelne  Preispunkte zu verstehen, ab denen sich 
+die Preiswahrnehmung einer Vielzahl von Kons umenten sprunghaft ändert. Es ist dabei 
+zwischen relativen Wahrnehmungs- und absoluten Reaktionsschwellen (zum Kaufver-
+zicht führende obere und unter e Preisgrenzen) zu differenz ieren. In der Verteilung K
+zt 
+drücken sich beispielsweise aggregierte obere Reaktionsschwellen aus. Geringe relative 
+Preisanhebungen führen hier zu einem deu tlichen Zuwachs des Nichtkäuferanteils, was 
+gleichbedeutend mit einer hohen Pr eiselastizität an dieser Sc hwelle ist. Dies stellt die 
+nachstehende Abbildung anhand einer em pirischen Untersuchung im Biermarkt des 
+Jahres 2002 dar 39. Deutlich wird insbesondere eine signifikante Schwelle. So liegt der 
+Anteil der Nichtkäufer in dieser Produktgr uppe auf dem Preisniveaus zwischen 95 und 
+100 Cent bei etwa 42%, wohingegen bei Über schreitung dieses Preises bereits 75% 
+Käufe verweigern würden. Drückt man dies in relativen Änderungen aus, die das Aus-
+gangsniveau berücksichtigen, so bewirkt ein prozentualer Preisanstieg von 5% (5/100) 
+ 
+38  Vgl. Westendorp (1976), S. 151 
+39  Die Ergebnisse stammen aus einem Forschungsprojekt des Lehrstuhls für Marketing der Otto-von-
+Guericke-Universität Magdeburg. Aus Gründen der Analogie zum Originalartikel Westendorp´s sind 
+die Verteilungskurven als naive Interpolation der Kumulationsprozente bei den jeweiligen Preisnen-
+nungen dargestellt. Sie lassen sich indes auch als stufenförmig verbundene Konzentrationskurven vi-
+sualisieren. Vgl. hierzu Müller (2006b), S. 8 
+
+--- Page 16 ---
+ - 15 -
+eine Nachfrageänderung in Höhe von etwa 79% (33/42). Dies entspricht einer absoluten 
+Bogenelastizität (ε)40 von etwa 15 und stellt aufgrund des vergleichsweise hohen Wertes 
+ein klares Indiz für eine Preisschwelle41 dar. 
+ 
+Abb. 3: Aggregierte Preisschwellen anhand eines empirischen Beispiels   
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+40  Die im vorliegenden Fall auf kaufverzichtsinduzierenden Preisen basierende und damit positive Bo-
+genelastizität (ε) ist hier definiert als: [ ε = (x1-x2)/(p1-p2) ⋅ p1/x1]; mit p = Preis des Untersuchungsob-
+jektes; x = kumulierter Stichprobenanteil; 1,2 = Zeitindex  
+41  Preisschwellen werden im Regelfall an sogenann ten Glattpreisen vermutet, da diese (mutmaßlich 
+infolge des geringeren kognitiven Aufwands) mit höherer Wahrscheinlichkeit von den Konsumenten 
+als Referenz- oder Ankerpreise abge speichert werden können. Hieraus resultiert auch die speziell im 
+Handel häufig zu beobachtende Neigung zu gebrochenen Preisen (odd prices), die sich knapp unter 
+solchen Glattpreisen positionieren. Vgl. hierzu unter anderem Kaas/Hay (1984), S. 334ff.  
+
+--- Page 17 ---
+ - 16 -
+4 Zentrale Fragestellungen der Untersuchung 
+Die generelle Fragestellung der Untersuchung be stand darin, inwiefern das Pricesensiti-
+vity-Meter ein geeignetes Instrument zur Messung des Preisempfindens darstellt. Das 
+vor etwa 30 Jahren entwickelte PSM gilt al s relativ antiquierte Technik zur Ermittlung 
+von Preisurteilen. Gleichwohl liefert das PSM  wie beschrieben auf Basis einfachster 
+Abfragen und Analysen wertvolle Informati onen in Form aggregierter Preisakzeptanz-
+bereiche, mittlerer Adaptionsniveaus und Pr eisschwellen, weswegen es in der gegen-
+wärtigen Marktforschungspraxis weite Verbreitung gefunden hat 42. Die wissenschaftli-
+che Literatur hingegen kritisiert am PSM insbesondere die di rekte, lediglich auf Einzel-
+objekte bezogene monadische Abfrage sowie die Vernachlä ssigung des Produktnut-
+zens43. Hieraus resultiert eine zu einseitige  Orientierung am Preiszähler des Preis-
+Leistungs-Verhältnisses, welc hes jedoch grundsätzlich als ge samter Quotient aus dem 
+zu zahlenden Entgelt und dem durch das Produ kt gestifteten Nutzen (Preisnenner) auf-
+zufassen ist. Von einer Verwendung des PSM zur Modellierung von Zahlungsbereit-
+schaften, der Prognose respektive Abschätz ung von Markt- und Käuferanteilen wird 
+daher grundsätzlich abgeraten, wenngleich eine intensive wissenschaftliche Betrachtung 
+des PSM bisher nicht erfolgte. Dies betrifft  erstens Vergleichsstudien mit alternativen 
+Instrumenten zur Ermittlung von Preisakzep tanzbereichen und Zahlungsbereitschaften. 
+Zweitens mangelt es in de r Literatur indes auch an langfristigen und produktgruppen-
+übergreifenden Studien, welche die generelle Qualität von PSM-Messungen unter adap-
+tionstheoretischen Gesichts punkten eingehender untersuchen 44. Von daher ist es Ziel 
+des vorliegenden Beitrages, in einem ersten  Schritt speziell die letztgenannte For-
+schungslücke zu schließen.  
+Das PSM ermittelt die als Referenzpreise fungierenden individuellen Wahrnehmungs- 
+(Reaktions-) Schwellen durch die Erhebung (zu) teurer und (zu) billiger Preise. Die mit 
+dem Akzeptanzintervall der Assimilations-Kont rast-Theorie vergleichbare aggregierte 
+Preis-Range wiederum wird i ndirekt durch die Identifikation gleichgewichtiger Schnitt-
+punkte der kumulierten Pr eisurteilsverteilungen bestimmt. Theoriegemäß müssten sich 
+ 
+42  Das PSM wird von Praktikern vereinzelt sogar den „...innovativen Verfahren der empirischen Preis-
+forschung...“ zugerechnet. Vgl. Hofmann/Lederle/Felsch (2006), S. 28 
+43  Die ebenfalls direkte Erhebungstechnik der Buy-Response-Curve neigt infolge ihres monadischen 
+Charakters häufig zur Überschätzung von Kaufbereitschaften. Vgl. hierzu Puliyel/Ravi (1990), S. 214   
+44  Vgl. Völckner (2006), S. 56; eine der wenigen Publikationen zu Ergebnissen aus marktübergreifenden 
+PSM-Messungen findet sich bei Müller (2005a) 
+
+--- Page 18 ---
+ - 17 -
+die für die Verankerung indi vidueller Referenzpreise ma ßgebenden Marktpreise inner-
+halb dieses aggregierten Preisakzeptanzbere ichs positionieren. Somit ist zu prüfen, ob 
+die durch das untere (PMG) und obere Prei slimit (PMT) eingefasste akzeptable Preis-
+Range die relevanten objektiven Marktpreise tatsächlich abdeckt45.  
+Ferner stellt sich die Frage nach der korre kten Verankerung dieser aggregierten Preis-
+Range. Gemäß Assimilations-Kontrast-Theorie  ist das Akzeptanzintervall an einem 
+zentralen Adaptionsniveau, welches hier als mittleres Preisempfinden interpretierbar ist, 
+justiert. Das mittlere Preisempfinden stellt einen Urteilsanker für weder (zu) billige 
+noch (zu) teure Preisanmutungen dar
+46. Genau diese Positionen werden im PSM durch 
+den Indifferenz- respektive Optimalpreis (IP/O P) repräsentiert. Da sich derartige Anker 
+auf individueller Ebene gemäß Adaptions-Niv eau-Theorie aus internen Residualstimuli 
+(Preiswissen bezüglich historis cher Marktpreise) und externen Kontex treizen (aktuelle 
+Marktpreise) ausbilden, manifestiert sich die Qualität der aggregierten PSM-Werte auch 
+darin, inwieweit IP und OP realiter mit mittleren Marktpreisen korrespondieren.   
+Der untersuchte Zigarettenmarkt war im gesamten Beobachtungszeitraum des Längs-
+schnitts kontinuierlichen Pr eisänderungen unterworfen. Da bei zeichneten neben preis-
+politischen Maßnahmen seitens der Anbieter insbesondere die gestaffelte Anhebung der 
+Tabak- als auch die zum Januar 2007 vollz ogene Erhöhung der Mehrwertsteuer für die 
+relativ deutlichen Preissteigerungen der Produktgruppe verantwortlich. Da Referenz-
+preise laut  Adaptions-Niveau-Theorie grundsätzlich auf Marktpreisen basieren47, müss-
+ten die subjektiven Preiswahrnehmungen den objektiven Entwic klungen – wenngleich 
+unter Berücksichtigung einer gewissen zeitli chen Verzögerung – nachfolgen. Auch die 
+Assimilations-Kontrast-Theorie lässt eine  solche dynamische Verknüpfung objektiver 
+und subjektiver Preise erwarten. So ist unter  anderem die Häufigkeit, mit der ein vom 
+Akzeptanzbereich abweichender Fokalpreis in seiner Größenordnung auftritt, für die 
+langfristige Assimilation und Integration in das akzeptierte Preisi ntervall verantwort-
+lich. Da die Kaufintensität im Zigarettenmar kt typischerweise hoch ausfällt, gewöhnen 
+sich Nachfrager im Zeitverlauf an höhere Preisniveaus, assimilieren diese und verschie-
+ 
+45  In der empirischen Untersuchung Westendorps (1976, S. 151) wird diese Vermutung verifiziert: „The 
+share of sales below or above these points (PMG/PMT, Anmerkung des Autors) is very small. A ma-
+jor part of business is always transacted within the range of acceptable prices.“ 
+46  Vgl. Diller (1988), S. 21  
+47  Dies gilt unabhängig davon, ob eine primär inte rne (historische Marktpreise) oder externe Orientie-
+rung (aktuelle Preise) bei der Herausbildung individueller Referenzpreise unterstellt wird. 
+
+--- Page 19 ---
+ - 18 -
+ben das Niveau des subjektiven Akzeptanzbe reichs (latitude of acceptance) in deren 
+Richtung48. Speziell in habitualisierten Produktgruppen erzwingt eine hohe Kaufintensi-
+tät also eine vergleichsweise rasche Adap tion neuer Preise. Die Validität dynamischer 
+Preiswahrnehmungs-Messungen mittels PSM lässt sich folglich an der zeitlichen Ent-
+wicklung der relevanten Kennziffern im Vergleich mit realen Preisbewegungen beo-
+bachten. Dies betrifft sowohl die als mittleres Preisempfinden verankerten Indifferenz- 
+und Optimalpreise als auch die den akzeptabl en Preisbereich einfassenden oberen und 
+unteren Preise der marginalen Günstigkeit (PMG) und Teuerung (PMT)
+49.   
+Abschließend sollen segmentspezifische An alysen der PSM-Kennziffern Unterschiede 
+zwischen Käufergruppen verifizieren, die in  diversen historischen Untersuchungen beo-
+bachtet wurden. So zeigt eine produktgruppenübergreifende Studie 50, dass Gelegen-
+heitskäufer bei direkten Norm alpreisabfragen im Gegensatz zu regelmäßigen Käufern 
+einen breiteren Bereich normal wahrgenomme ner Preise sowie eine größere Abwei-
+chung zum realen Marktmittelpreis  realisieren. Die Autoren untersuchten hierzu in 20 
+schnellumschlagenden Verbrauchsgütergrupp en, inwieweit in- und externe Preisinfor-
+mationen (Referenzpreise) Pr eiswahrnehmung und Kaufverh alten beeinflussen. Sie er-
+fragten einen als normal wahrgenommenen Prei s direkt und überprüften, ob dieser in-
+terne Preisstandard oder aber externe Marktpre ise in nachgelagerten Abfragen exaktere 
+ordinale Kategorisierungen sp ezieller Markenpreise (billig/teuer) generierten. Theorie-
+gemäß bestätigt hierzu auch Kucher (1987), dass die höhere Kauffrequenz eine schnel-
+lere Adaption und eine größere Nähe zum r ealen Marktbild induzie rt. Weiterhin kann 
+Müller (2006a) für marken- respektive qualitätsbe wusste Nachfrager ein auf dem Preis-
+strahl rechtsverschobenes Intervall akzeptabler Preise identifizieren51. Ein Befund, den 
+auch Lichtenstein/Bloch/Black (1988) im Rahmen einer St udie zu Einflussgrößen der 
+Preisakzeptanz belegen 52. Sie überprüfen der Einfluss von Preisinteresse und Produk-
+tinvolvement auf Niveau und Ausmaß des Prei sakzeptanzbereichs anhand eines Struk-
+ 
+48  Dies gilt nur, wenn die Abweichung vom mittlere n Adaptionsniveau moderat ausfällt und das obersei-
+tig durch budgetbedingte Preisbereitschaftsgrenzen gebildete Akzeptanzintervall nicht verlassen wird. 
+49  Westendorp (1976, S. 147) vermerkt zur Dynamik des Indifferenzpreises: „...Experiments indicate that 
+IDP (Indifferenzpreis IP, Anmerkung des Autors) is based upon people´s experience with price-levels 
+in the market, it has been shown that IDP will change when conditions on the market change...“  
+50  Vgl. Urbany/Dickson (1991), S. 46ff.      
+51  Der Autor weist anhand von Buy-Response-Curve-Befragungen nach, dass sich Kaufbereitschaftskur-
+ven markenbewusster Probanden im Vergleich zu Pr eisbewussten typischerweise auf deutlich höhe-
+rem Preisniveau positionieren. Vgl. Müller (2006a), S. 40 
+52  Vgl. Lichtenstein/Bloch/Black (1988), S. 249  
+
+--- Page 20 ---
+ - 19 -
+turmodells. Die Autoren zeigen, dass die Neig ung zu preisabhängiger Qualitätsbeurtei-
+lung das Preisakzeptanzniveau der Versuchspersonen signifikant anhebt. Kosenko/Rahtz 
+(1988) weisen ferner nach, dass mit zunehme nder Preiskenntnis signifikant engere so-
+wie auf höheren Preisniveaus liegende Prei sakzeptanzintervalle zu erwarten sind 53. 
+Dickson/Sawyer (1990) identifizieren für Preisne nnungen zur zuletzt gekauften Marke 
+systematische Niveauunters chiede zwischen Probanden mit falschen und richtigen 
+Preisschätzungen54. Es bleibt zu prüfen, ob sich di ese auf alternativen Erhebungs- und 
+Analysemethoden basierenden empirischen Befunde auch aus den PSM-Kennziffern der 
+entsprechenden Käufersegmente replizieren lassen.  
+ 
+Abb. 4: Untersuchte Forschungsfragen der Studie 
+Komplex  Kernaussage  PSM-Indikatoren 
+1 Die durch das untere und obere Preislimit eingefasste akzeptable 
+Preis-Range des PSM deckt die relevanten objektiven Marktpreise 
+ab. 
+PMG, PMT 
+Preis-Range 
+2 Die aus dem PSM abgeleiteten aggregierten Indikatoren des mitt-
+leren Preisempfindens korrespondiert mit den Marktpreisen.  
+IP, OP 
+3 Die zeitliche Entwicklung der PSM-Kennziffern folgt realen 
+Preisbewegungen der Richtung und der Höhe nach. 
+IP, OP, PMG, PMT 
+Preis-Range 
+4 Die PSM-Kennziffern spiegeln segmentspezifische Besonderhei-
+ten der subjektiven Preiswahrnehmung plausibel wider. 
+IP, OP, PMG, PMT 
+Preis-Range 
+ 
+ 
+ 
+ 
+ 
+ 
+53  Die Autoren belegen, dass die das individuelle Preisakzeptanzintervall einfassenden Preisunter- und 
+Obergrenzen mit zunehmender Preiskenntnis signifikant größer ausfallen und weniger stark streuen. 
+Vgl. Kosenko/Rahtz (1988), S. 328  
+54  So liegt der memorierte Preis eines soeben gewählten Produkts bei Probanden mit schwacher Preis-
+kenntnis im Mittel um 10 Cent niedriger als der reale Marktpreis. Vgl. Dickson/Sawyer (1990), S. 47   
+
+--- Page 21 ---
+ - 20 -
+5 Grundlegendes Untersuchungsdesign und allgemeine 
+Stichprobencharakteristika 
+ 
+Die vorliegende Arbeit basiert auf einer aus vier äquidistanten Wellen 55 bestehenden 
+Längsschnittuntersuchung des nationalen Mark tes für Zigaretten. Die Datenerhebungen 
+fanden im Zweijahresrhythmus jeweils im  April/Mai der Jahre 2002, 2004, 2006 und  
+2008 statt 56. Als Probanden fungierte n Studenten der Otto-von- Guericke-Universität 
+Magdeburg. Die vier Stichproben mit einem Gesamtumfang von 420 Probanden sind 
+somit grundsätzlich als Convenience Sample  einzustufen. Durch eine Quotierung der 
+einzelnen Wellen anhand von Marktdaten 57 kann jedoch hinsichtlich des Verwendungs-
+verhaltens des befragten Käufersegmentes zumindest spezifische Repräsentanz unter-
+stellt werden. Die zum Nachweis valider  PSM-Messungen vorgenommene Selektion 
+der Produktgruppe Filterzigaretten begründete sich erstens in der Transparenz der Preis-
+dynamik dieses Marktes: Zeitpunkt und Ausm aß der Preisänderungen von Marken wa-
+ren somit exakt bestimmbar. Zweitens führte n die typischerweise ausgeprägten Kaufin-
+tensitäten dieses Marktes zu einer hohen Adaptionsfrequenz, was die im Anschluss an 
+strukturelle Preisänderunge n einer Produktgruppe ablaufenden Anpassungsvorgänge 
+beschleunigte. Drittens stel lte die verkaufsstellenübergreif ende Preisstabilität sicher, 
+dass Probanden unabhängig vom Ort des Erwe rbs mit identischen markenspezifischen 
+Preisniveaus konfrontiert wurden 58. Dies erleichterte die stichtagsbezogene Überprü-
+fung und Validierung der PSM-Kennziffern.  
+Der beschriebenen Schwäche des PSM, Preisurt eile direkt und somit unter Vernachläs-
+sigung des eigentlichen Produktnutzens zu er heben, wurde in den vorliegenden Studien 
+durch verschiedene Maßnahmen entgegengewirkt. So hatten die Probanden die wahrge-
+nommene Preisgünstigkeit bezüglich eines Ausschnitts der komp letten Produktgruppe 
+für Zigaretten anstelle einer isolierten Einzelmarke anzugeben. Dieser vorgegebene 
+Ausschnitt beinhaltete die zehn marktanteil sstärksten Marken, aus denen der Proband 
+ 
+55  Es wurden Wellenerhebungen mit wechselnden Stichproben verwendet, um eventuelle Memory- 
+und/oder Bewusstwerdungseffekte der Probanden zu vermeiden.   
+56  Die Messungen werden im Folgenden mit PSM-02, PSM-04, PSM-06 und PSM-08 tituliert.  
+57  Informationen zur letztgekauften  Marke wurden gestützt erfragt, wobei die vorgegebenen Alternativen 
+die zehn marktanteilsstärksten Marken (kumulierter Gesamtmarktanteil etwa 65%) umfassten.  
+58  Durch die faktische Preisbindung im deutschen Zi garettenmarkt darf ein vom Hersteller festgelegter 
+Einzelabnehmerpreis nicht ohne weiteres vom Händl er über- oder unterschritten werden (§§ 24-26 
+TabStG). Dies führt zu einer betriebsformunabhängigen Preiskonstanz im Handel. 
+
+--- Page 22 ---
+ - 21 -
+vor der vierstufigen PSM-Abfrage ein i ndividuelles Relevant Set identifizierte 59. Hier-
+durch war sichergestellt, dass die abgegebene n Preisurteile primär auf einer dem Pro-
+banden bekannten und vertrauten Markenumgebung basierten. Ferner wurde der für die 
+Preisurteile unterstellte Le istungsumfang der Marken inha ltlich konkretisiert und bei-
+spielhaft visualisiert
+60. Die Erhebung der ersten Wellen (PSM-02/PSM-04) erfolgte fra-
+gebogengestützt, die Studien PSM-06 und PSM- 08 hingegen computergestützt anhand 
+klassischer face-to-face-Intervi ews. Inhaltlich wurden Re levant Sets der Probanden, 
+Informationen zu Käuferprofilen (Kaufintensität, Preiskenntnis der favorisierten Marke, 
+Indikatoren des Markenbewusstseins 61), demographische Daten (Alter, Geschlecht) so-
+wie die anhand visualisierter Skalen vollzogene vierstufige PSM-Abfrage erhoben.  
+Die untersuchten Stichproben erfüllen die für fortlaufende Längsschnittmessungen not-
+wendige Forderung nach grundsätzlicher Stru kturidentität. Bei einem Verstoß gegen 
+diese Annahme strukturiden tischer Stichproben könnten zeitliche Entwicklungen der 
+PSM-Kennwerte in den Wellen nämlich nich t mehr systematisch auf individuelle dy-
+namische Adaptions- und Assimilationsvorgänge  zurückgeführt werden. Geprüft wurde 
+unter anderem mittels Chi²-Test, ob system atische Zusammenhänge zwischen Stichpro-
+benzugehörigkeit und den grundsätzlich nominal skalierten demographischen respektive 
+käuferprofilorientierten Merk malen bestehen. Diese kreuztabellarischen Analysen er-
+brachten jedoch keinerlei signifikante Unters chiede. So deuten beispielsweise die mit 
+Ausnahme der in PSM-02 erhobenen Informa tionen zur Preiskenntnis bezüglich des 
+persönlichen Favoriten auf konsistente strukt uridentische Stichprobenresultate hin. Da-
+bei beträgt der Anteil korrekt memorierter Pr eise über alle Stichproben im Mittel etwa 
+55%. Bezüglich des konkreten Konsumverhaltens stimmen Bekanntheitsgrade der Ziga-
+rettenmarken, die erwartungsgemäß auf eine m hohen Wert von über 90% liegen, in den 
+Stichproben markenübergreifend überein. Auch hinsichtlich der indi viduellen Relevant 
+Sets und der Letztkäufe, unter denen besonde rs häufig die Marken f6, Gauloises Blon-
+des, Lucky Strike, Marlboro und Pall Mall vorkommen, ist grundsätzlich von vergleich-
+baren Samples auszugehen, was folgende Abbildung visualisiert:  
+ 
+59  In den Befragungen wurde das Relevant Set als diejenige Teilmenge aller bekannten Marken identifi-
+ziert, die ein Proband bereits verwendet hat und auch definitiv wiederkaufen würde.  
+60  Es wurden beispielsweise Produktinformationen zum Charakter (klassische Filterzigarette), Inhalt 
+(Packungsgröße: handelsübliche Normalpackung) und zur grundsätzlichen Besteuerung (deutsche 
+Steuerbanderole) visuell durch Vorgabe neutraler Probepackungen vermittelt. 
+61  Der Proband musste angeben, ob er beim Zigarettenkauf primär auf Marken, Preise oder beides achtet. 
+
+--- Page 23 ---
+ - 22 -
+Abb. 5: Letztkaufanteile in den Längsschnitten (Angaben in %) 
+Marke PSM-02 PSM-04 PSM-06 PSM-08 ∅ 
+f6 18 34 23 28 26 
+Gauloises Blondes 8 16 17 15 14 
+Lucky Strike 20 19 22 13 19 
+Marlboro 28 14 9 15 17 
+Pall Mall 10 12 17 18 14 
+West 7 3 3 4 4 
+Summe 91 98 91 93  
+ 
+Darüber hinaus liefert insbesondere der B lick auf einzelne Merkmalsverteilungen ein 
+realistisches, marktkonformes Bild. So d eckt sich der mit 70% hohe Wert der bekunde-
+ten Markenachtsamkeit mit Befunden einer repräsentativen Untersuchung, nach welcher 
+das Markenbewusstsein im Zigarettenmarkt ta tsächlich so stark wie in keiner anderen 
+Produktgruppe schnellumschlagender Verbrauchsgüter ausfällt 62. Die von der GfK rea-
+lisierte Studie erhob von etwa  2.500 Probanden, inwieweit sie sich beim Kauf in insge-
+samt 48 Produktgruppen von Marken leiten la ssen. Diese Markenbedeutsamkeit wurde 
+auf einer Skala von 0 (gar nicht) bis 5 (s ehr stark) erhoben. Die Produktgruppe Zigaret-
+ten erzielte noch vor solch emotional geprägten Produktgruppen wie Bier und PKW den 
+maximalen Durchschnittswert (3,68). Dies spricht in Verbindung mit der beobachteten 
+hohen und gemessen am tatsächlichen Kaufverhalten realistischen Kaufintensität für die 
+Plausibilität der Untersuchungsergebnisse. So  sind etwa 65% der Gesamtstichprobe als 
+Heavy User (Kauf von Zigaretten an jedem zw eiten Tag oder öfter) einzustufen. Dies 
+stimmt mit Ergebnissen einer aktuellen St udie (SOEP 2008) überein, wonach etwa 60% 
+der Raucher ab 18 Jahren pro Tag mehr als eine Schachtel konsumieren.  
+Abb. 6: Demographie und Käuferprofile der Stichproben (Angaben in %)  
+Merkmal Kategorie PSM-02 PSM-04 PSM-06 PSM-08 
+Sampleumfang N = 40 80 100 200 
+Probandenstatus Beruf Studenten Studenten Studenten Studenten 
+Männlich 50 50 50 50 
+ 
+Geschlecht Weiblich 50 50 50 50 
+Bis 21 Jahre 25 25 13 19 
+22-25 Jahre 50 50 61 56 
+ 
+Alter 
+Über 25 Jahre 25 25 26 25 
+Preisbewußt 5 20 8 11 
+Beides 15 15 26 18 
+ 
+Preis-Marken-
+Bewußtsein Markenbewußt 80 65 66 71 
+Niedrig 30 28 47 33 
+ 
+Kaufintensität Hoch 70 72 53 67 
+Preiskenntnis Korrekter 
+ Anteil   
+nicht  
+erhoben 
+58 56 49 
+ 
+62  Vgl. Uehlecke (2002), S. 80f.  
+
+--- Page 24 ---
+ - 23 -
+6 Empirische Befunde  
+Die zuletzt realisierte Längsschnittmessung (P SM-08) erbrachte das unten dargestellte 
+Bild von Konzentrationskurven. Hieraus lässt sich für den Indifferenzpreis ein Wert von 
+3,66€, ein Optimalpreisbereich von 3,50€ bi s 4,00€ sowie eine von 2,52€ bis 4,82€ ver-
+laufende aggregierte Preis-Range ableiten63.     
+Abb. 7: Verteilungsfunktionen der Längsschnittmessung  PSM-08 
+0
+20
+40
+60
+80
+100
+2,00 3,00 4,00 5,00 Preis (€)
+Kumulierte Prozente
+Nicht Billig Nicht Teuer Zu Billig Zu Teuer
+PMG PMTIP
+OP
+ 
+ 
+Wie aus der folgenden Übersicht weiterhin er sichtlich, positionieren sich die objektiven 
+Marktpreisniveaus der jeweils billigsten und teuersten Marken  in allen vier Messungen 
+des Längsschnitts innerhalb des durch die PMG- und PMT-Kennwerte begrenzten ag-
+gregierten Akzeptanzintervalls. Somit bestä tigen sich die Ergebni sse historischer Stu-
+dien, wonach die aggregierte Preis-Range des PSM die relevanten Wettbewerbspreise 
+im Regelfall umspannt. Im Vergleich zur Preisverteilung des Marktes fällt sie somit 
+deutlich gestreckter aus; die objektive Preisverteilung wird folglich im Zuge subjektiver 
+Transformationsvorgänge gedehnt. Die Range ist im Mittel aller Messzeitpunkte absolut 
+1,72€ breit und beträgt relativ am oberen Grenzwert PMT gemessen (Range%) etwa 
+41%, was als vergleichsweise geringer Wert einzustufen ist
+64.  
+Abb. 8: Marktpreise und PSM-Kennwerte I (*) 
+ 
+63  Die Ergebnisse früherer PSM-Messung finden sich der Vollständigkeit halber im Anhang!  
+64  Andere Produktgruppen zeigen zum Teil Ranges von über 60%. Vgl. Müller (2005a), S. 267f. 
+
+--- Page 25 ---
+ - 24 -
+Welle PSM-02 PSM-04 PSM-06 PSM-08 Messung 
+Stichprobengröße n = 40 n = 80 n = 100  n = 200 
+Preis billigste Marke 2,65 3,30 3,30 3,60 
+Preis teuerste Marke 3,00 3,60 3,80 4,00 Markt 
+Marktpreis-Spanne 0,35 0,30 0,50 0,40 
+PMG 2,13 2,59 2,42 2,52 
+PMT 3,32 3,91 4,50 4,82 
+Range absolut 1,19 1,32 2,08 2,30 
+ 
+ 
+PSM 
+ 
+Range% = (PMT-PMG)/PMT 36% 34% 46% 48% 
+ * alle Preisangaben in € 
+ 
+Zweitens stellt sich die Frage nach der Güte der stichtagsbezogenen Verankerung dieser 
+Preisakzeptanzbereiche. Der IP  (OP) lässt sich als der für die Enkodierung objektiver 
+Preise maßgebende Referenzpunkt normaler (fai rer) Preise interpre tieren. Ein solcher 
+Urteilsanker wird insbesondere durch das mittlere objektive Preisniveau geprägt. Dieses 
+ist als der normalerweise gezahlte, um Sonderangebotsaktionen bereinigte Preis eines 
+Produktes respektive einer Produktkategorie definiert. Es kann durch einen marktan-
+teils- (P
+MA) sowie einen letztkaufgewichteten (P LK) Durchschnittspreis65 der betrachte-
+ten Marken des Zigarettenmarktes operationa lisiert werden. Der letzkaufgewichtete 
+Preis scheint dabei zweckmäßiger, da er im  Gegensatz zu den globalen Marktanteilen 
+des Marktes das spezifische Kaufverhalten der selektierten Stichprobe valider abbildet. 
+Adaptionstheoretisch sind speziell in solchen Märkten, in denen der Erhebung der PSM-
+Kennziffern keine kurzfristigen  Preisänderungen vorausgingen 66, geringe Abweichun-
+gen zwischen dem subjektiven Referenz- und dem aktuellen mittleren Marktpreis zu 
+erwarten. Auch die thematisierte verkaufsst ellenübergreifende Preisstabilität des Ziga-
+rettenmarktes fördert diese Vermutung schwacher Abweichungen, da der Proband un-
+abhängig vom Ort des Erwerbs mit identisc hen Preisen einer bestimmten Marke kon-
+frontiert wird. In Verbindung mit der markttypi schen hohen Kaufintensität führt dies zu 
+einer schnellen und dauerhaften Adaption. So mit kommt die korrekte Verankerung der 
+erhobenen aggregierten Preisa kzeptanzrange insbesondere darin zum Ausdruck, ob die 
+als Normalpreise zu interp retierenden Referenzpunkte de s PSM (IP, OP) hinreichend 
+mit den stichtagsbezogenen durchschnittlichen Marktpreisen korrespondieren.  
+ 
+65  Vgl. zur allgemeinen Kalkula tion solcher Durchschnittspreise Diller (2000), S. 83  
+66  Diese Absenz kurzfristiger Preisbewegungen vo r den eigentlichen Erhebungszeitpunkten des Längs-
+schnitts trifft für alle Wellen des untersuchten Zigarettenmarktes nur mit Einschränkungen zu. 
+
+--- Page 26 ---
+ - 25 -
+Wie hierzu unten dargestellt, differieren Indifferenz- und mittlere  Marktpreise nur un-
+wesentlich. Dies bestätigt eine zentrale Th ese des PSM, wonach der IP tatsächlich häu-
+fig dem typischerweise gezahlten Preis für ein Produkt bzw. eine Produktgruppe oder 
+aber dem Preis eines bedeut enden Marktführers entspricht 67. Die absolute prozentuale 
+Abweichung des IP vom letztkaufgewichteten Durchschnittspreis P LK (%IP-Fehler) be-
+trägt in der vorliege nden Untersuchung im Mittel ledi glich 2,8 Prozentpunkte. Dies be-
+legt die grundsätzliche Qualität dieses PSM-Kennwertes, denn auch andere historische 
+Studien zeigen, dass sich IP und mittlere Mark tpreise zumindest in preisstabilen Märk-
+ten grundsätzlich dicht beieinander positionieren
+68.  
+Als Besonderheit des beobachteten Zigaretten marktes ist die Existenz eines Intervalls 
+anstelle eines konkreten Preispunktes für den Optimalpreis (OP-Bereich) in allen vier 
+Messungen zu nennen. Dabei beträgt die ab solute Ausdehnung des OP-Bereichs (OP 
+absolut) im Mittel etwa 55 Cent, die relati v zur oberen Bereichsgrenze kalkulierte pro-
+zentuale Reichweite (OP%) durchschnittlich  15,4%. Auffällig wird, dass auch dieses 
+Intervall die für die Studie herangezogenen zehn führenden Zigarettenmarken preislich 
+nahezu vollkommen umspannt, was eine i nhaltliche Interpretation dieses Kennwertes 
+als (zumindest nachfrageorientierten) Optimalpreiskorridor durchaus rechtfertigt.  
+Abb. 9: Marktpreise und PSM-Kennwerte II (*) 
+Welle PSM-02 PSM-04 PSM-06 PSM-08 Messung 
+Stichprobengröße n = 40 n = 80 n = 100  n = 200 
+Preis billigste Marke 2,65 3,30 3,30 3,60 
+Preis teuerste Marke 3,00 3,60 3,80 4,00 
+Marktpreis-Spanne 0,35 0,30 0,50 0,40 
+PLK 2,85 3,42 3,54 3,79 
+Markt 
+PMA 2,92 3,52 3,70 3,88 
+IP 2,91 3,26 3,58 3,66 
+%IP-Fehler = (IP-PLK)/PLK +2,1% -4,7% +1,1% -3,4% 
+OP-Bereich 2,50-3,00 3,00-3,50 3,11-3,80 3,50-4,00 
+OP absolut 0,50 0,50 0,69 0,50 
+ 
+ 
+PSM 
+OP% 16,7% 14,3 % 18,2% 12,5% 
+ * alle Preisangaben in € 
+ 
+ 
+67  Westendorp (1976, S.157) vermerkt hierzu: „The IDP (Indifferenzpreis IP, Anmerkung des Autors) 
+generally represents either the median price actually  paid by consumers of the product, or the price of 
+the product of an important market leader.“. Daher gilt auch der marktanteils- bzw. letztkaufgewichte-
+te Durchschnittspreis als Benchmark für die Referenz preise: Preise intensiver konsumierter Marken 
+erhalten folglich bei der Durchschnittspreisbildung ein stärkeres Gewicht.  
+68  Einer produktgruppenübergreifenden Untersuchung zufolge beträgt die Abweichung des IP vom 
+Marktmittelwert zwischen 1-6%. Vgl. Müller (2005a), S. 273  
+
+--- Page 27 ---
+ - 26 -
+Nennenswerte Abweichungen zwischen Marktpreisen und den IP-/OP-Kennwerten zei-
+gen sich lediglich bei der Messung PSM-08 sowie PSM-0469. Letztere lassen sich insbe-
+sondere mit der im März 2004 realisierten scharfen Anhebung der Tabaksteuer um 1,2 
+Cent je Zigarette plausibel erklären. Dies führte zu ei nem Anstieg des Packungspreises 
+aller Marken um etwa 40 Cent. Wie nach stehender Abbildung zu entnehmen, gingen 
+den anderen Messungen derartig kurzfristige und hohe Preisänderungen nicht voraus: 
+Abb. 10: Entwicklung der Marktpreise einer Beispielmarke 
+Stückpreise Marke Marlboro (BRD 1995-2008)
+0,10
+0,15
+0,20
+0,25
+Jan. 95
+Jan. 96
+Jan. 97
+Jan. 98
+Jan. 99
+Jan. 00
+Jan. 01
+Jan. 02
+Jan. 03
+Jan. 04
+Jan. 05
+Jan. 06
+Jan. 07
+Jan. 08
+Preis je Zigarette in Cent
+Preisniveau Befragungszeitpunkte
+ 
+ 
+Adaptionstheoretisch interpretiert, scheinen die bis zur Messung PSM-04 im April/Mai 
+vergangenen zwei Monate folglich noch nich t auszureichen, um ei ne nachhaltigere As-
+similation der neuen objektiven Preisniveaus  zu induzieren. Vers tärkt wird das verzö-
+gerte Nachlaufen der PSM-Kennwerte dieser  Messung nicht zuletzt auch durch die spe-
+ziell im Zigarettenmarkt verbreitete Nei gung der Konsumenten, vor Inkrafttreten neuer 
+Preise umfangreiche Vorratskäufe zu tätige n. Zudem sind gerade im Zigarettenhandel 
+noch relativ langanhaltend Restbestände zu alten Preisniveaus erhältlich 70. Somit wird 
+der Konsument vergleichsweise seltener mit den neuen Preisniveaus konfrontiert und 
+ 
+69  Der beobachtete %IP-Fehler von rund 5% stellt die größte Abweichung des IP vom P LK im gesamten 
+Längsschnitt dar. Ferner fällt der höchste Markenpr eis (Marlboro: 3,60€) nur in PSM-04 außerhalb 
+des OP-Bereichs.  
+70  Vgl. hierzu ausführlich Müller (2005b), S. 194 
+
+--- Page 28 ---
+ - 27 -
+kann diese nicht adaptie ren. Das gegenüber dem P LK zu verzeichnende überdurch-
+schnittliche Nachlaufen des IP in der Messung PSM-08 hingegen lässt sich nur spekula-
+tiv erklären. Zwar fanden parallel zur Um stellung des Mehrwertsteuersatzes von 16% 
+auf 19% Ende 2006 bzw. zu Beginn des Jahr es 2007 letztmalig Ko rrekturen aller Mar-
+kenpreise statt. Diese hätten allerdings zum Messzeitpunkt 2008 bereits adaptiert und in 
+die individuellen Referenzpreise integriert sein müssen. Nu r wenige Marken (Pall Mall, 
+f6) unterlagen zu Beginn des Jahres 2008 weiteren anbieterseitigen Preisanhebungen um 
+jeweils 10 Cent. Von daher überrascht der relativ ausgeprägte %IP-Fehler 71. Über den 
+gesamten Längsschnitt dieser Untersuchung gesehen bildet das PSM die objektiven 
+Marktgegebenheiten jedoch tatsächlich valide ab. Die ermittelte subjektive Preis-Range 
+scheint daher tatsächlich korre kt an den durch Marktpreis e geformten Referenzpreisen 
+verankert. 
+Drittens ist im Sinne dynamischer Adapti onsprozesse die zeitliche Entwicklung der 
+PSM-Kennziffern in Relation zu den Mark tpreisbewegungen von Interesse. Dabei zeigt 
+eine Beobachtung der durchschnittlichen Marktpreisentwicklung folgendes Bild: 
+Abb. 11: Entwicklung der durchschnittlichen Marktpreise (Cent je Zigarette) 
+Entwicklung und Zusammensetzung des Durchschnittspreises je Zigarette
+0 4 8 12 16 20 24
+1998
+1999
+2000
+2001
+2002
+2003
+2004
+2005
+2006
+2007
+Jahr
+Preis (in Cent)
+Tabaksteuer Mehrwertsteuer Wirtschaftsnutzen
+ 
+ 
+71  Eine detaillierte kreuztabellarische Analyse des Preiswissens der Stichprobe PSM-08 zeigt, dass ins-
+besondere f6-Käufer den aktuellen Marktpreis ihrer favorisierten Marke (3,70€) signifikant schlechter 
+memorieren (α=0,06) und vermutlich noch den vor der letzten Preiskorrektur gültigen Preis von 3,60€ 
+abspeichern. Aufgrund des hohen Letztkaufanteils der Marke f6 schlägt diese geringe Preisdifferenz 
+von 10 Cent relativ stark auf den P LK durch. Kalkuliert man mit einem f6-Preis von 3,60€, ergibt sich 
+ein PLK von 3,73€, was die absolute Abweichung des IP sowie den %IP-Fehler deutlich reduziert.  
+
+--- Page 29 ---
+ - 28 -
+Grundsätzlich ist bei allen PSM-Werten marktk onform eine preisliche Rechtsverschie-
+bung zu beobachten. Dies verdeutlicht nachstehende Abbildung graphisch, aus der auch 
+die Entwicklung der bereits angesprochenen OP-Bereiche im Zeitv erlauf hervorgeht. 
+Interessant ist, dass die Optimalpreisspanne  lediglich eine Niv eauverschiebung erfährt, 
+ihre absolute Ausdehnung in Höhe von 50 Cent  bleibt hiervon (im übrigen analog zur 
+etwa 40 Cent breiten Spanne objektiver Ma rktreise) unberührt. Eine Ausnahme stellt 
+der mit 69 Cent etwas breitere OP-Bereich in PSM-06 dar, welcher sich allerdings 
+durch die höhere Variabilität der Marktpreise zu diesem Me sszeitpunkt erklärt. Anders 
+verhält es sich mit der aggregierten Preis- Range. Diese wird im Verlauf der Zeit nicht 
+nur durch den Anstieg des PMT, sondern insbesondere durch den Rückgang bzw. die 
+Stagnation des PMG in PSM-06/08 sowohl absolut als auch prozentual immer breiter. 
+Abb. 12 : Dynamische Entwicklung der aggregierten PSM-Kennwerte  
+Dynamik der PSM-Kenngrößen
+3,002,50
+2,91
+3,26
+3,503,00
+3,58
+3,803,11
+4,003,50
+3,66
+2000
+2002
+2004
+2006
+2008
+2010
+2,00 2,50 3,00 3, 50 4,00 4,50 5,00 Preis (€)
+Zeitpunkt der Messung
+Range
+OP
+IP
+PSM-06
+PSM-04
+PSM-02
+PSM-08
+ 
+Für diese Entwicklung ist vermutlich das re ale Nachfrageverhalten mitverantwortlich. 
+Speziell zunehmende Grenzeinkäufe sowie der verstärkte Konsum von Schmuggelware 
+– laut einer vom TÜV kontrollierten Studie
+72 betrug der bundesweite Anteil nicht in 
+Deutschland versteuerter Zigaretten am ge samten Fabrikzigarettenkonsum im Jahre 
+2006 etwa 20% – führen zu einer permanen ten konsumentenseitigen Konfrontation mit 
+ 
+72  Vgl. DTZ (2007): Dokumentation Zigarette, S. 10 
+
+--- Page 30 ---
+ - 29 -
+deutlich niedrigeren Preisniveaus für an sich identische Marken. Auch der Wechsel von 
+teuren zu billigeren Industrie- oder Hande lsmarken sowie der zwischenzeitliche Um-
+stieg auf klassischen/modernen Feinschnitt (vorportionierte Sticks) unterstützen diesen 
+Effekt. Somit gewöhnt sich der Nachfrager mehr und mehr an bislang irrelevante untere 
+Preisniveaus, adaptiert diese und verschie bt neben den oberen nun auch untere Akzep-
+tanzgrenzen in weiter vom mittleren Adaptionsniveau (IP) entfernte Preislagen.  
+Betrachtet man die Preisurteile ergänzend auf individueller Ebene, so bestätigen sich die 
+für die aggregierten PSM-Kennwerte getro ffenen Aussagen. Mit Ausnahme der Vertei-
+lungen billiger und zu billiger Preise in PSM -06 haben alle kumulierten Funktionen im 
+Zeitverlauf analog zur Marktentwicklung ein (wenngleich nicht im mer signifikant) hö-
+heres Preisniveau erreicht. Dies wird im folgenden anhand der absoluten Differenzen 
+der Verteilungsmittelwerte (in €) zwischen benachbarten PSM-Messungen73 dargestellt: 
+Abb. 13: Signifikanztest der Dynamik individueller Preisurteile 
+Pzb Pb Pt Pzt 
+ Differenz Z Differenz Z Differenz Z Differenz Z 
+PSM-02  
+vs.  
+PSM-04 
++0,41 1,42** +0,49 2,65** +0,58 3,03** +0,80 2,26** 
+PSM-04  
+vs.  
+PSM-06 
+-0,23 1,15 -0,20 1,35* +0,60 3,55** +0,68 3,43** 
+PSM-06  
+vs.  
+PSM-08 
++0,20 1,06 +0,33 1,59** +0,20 0,98 +0,18 0,45 
+ *       p < 0,10             **     p < 0,05 
+ 
+Abschließend wurde fallweise geprüft, ob sich  die in historischen Studien auf Individu-
+alebene identifizierten Preiswahrnehmungs unterschiede zwischen Käufergruppen auch 
+in den aggregierten PSM-Kennwerten der einzelnen Längsschnittmessungen widerspie-
+geln. So bestätigt eine Analyse der Segmente  regelmäßiger (Light User) und gelegentli-
+cher Käufer (Heavy User), dass der Indifferenz preis der Light User typischerweise stär-
+ker vom letztkaufgewichteten Durchschni ttspreis abweicht. Somit führt die höhere 
+Kauffrequenz der Heavy User tatsächlich zu einer intensiveren Adaption und Integrati-
+on der Marktpreise in das mittlere Preisempfinden. Erwartungsgemäß zeigt sich ferner, 
+dass qualitäts- respektive markenbewusste Prob anden im Vergleich mit Preisbewussten 
+ 
+73  Da nicht alle kumulierten Preisurteile normalverteilt waren, fand im vorliegenden Fall ein nichtpara-
+metrischer Test auf Verteilungsunterschiede (Kolmogorov-Smirnov-Test) Anwendung.   
+
+--- Page 31 ---
+ - 30 -
+ein (gemessen am PMT) höheres Preisintervall akzeptieren sowie etwas größere Indiffe-
+renzpreise als zentrale Preisu rteilsanker memorieren. Dies erklärt sich nicht zuletzt 
+durch die vermehrte Kauferfahrung dieses Se gments in höheren Preislagen. Allerdings 
+fallen die Unterschiede zwischen diesen Segm enten speziell in den IP (wie im übrigen 
+auch bei den OP-Bereichen) überraschend mode rat aus. Dies deckt sich jedoch mit frü-
+heren empirischen Beobachtungen und sprich t für die Existenz eines globalen, seg-
+mentübergreifenden Ankerbereichs normaler Preise 74. Auch die aus Studien zur Preis-
+kenntnis zitierten Befunde können aus den ag gregierten PSM-Kennziffern der unter-
+suchten Wellen nahezu vollständig repliziert  werden. So induziert eine zunehmende 
+Preiskenntnis hinsichtlich de r favorisiert gekauften Mark e erstens grundsätzlich höhere 
+und näher am letztkaufgewichteten Marktpreis PLK gelegene Indifferenzpreise. Zweitens 
+resultiert als Folge der gefestigten, wenige r stark streuenden Prei svorstellungen seitens 
+der Preiskenner über die Marktpreise eine etwas schmalere prozentuale Preis-Range. 
+Die aggregierten PSM-Informationen spiegeln  die zu erwartenden segmentspezifischen 
+Besonderheiten also korrekt wider, was di e nachstehende Übersicht auszugsweise an-
+hand ausgesuchter Kennwerte zusammenfassend darstellt.  
+Abb. 14: Segmentspezifische Besonderheiten der PSM-Kennwerte (*) 
+Messung PSM-02 PSM-04 PSM-06 PSM-08 
+Kennwert IP PMT IP PMT IP PMT IP PMT 
+Preisbe-
+wusst 
+2,82 3,03 3,19 3,72 3,51 4,40 3,61 4,40 
+Preis-Marken-
+Index 
+Marken-
+bewusst 
+2,91 3,35 3,31 3,93 3,60 4,50 3,69 4,82 
+Kennwert IP Range% IP Range% IP Range% IP Range% 
+Preisun-
+kenntnis 
+3,20 38% 3,49 49% 3,60 46% 
+Preis-
+kenntnis 
+ 
+ 
+Preiskenntnis 
+nicht erhoben 3,31 31% 3,59 45% 3,70 43% 
+Preiskenntnis  
+Markenfavorit  
+ 
+Mittlerer Marktpreis P LK = 3,42 P LK = 3,54 P LK = 3,79 
+ 
+ 
+ 
+* alle Preisangaben in € 
+ 
+74  Westendorp (1976, S. 147) vermerkt hierzu: „Interestingly one can show that IDP´s (Indifferenzpreise, 
+Anmerkung des Autors) do vary for e.g. people who buy expensive or cheap brands but the differen-
+ces are by no means as large as one would expect ... Theoretically this will mean, that a rather general 
+price anchoring point in a market exists (´the norm al price`) and that many people who buy more ex-
+pensive brands ... are fully conscious of doing so...“ 
+
+--- Page 32 ---
+ - 31 -
+Abschließend soll die häufig in Frage gestellte Validität der auf individueller Ebene 
+erhobenen Preisurteile des PSM zumindest ansa tzweise thematisiert werden. Ein in Li-
+teratur und Praxis intensiv diskutiertes Problem besteht in der Ermittlung maximaler 
+Zahlungsbereitschaften. Nach aktuellem Erke nntnisstand werden hierzu vornehmlich 
+mehrstufige dynamische Kaufsimulationsdesigns sowie anreizkompatible Formen ver-
+bindlich gestalteter Auktions- und Lotteri emechanismen und weniger die im Rahmen 
+des PSM verwendeten Preisber eitschaftsabfragen empfohlen
+75. Hierfür ist neben dem 
+monadischen, Konkurrenzbeziehungen ausk lammernden Grundcharakter des PSM ei-
+nerseits die direkte Abfragtechnik verantwo rtlich. Diese lenkt die Aufmerksamkeit zu 
+stark auf den Preis, was speziell bei der Angabe oberer Preisgrenzen zu einem potentiel-
+len Bias in Form verminderter Za hlungsbereitschaftsangaben führen kann 76. Weiterhin 
+weisen Studien nach, dass insbesondere von di rekten Abfragen qualitätsbedingter Preis-
+untergrenzen potentiell suggestive Wirkungen ausgehen77. Die letztendliche Verhaltens-
+relevanz solcher unteren Preisgrenzen ist überdies an bestimmte Rahmenbedingungen 
+geknüpft und hängt maßgeblich davon ab, inwieweit der Konsument die Produktqualität 
+anhand alternativer Informationen verlässlich beurteilen kann78.  
+Von daher ist von besonderem Interesse, ob zum Beispiel die mit der direkten PSM-
+Abfrage ermittelte obere Preisakzeptanzgrenze P
+zt die maximale Zahlungsbereitschaft 
+tatsächlich korrekt auslotet und widerspiegelt.  Ein Blick auf eine Vergleichsstudie des 
+Jahres 200679 zeigt hierzu, dass das PSM zumi ndest auf Produktgruppenebene überra-
+schenderweise relativ eng mit der beobach teten maximalen Preisakzeptanz korrespon-
+diert. Dies wird durch eine Gegenüberstellung der gespiegelten Verteilungsfunktion von 
+Kzt (Knzt)80 mit der kumulierten Verteilung der von den Probanden maximal in der Kauf-
+simulation akzeptierten Preishöhe für Zigarettenmarken visualisiert:  
+ 
+ 
+75  Vgl. unter anderem Sattler/Nitschke (2003); Erichson (2005); Müller (2005a) 
+76  Vgl. Lyon (2002), S. 10; Im Gegensatz dazu bedingt der konsequenzfreie Charakter der PSM-Abfrage 
+typischerweise überhöhte Zahlungsbereitschaften (vgl. Völckner 2006, S. 55), wenngleich einige Stu-
+dien gerade bei derartigen direkten Abfragen keinen hypothetischen Bias identifizieren können (vgl. 
+Sattler/Nitschke 2003). 
+77  Vgl. Müller (2006a), S. 38  
+78  Vgl. Ofir (2004); Müller (2006a) 
+79  Die zitierte Studie erhob in mehrstufigen, hypoth etischen Kaufsimulationen Wahlentscheidungen im 
+Zigarettenmarkt unter adaptiver und systematischer Variation der Angebotspreise.  
+80  Die gespiegelte Funktion K nzt (100%-Kzt) gibt den Anteil der Probanden an, die einen Preis P nicht als 
+zu teuer erachten. 
+
+--- Page 33 ---
+ - 32 -
+Abb. 15: Vergleich direkter Preisurteile mit Kaufsimulationsdaten  
+0
+20
+40
+60
+80
+100
+3,50 4,00 4,50 5,00 5,50 6,00 6,50 Preis (in €)
+Kumulierte Prozente
+Knzt Beobachtete Preisakzeptanz
+ 
+ 
+ 
+ 
+
+--- Page 34 ---
+ - 33 -
+7 Zusammenfassung und kritischer Ausblick 
+Das Pricesensitivity-Meter liefert trotz de r vergleichsweise einfachen Erhebungs- und 
+Analyseanforderungen konsistente und valid e Informationen über die Preiswahrneh-
+mung von Konsumenten. So finden die zentral en Aussagen relevanter Referenzpreis-
+theorien und historischer Studien zur Prei swahrnehmung in den Ergebnissen der vorlie-
+genden Untersuchung überwiegend Bestätigung. Die weite Verbreitung des PSM in der 
+Preisforschungspraxis scheint vor diesem Hintergrund also durchaus gerechtfertigt.  
+Von einer speziellen Anwendung des PSM zu r Ermittlung von Zahlungsbereitschaften 
+oder der analytischen Preisoptimierung wi rd nach wissenschaftlichem Kenntnisstand 
+infolge des monadischen und direkten Abfragecharakters insbesondere auf Marken- und 
+Artikelebene grundsätzlich abgeraten. Der Anwendungsschwerpunkt des PSM sollte 
+folglich primär in explorativen Preisanaly sen (Identifikation von Referenz-, Schwellen-
+preisen und potentiellen Prei ssetzungsspielräumen) sowi e der Entscheidungsunterstüt-
+zung bei der Preisgestaltung unter großer Unsi cherheit (wie etwa bei Produktrelaunches 
+oder Neueinführungen besonders innovativer Pr odukte, für die noch kein abgrenzbares 
+Konkurrenzumfeld existiert) liegen81. 
+Eine speziell aus wissenschaftlicher Perspektive interessante Anwendungsoption indivi-
+dueller und aggregierter PSM-Kennwerte lieg t in der Modellierung und Konfiguration 
+experimenteller Kaufsimulationen82. Hier wird das Verhalten von Probanden beobach-
+tet, die Kaufentscheidungen zwischen Altern ativen unter Variati on der Angebotspreise 
+treffen. Ein zentrales Problem solcher Kauf simulationen besteht neben der Identifikati-
+on geeigneter Variationsmechanismen in de r Festlegung des für die Preisvariation der 
+relevanten Alternativen maßgebenden Inte rvalls. Konventionelle Lösungen, wie etwa 
+die willkürliche Selektion von Preisklammern seitens des Experimentators oder die aus-
+schließliche Orientierung an Marktpreise n, weisen zum Teil erhebliche methodische 
+Mängel auf. So zeigt sich, dass die pauschale Vorgabe von Preisen, die außerhalb eines 
+der Erfahrung des Befragten z ugänglichen Intervalls liegen, typischerweise zu Verzer-
+rungen führt
+83. Ferner schwanken real e Preise in vielen Mä rkten infolge oligopolisti-
+scher Angebotsstrukturen häufig nur unzurei chend, weshalb das abgeleitete Preisinter-
+ 
+81  Vgl. hierzu Hofmann/Lederle/Felsch (2006), S. 28; Lyon (2002), S. 10; Wildner (2003), S. 8 
+82  Vgl. Erichson (2005), S. 26; Müller (2005a), S. 336  
+83  Vgl. Simon (1992), S. 117 
+
+--- Page 35 ---
+ - 34 -
+vall zwangsläufig sehr schmal ausfällt. Di es führt zu ineffizienten Schützungen von 
+Preisresponsefunktionen. Für noch vor der Markteinführung stehende Innovationen sind 
+die erforderlichen Marktpreise logischerwei se ohnehin nicht verf ügbar. Zudem ist unsi-
+cher, ob die am Markt geforderten Preise ma ximale Zahlungsbereitschaften tatsächlich 
+widerspiegeln. Eine sinnvolle  Alternative stellt daher die Verwendung eines aus dem 
+PSM abgeleiteten Preisintervalls für die zu untersuchende Produktgruppe dar. In aktuel-
+len wissenschaftlichen Untersuchungen wird diese Preisklammer auf aggregierter Ebene 
+durch separate Vorstudien und auf individuelle r Ebene in Form einleitender Fragen vor 
+der eigentlichen Kaufsimulation ermittelt
+84. Bisherige Erfahrungen zeigen, dass der rea-
+lisierte Nichtkaufanteil auf Preisniveaus innerhalb der Range gering, außerhalb hinge-
+gen hoch ausfällt 85. Dies spricht in Verbindung mit de r erzielten Prognosegüte der auf  
+Basis der Simulationsdaten generierten Kaufve rhaltensmodelle für die Validität der er-
+mittelten Preis-Range. Auch Urbany/Dickson (1991) zeigen exem plarisch, dass die 
+Prognosequalität von Wahlmodellen durch die Verwendung interner individueller Refe-
+renzpreise anstelle rein externer Kontextr eize (aktuelle Marktpreisniveaus) grundsätz-
+lich verbessert wird. Allerdings räumen sie ein, dass die in ihrer Studie angefallenen 
+Erhebungskosten solcher internen Standards die vergleichsweise geringen Erklärungs-
+zugewinne kaum rechtfertigen. Gerade dies es Kostenargument spricht jedoch für die 
+Verwendung individueller PSM-Informatione n, welche erwiesenermaßen unproblema-
+tisch zu erheben sind. Wildner (2003) schlägt darüber hina us vor, auch aggregierte In-
+formationen in Form von Preisschwelle n zum Zwecke der Prognos everbesserung in 
+Wahlmodelle zu integrieren. Hierzu schätz t er auf Basis von Marktdaten und Wahlent-
+scheidungen des Probanden in der Kaufsimu lation nicht nur klassische Standard-
+Parameter von Choice-Modellen (individuelle  Markennutzen- und Rationalitätsparame-
+ter), sondern auch spezifische Preisschwellenkoeffizienten, welche den letztlich reali-
+sierten Modell-Fit zum Teil deutlich verbessern . Eine Alternative hierzu besteht in der 
+naiven Übernahme und Modellintegration aggr egierter Preisschwellen, die nicht aus 
+marktseitigen Schätzungen, sondern ex post aus visuellen Analysen der kumulierten 
+PSM-Verteilungen abgeleitet sind.   
+Aus der Identifikation von Pr eisschwellen aus dem PSM lassen sich indes auch prakti-
+sche preispolitische Implikationen herleiten. So bieten ei nige Markenhersteller auf dem 
+ 
+84  Vgl. hierzu Müller (2005a), S. 336f. sowie Erichson (2005), S. 26 
+85  Vgl. Müller (2005a), S. 269f. 
+
+--- Page 36 ---
+ - 35 -
+nationalen Zigarettenmarkt derzeit neben de n normalen sowie den Big-Packs auch neue 
+Packungen deutlich größeren Inhalts (sogenannte Maxi-Packs mit bis zu 30 Stück Ziga-
+retten) an. Ein möglicher Grund für diese Produktvariation ist darin zu sehen, hersteller-
+seitig vermutete Wahrnehmungs- oder Reak tionsschwellen der Nachfrager durch die 
+Mehrgabe von Leistung zu überspringen. So mit werden Konsumenten für hohe Preisni-
+veaus, die bisher außerhalb des Akzeptanzber eichs lagen, desensibilisiert. Gestützt wird 
+diese Annahme durch einen Blick auf die En twicklung der kumulierten Konzentrations-
+kurven zu teurer Preise (Kzt)86: 
+Abb. 16: Konzentrationskurven Kzt der Längsschnittmessungen 
+0
+20
+40
+60
+80
+100
+2,50 3,00 3,50 4,00 4,50 5,00 5,50 6,00 6,50
+Preis (in €)
+Kumulierte Prozente
+Kzt 2002 Kzt 2004 Kzt 2006 Kzt 2008
+ 
+ 
+War im Zeitraum der Messungen von 2002 bi s 2006 jeweils eine hochsignifikante 
+Rechtsverschiebung zu vermerken, erfolgte in  PSM-08 lediglich eine marginale Bewe-
+gung dieser Kurve. Dies begründet sich zum einen in den gering ausgefallenen objekti-
+ven Preisbewegungen des Marktes, lässt andere rseits aber auch auf verhärtete Reakti-
+onsschwellen schließen 87, welche die Urteilsanker und Preisakzeptanzgrenzen durch 
+Kontrastierungseffekte vor we iteren objektiven Preisbeweg ungen schützen. Durch die 
+herstellerseitig vorgenomme ne Variation der Verpackungsgrößen könnten solche 
+Schwellen nun übersprungen, potentielle Assimilationsprozesse ausgelöst und so mittle-
+ 
+86  Wie oben in Kapitel sechs gezeigt, ist diese F unktion zumindest als brauch barer Indikator einer aus 
+der Wahrnehmung aktueller Marktpreise geformten oberen Preisakzeptanzgrenze interpretierbar. 
+87  Wenngleich sich der Mittelwert aller Nennungen für zu teure Preise (nicht zuletzt durch höhere Ex-
+tremwerte) um etwa 18 Cent erhöht, steigt der Anteil der einen Preis als zu teuer einstufenden Pro-
+banden in PSM-06 und PSM-08 in etwa analog bei 4,50€ (5,00€) von 12 (34) auf 30 (61)%.  
+
+--- Page 37 ---
+ - 36 -
+re Urteilsanker auch für kleinere Pac kungsgrößen langfristig nach oben gezogen wer-
+den. Alternative Möglichkeiten zur Beeinflussung von Referenzpreisen hingegen sind in 
+Deutschland für Markenhersteller und Handel durch das 200 6 in Kraft getretene umfas-
+sende Tabakwerbeverbot, das restriktive Taba ksteuergesetz (TabStG) sowie das Gesetz 
+gegen unlauteren Wettbewerb (UWG) vergleic hsweise eingeschränkt. Bestenfalls ver-
+bleibt Herstellern und Händlern die am Prei s ausgerichtete vergleichende Werbung ge-
+mäß der Regelungen in § 6 UWG, wobei inte rnationale Referenzpreise hochpreisiger 
+Länder oder die Aufnahme sehr teurer Vergleichsmarken ins Sortiment denkbare Optio-
+nen zur positiven Einfärbung aktueller Preise bestimmter Marken darstellen88. 
+Abschließend ist festzuhalten, dass die erzi elbare Qualität einer PSM-Studie maßgeb-
+lich von der jeweiligen Ausgestaltung abhängt. Dabei hat sich erstens die in allen vier 
+Wellen dieses Längsschnitts vorgenommene strikte Konkretisierung des Leistungssti-
+mulus (insbesondere vor dem Hintergrund einer Analyse auf Produktgruppenebene) als 
+sinnvoll erwiesen. Die Erhebung der Preisurteile  orientierte sich in der vorliegenden 
+Studie zweitens am Originallaut der PSM-A bfrage. Speziell den in der jüngeren Markt-
+forschungspraxis vorgenommenen Umformulie rungen wurde hier also aus Konsistenz-
+gründen – und wie die Ergebnisse belegen zurecht – nicht gefolgt
+89. Drittens erfolgte die 
+Preisabfrage analog zum Originalartikel anhand physisch respektive virtuell vorgelegter 
+Preisskalen, wenngleich historische Studien  Anlass zur Vermutung geben, dass von der 
+gewählten Skalenkonfiguration (obere und untere Grenze n des vorgegebenen Preis-
+strahls) ein zumindest schwach signifikan ter Einfluss auf die Pr eisbeurteilung und im-
+plizit die Position von Ankerpreisen ausgeht90.  
+Die Identifikation pote ntieller formulierungs- und skalenbedingter Unterschiede in den 
+PSM-Kennwerten liefert diesbezüglich Ansatzpunkte für künftige Forschungsarbeiten. 
+Dies gilt auch für die in de r vorliegenden Längsschnittsstudie nicht explizit untersuchte 
+Frage, ob aus den direkten PSM-Preisur teilen und Verteilungsfunktionen zumindest 
+approximativ nicht nur auf Produktgruppen-, sondern auch  auf Marken- und Artikel-
+ebene auf valide Zahlungsbereitschaften geschlossen werden kann. 
+ 
+ 
+88  Vgl. hierzu unter anderem Lowengart/Mizrahi (1999) sowie Kosenko/Rahtz (1988). 
+89  Anstelle billiger (teurer) Preisanmutungen werd en beispielsweise angeme ssene, aber noch günstige 
+(teure, aber noch vertretbare) Preisurteile erhoben und ohne Spiegelung direkt als kumulierte Vertei-
+lung nicht teurer (nicht billiger) Preise in die Analyse übernommen. Vgl. Wildner (2003), S. 6f. 
+90  Vgl. unter anderem Urbany/Dickson (1991) sowie Janiszewski/Lichtenstein (1999) 
+
+--- Page 38 ---
+ - 37 -
+Anhang 
+Ergebnisse PSM-02 
+ 
+PSM - 2002
+0
+20
+40
+60
+80
+100
+0 0,5 1 1,5 2 2,5 3 3,5 4 4,5 5
+Preis (in €)
+Kumulierte Prozente
+Nicht Billig Nicht Teuer Zu Billig Zu Teuer
+
+--- Page 39 ---
+ - 38 -
+ 
+Ergebnisse PSM-04 
+ 
+PSM - 2004
+0
+20
+40
+60
+80
+100
+0 0,5 1 1,5 2 2,5 3 3,5 4 4,5 5
+Preis (in €)
+Kumulierte Prozente
+Nicht Billig Nicht Teuer Zu Billig Zu Teuer
+
+--- Page 40 ---
+ - 39 -
+ 
+Ergebnisse PSM-06 
+ 
+PSM - 2006/ I
+0
+20
+40
+60
+80
+100
+1,00 1,50 2,00 2,50 3,00 3,50 4,00 4,50 5,00 5,50 6,00
+Preis (in €)
+Kumul i erte Prozente
+Nicht Billig Nicht Teuer Zu Billig Zu Teuer
+
+--- Page 41 ---
+ - 40 -
+Literaturverzeichnis  
+Boztug, Yasemin. (2002): Die Analyse der Preiswirkung auf die Markenwahl,  
+ Wiesbaden  
+Dickson, Peter R./Sawyer, Alan G. (1990): The Price Knowledge and Search of Super-
+market Shopers, in: Journal of Marketing, Vol. 54, S. 42-53 
+Diller, Hermann (1978): Theoretische Gr undlagen zur Erfassung der Irreführung über 
+die Preisbemessung, in Wirtschaftswissenschaftliches Studium, 7.Jg., S. 249-255  
+Diller, Hermann (1988): Das Preiswissen von Konsumenten, in Marketing – Zeitschrift 
+für Forschung und Praxis, 10. Jg., S. 17-24  
+Diller, Hermann. (Hrsg.) (1994): Vahlens großes Marketing Lexikon, München 
+Diller, Hermann: Stichwort Preiswahrnehm ung; in: Diller, Hermann. (Hrsg.) (1994): 
+Vahlens Großes Marketing Lexikon, München, S. 939 
+Diller, Hermann (2000): Preispolitik; 3.Aufl., Stuttgart/Berlin/Köln  
+DTZ (2007): Dokumentation Zigarette, in: Deutsche Tabak Zeitung, Nr.18, S.10-17 
+Erichson, Bernd (2005): Ermittlung von empi rischen Preisresponsefunktionen durch 
+Kaufsimulation, Faculty of Economics and Management Magdeburg, Working 
+Paper Series, No.4 
+Gabor, André/Granger, Clive W.J. (1966): Pri ce as an Indicator of Quality: Report on 
+an Enquiry; in: Economica, Vol.33, S. 43-70 
+Gillbride, Timothy J./Guiltinan, Joseph P./U rbany, Joel E. (2008): Framing Effects in 
+mixed price bundling, in: Marketing Letters, Vol. 19, S. 125-139 
+Hammann, Peter/Erichson, Be rnd (2000) Marktforschung, 4. überarb. und erw. Aufl., 
+Stuttgart 
+Helson, Harry (1964): Adaption - Level theory: An experimental and systematic appro-
+ach to behavior, New York 
+Herrmann, Andreas/Wricke, Martin/Huber, Frank (2000): Kundenzufriedenheit durch 
+Preisfairness, in: Marketing – Zeitschrift für Forschung und Praxis, 22. Jg., Heft 2, 
+S. 131-143 
+Hofmann, Torsten/Lederle, Daniel/Felsch/ Mirco (2006): Innovative Verfahren der em-
+pirischen Preisforschung, in planung&analyse, Heft 6/2006, S.28-33  
+
+--- Page 42 ---
+ - 41 -
+Homburg, Christian/Krohmer, Harley (2003) : Marketingmanagemen t – Strategie, In-
+strumente, Umsetzung, Unternehmensführung; Wiesbaden 
+Hruschka, Harald/Fettes, Werner/Probst, Markus (2002): Die Bewährung von Anker- 
+ preismodellen bei der Erklärung der Ma rkenwahl, in: zfbf, 54. Jg., S. 426-441  
+Jacobson, Robert/Obermiller, Ca rl (1990): The Formation of Expected Future Price: A 
+Reference Price for Forward-Looking Cons umers; in: Journal of Consumer Re-
+search, Vol.16, S. 420-432  
+Janiszewski, Chris/Lichtenstein, Donald R. (1999): A Range Theory Account of Price 
+Perception, in: Journal of Consumer Research, Vol. 25, S. 353-368  
+Kaas, Klaus Peter/Hay, Christ ian (1984): Preisschwellen bei Konsumgütern – Eine the-
+oretische und empirische Analyse; in: zfbf, 36. Jg., S.333-346 
+Kahneman, Daniel/Tversky, Amos (1979): Prosp ect Theory: An Analysis of Decision 
+under Risk; in: Econometrica, Vol. 47, S. 263-291 
+Kalyanaram, Gurumurthy/Little, John D.C. (1994): An Empirical Analysis of Latitude 
+of Price Acceptance in C onsumer Package Goods, in: Journal of Consumer Re
+search, Vol. 21, S. 408-418 
+Kalyanaram, Gurumurthy/Winer, Russell S. (1995): Empirical Generalizations From  
+Reference Price Research, in: Marketing Science, Vol. 14, S. G161-G169 
+Kosenko, Rustan/Rahtz, Don (1988): Buyer Ma rket Price Knowledge Influence on Ac-
+ceptable Price Range and Price Limits, in: Advances in Consumer Research, Vol. 
+15, S. 328-333  
+Kucher, Eckhard (1987): Absatzdynamik n ach Preisänderung, in: Marketing - Zeit-
+schrift für Forschung und Praxis, 9. Jg., S. 177-186 
+Lichtenstein, Donald R./Bloch, Peter H./Bl ack, William C. (1988): Correlates of Price 
+Acceptability, in: Journal of Consumer Research, Vol. 15, S. 243-252 
+Lowengart, Oded/Mizrahi Shlomo (2000): Applying international reference price, Inter-
+national Marketing Review, Vol. 17, S. 525-537 
+Lyon, David W. (2002): The price is right (or is it)?, in: Marketing Research, Vol. 14, S. 
+8-13 
+Mazumdar, Tridib/Monroe, Kent B. (1990): The Effects of Buyer´s Intentions to Learn 
+Price Information on Price Encoding, in: Journal of Retailing, Vol. 66, S. 15-32  
+ 
+
+--- Page 43 ---
+ - 42 -
+Mayhew, Glenn E./Winer, Russell S. (1992): An Empirical Analysis of Internal and 
+External Reference Prices Using Scanner Data, in: Journal of Consumer Research, 
+Vol. 19, S. 62-70  
+Müller, Holger (2005a): Laborgestützte Expe rimente in der Preisf orschung – Eine ver-
+gleichende Analyse preisorientierter Kaufsimulationen, Hamburg 
+Müller, Holger (2005b): Statische und dynamische Messungen des Preisempfindens – 
+Ergebnisse einer empirischen Studie im de utschen Zigarettenmarkt; in: Marketing 
+-  Zeitschrift für Forschung und Praxis, 27. Jg., S. 185-196 
+Müller, Holger (2006a): Der Preis als Qual itätsindikator – Expe rimentelle Untersu-
+chungen auf Basis des Konzepts der Buy- Response-Curve, in: Faculty of Econo-
+mics and Management Magdeburg (FEMM), Working-Paper-Series, No.8   
+Müller, Holger (2006b): Messung der Preiswah rnehmung mittels Preissensitivity-Meter 
+(PSM) – Eine experimentelle Längsschnitt analyse des deutschen Zigarettenmark-
+tes, in: Faculty of Economics and Ma nagement Magdeburg (FEMM), Working-
+Paper-Series, No. 21  
+Natter, Martin/Hruschka, Hara ld (1997): Ankerpreise al s Erwartungen oder dynamisch 
+latente Variablen in Marktreaktionsmodellen, in zfbf, 49. Jg., S. 747-764  
+Nitzsch, Rüdiger von (1998): Pr ospect Theorie und Käuferve rhalten, in: Die Betriebs-
+wirtschaft, 58. Jg., S. 622-634 
+Ofir, Chezy (2004): Reexamining Latitude of Price Acceptability and Price Thresholds: 
+Predicting Basic Consumer Reaction to Price, in: Journal of Consumer Research, 
+Vol. 30, S. 612-621 
+Puliyel, Thomas/ Ravi, V (1990): Pricing Re search – A Comparis on of three techni-
+ques; in: Journal of the Market Research Society, Vol.32, S. 207-216 
+Sattler, Henrik/Nitschke, Thomas (2003): Ein empirischer Vergleich von Instrumenten 
+zur Erhebung von Zahlungsbereitschaften, in: zfbf, 55. Jg., S. 264-281  
+Schmalen, Helmut (1995): Preispolitik, 2. Aufl., Stuttgart 
+Sherif, Muzafer/Hovland, Carl I. (1961): Social Judgement, Westport 
+Simon, Herrmann (1992): Preismanagement – Analyse, Strategie, Umsetzung, 2.Aufl., 
+Wiesbaden  
+Thaler, Richard H.(1985): Mental Accountin g and Consumer Choice; in: Marketing 
+Science, Vol. 4, S. 199-214 
+
+--- Page 44 ---
+ - 43 -
+Uehlecke, Jens (2002): Alles nichts oder? – Die Marke macht den Unterschied, in: McK 
+Wissen – Das Magazin von McKinsey, 1.Jg., S. 78-83 
+Urbany, Joel E./Dickson, Peter R. (1991): C onsumer Normal Price Estimation: Market 
+versus Personal Standards, in: Journal of Consumer Research, Vol. 18, S. 45-51   
+Völckner, Franziska (2006): Methoden zur Messung individu eller Zahlungsbereitschaf-
+ten: Ein Überblick zum State of the Art, in: Journal für Betriebswirtschaft, 56. Jg., 
+S. 33-60 
+Westendorp, Peter H van (1976): NSS Pricesensitivity-Meter (PSM) – A new Approach 
+to study Consumer Perception of Prices, Paper for 25th Esomar Congress, Venice, 
+ISSN 0071-3082, S.139-167 
+Wildner, Raimund (2003): Marktforschung für de n Preis, in: Jahrbuch der Absatz- und 
+Verbrauchsforschung , 44. Jg., S. 5-26 
+Winer, Russell S.: Behavioral Perspective on Pricing: Buyer´s Subjective Perceptions of 
+Pric  Revisited, in: Devinney, Timothy M.  (Hrsg.), Issues in Pricing, Lexington 
+1988, S. 35-57 
+Wricke, Martin/Herrmann, Andreas/Huber, Fr ank (2000): Behavioral  Pricing – Erklä-
+rungs- und Operationalisierungsansätze de s Referenzpreiskonzeptes, in: Wirt-
+schaftswissenschaftliches Studium, 29. Jg., S. 692-697 
+ 
