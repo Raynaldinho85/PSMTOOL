@@ -383,14 +383,14 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
             ## Ablauf im App-Code
             1) Datei in kanonisches DataFrame laden (`read_any`)
             2) Schema/Numerik validieren (`validate_template`)
-            3) Produkt/Segment in Results waehlen
-            4) Analysebasis bilden (Plausibilitaets-Filter, danach optionaler Ausreisserfilter)
+            3) Produkt/Segment in Results wählen
+            4) Analysebasis bilden (Plausibilitäts-Filter, danach optionaler Ausreißerfilter)
             5) Preisgrid bauen (`build_price_grid_details`)
             6) PSM-Kurven/KPIs berechnen
             7) NMS/PI und Turnover/Profit berechnen (falls PI vorhanden)
             8) PPTX/Excel aus demselben Payload exportieren
 
-            ### Unterstuetzte Dateitypen (Laufzeit)
+            ### Unterstützte Dateitypen (Laufzeit)
             {supported_files}
 
             ### Kurzglossar
@@ -428,10 +428,10 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
 
             In Results ist dies ein Schalter:
             - ON (Default): nur geordnete Respondents gehen in PSM/NMS
-            - OFF: ungeordnete Respondents koennen enthalten sein; QC weist das explizit aus
+            - OFF: ungeordnete Respondents können enthalten sein; QC weist das explizit aus
 
             ## Kurvendefinitionen (exakt)
-            Fuer jeden Grid-Preis `p`:
+            Für jeden Grid-Preis `p`:
             - Too Cheap(p): Anteil mit `too_cheap >= p`
             - Bargain(p): Anteil mit `bargain >= p`
             - Expensive(p): Anteil mit `expensive_acceptable <= p`
@@ -441,7 +441,7 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
 
             Gewichtung:
             - Wenn `weight` vorhanden und nutzbar ist (Summe nicht-negativer Gewichte > 0), wird gewichtet gerechnet.
-            - Sonst faellt das Tool auf ungewichtete Berechnung zurueck (Hinweis in UI/QC).
+            - Sonst fällt das Tool auf ungewichtete Berechnung zurück (Hinweis in UI/QC).
 
             ## KPI-Schnittpunkte
             Schnittpunkte werden per linearer Interpolation auf dem Grid bestimmt:
@@ -455,8 +455,8 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
 
             Bedeutung:
             - `clean`: klare Kreuzung per Vorzeichenwechsel
-            - `interval`: Ueberlappung auf Intervall; Tool berichtet Mittelpunkt plus Bounds
-            - `closest`: keine Kreuzung auf Grid; Tool berichtet naechste Annaeherung
+            - `interval`: Überlappung auf Intervall; Tool berichtet Mittelpunkt plus Bounds
+            - `closest`: keine Kreuzung auf Grid; Tool berichtet nächste Annäherung
 
             Abgeleitete KPIs:
             - Accepted Range = `[min(PMI, PME), max(PMI, PME)]`
@@ -471,7 +471,7 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
 
             ## PI-Quelle und Prioritaet
             Die PI-Kurve wird in dieser Reihenfolge bestimmt:
-            1) Explizite Preisleiter (`price`, `purchase_intention_pct`) fuer Segment/Waehrung/Produkt
+            1) Explizite Preisleiter (`price`, `purchase_intention_pct`) für Segment/Währung/Produkt
             2) NMS-Modellkurve aus Respondent-PI-Ankern
 
             ## NMS-Modell (wenn keine Preisleiter genutzt wird)
@@ -481,17 +481,17 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
 
             Pro Respondent wird eine piecewise-lineare Kurve gebaut:
             `(too_cheap, 0) -> (bargain, PI_bargain) -> (expensive_acceptable, PI_expensive) -> (too_expensive, 0)`
-            Danach Mittelung ueber die aktive Analysebasis (optional gewichtet).
+            Danach Mittelung über die aktive Analysebasis (optional gewichtet).
 
             Analysebasis:
-            - aktuelle Results-Basis (inkl. Plausi-/Ausreisser-Einstellungen)
+            - aktuelle Results-Basis (inkl. Plausi-/Ausreißer-Einstellungen)
             - optionaler PUKI-Filter:
               - Default `puki <= 2`
               - optional `puki <= 3`
               - ohne `puki`: kein Filter, wird ausgewiesen
 
             ## PI-Einheiten und Guardrails
-            Unterstuetzte PI-Eingabedarstellungen:
+            Unterstützte PI-Eingabedarstellungen:
             - Prozent `0..100`
             - Fraction `0..1` (wird bei Erkennung mit Guardrails normalisiert)
             - Code-Skala `1..11` (Mapping: `pct = 10 + (code - 1) * 9`)
@@ -515,16 +515,16 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
         ).strip(),
         "Quality & Grid": dedent(
             f"""
-            # Qualitaet & Grid
+            # Qualität & Grid
 
             ## QC-Felder aus dem Code
             QC weist aus:
-            - Gesamtfaelle
-            - PSM-valid N
-            - Ausschluesse wegen Ordnung/Missingness
+            - Gesamtfälle
+            - PSM-valides n
+            - Ausschlüsse wegen Ordnung/Missingness
             - PUKI Pass/Excluded (wenn `puki` vorhanden)
-            - Ausreisser-Settings und excluded N
-            - Analysis N nach Ausreisserfilter
+            - Ausreißer-Settings und excluded n
+            - Analysis n nach Ausreißerfilter
             - Weight-Fallback-Hinweise
 
             ## Datenvalidierungsregel: Preis-Inputs
@@ -541,12 +541,12 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
             - Turnover-Index-Berechnungen
             - NMS Trial/Revenue-Berechnungen
 
-            ## Ausreisserfilter (Results)
-            Optionales Zeilen-Excluding ueber Quantil-Baender je Preisspalte:
+            ## Ausreißerfilter (Results)
+            Optionales Zeilen-Excluding über Quantil-Bänder je Preisspalte:
             - Mild: 0.5%..99.5%
             - Medium: 1%..99%
             - Strict: 5%..95%
-            Zeile wird ausgeschlossen, wenn mindestens eine Schwelle ausserhalb liegt.
+            Zeile wird ausgeschlossen, wenn mindestens eine Schwelle außerhalb liegt.
 
             ## Auto-Grid-Algorithmus (implementiert)
             Das Auto-Grid nutzt PSM-valide Schwellen:
@@ -556,13 +556,13 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
             4) grid_min = max(0, p05 - 0.25 * span)
             5) grid_max fallback = p95 + 0.25 * span
             6) obere Guardrail: wenn median(`expensive_acceptable`) > 0, dann `round_up_to_100(2 * median_expensive_acceptable)` als grid_max
-            7) nice step fuer ca. 100 Punkte
+            7) nice step für ca. 100 Punkte
             8) optional Currency-Snap (min floor, max ceil, step aligned)
             9) sortiert/eindeutig, max enthalten
             10) legacy fallback falls Quantil-Pfad nicht nutzbar ist
 
             ## Manuelles Grid
-            `min`, `max`, `step` koennen in Results ueberschrieben werden.
+            `min`, `max`, `step` können in Results überschrieben werden.
 
             ### Currency-Snapping Defaults
             {default_currency_snap}
@@ -576,15 +576,15 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
             - PPTX mit statischen Chart-Bildern und KPI-Text
             - Excel mit KPI-Summary und Kurventabellen
 
-            ## Voraussetzung fuer statisches Rendering
-            PPTX-Export rendert Plotly-Charts als PNG ueber Kaleido.
-            Dafuer wird eine funktionierende Chrome/Chromium-Runtime benoetigt.
+            ## Voraussetzung für statisches Rendering
+            PPTX-Export rendert Plotly-Charts als PNG über Kaleido.
+            Dafür wird eine funktionierende Chrome/Chromium-Runtime benötigt.
             Vor Export gibt es einen Preflight mit konkreter Fehlermeldung.
 
             ## Datenschutz
             - Uploads werden im normalen App-Flow in-memory verarbeitet.
-            - Oeffentliche Demo nur mit synthetischen/nicht-sensitiven Daten.
-            - Vertrauliche Kundendaten lokal und ausserhalb versionierter Pfade halten.
+            - Öffentliche Demo nur mit synthetischen/nicht-sensitiven Daten.
+            - Vertrauliche Kundendaten lokal und außerhalb versionierter Pfade halten.
             """
         ).strip(),
         "FAQ": dedent(
@@ -592,36 +592,36 @@ def get_knowledge_markdown_de(config_snapshot: dict, sav_available: bool) -> dic
             # FAQ / Troubleshooting
 
             ## Purchase Intention ist unerwartet niedrig
-            In dieser Reihenfolge pruefen:
+            In dieser Reihenfolge prüfen:
             - PI-Einheiten (`pi_bargain_pct`, `pi_expensive_pct`) korrekt interpretiert:
               Prozent `0..100`, Fraction `0..1` oder Code-Skala `1..11`
             - keine gemischten PI-Einheiten
             - erwarteter PUKI-Threshold gesetzt
-            - Plausi-/Ausreisserfilter bewusst gesetzt
+            - Plausi-/Ausreißerfilter bewusst gesetzt
 
             ## Achse ist zu breit, Kurven wirken gequetscht
             Typische Ursachen:
-            - Ausreisser in Preisspalten
+            - Ausreißer in Preisspalten
             - breite Segmentmischung
-            - fehlendes manuelles Grid fuer Fokusbereich
+            - fehlendes manuelles Grid für Fokusbereich
 
             Optionen:
-            - Ausreisserfilter aktivieren und/oder
+            - Ausreißerfilter aktivieren und/oder
             - manuelles Grid setzen (`min`, `max`, `step`)
 
             ## Turnover sieht okay aus, PI nicht
             Kann durch Normierung auf max=100 passieren.
-            PI-Einheiten und PI-Quelle (Preisleiter vs NMS-Modellkurve) pruefen.
+            PI-Einheiten und PI-Quelle (Preisleiter vs NMS-Modellkurve) prüfen.
 
-            ## PPTX-Export faellt aus
-            Meist fehlt Browser-Runtime fuer PNG-Rendering.
+            ## PPTX-Export fällt aus
+            Meist fehlt Browser-Runtime für PNG-Rendering.
             Chrome/Chromium sicherstellen und Export erneut starten.
 
             ## closest/interval statt clean
             Bedeutung:
             - `closest`: keine Kreuzung auf aktuellem Grid
-            - `interval`: Ueberlappung ueber Bereich
-            KPIs dann vorsichtig interpretieren und Kurven/QC mitpruefen.
+            - `interval`: Überlappung über Bereich
+            KPIs dann vorsichtig interpretieren und Kurven/QC mitprüfen.
             """
         ).strip(),
     }

@@ -10,6 +10,7 @@ import pytest
 from pptx import Presentation
 
 from psm_tool.core.metrics import compute_psm_kpis
+from psm_tool.core.nms import NMSResult
 from psm_tool.core.turnover_index import compute_profit_proxy, compute_turnover_index
 from psm_tool.plots.render_static import (
     BrowserPreflightError,
@@ -21,6 +22,7 @@ from psm_tool.report.excel_export import build_excel_report
 from psm_tool.report.pptx_builder import (
     TITLE_FONT_SIZE_PT,
     TITLE_MIN_FONT_SIZE_PT,
+    TITLE_FIT_MIN_FONT_SIZE_PT,
     _chart_label_overrides,
     _contained_rect,
     _fit_headline_for_pptx,
@@ -33,6 +35,15 @@ from psm_tool.report.pptx_builder import (
 TINY_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
 )
+
+
+def _paragraph_font_size_pt(paragraph) -> float | None:
+    if paragraph.font.size is not None:
+        return paragraph.font.size.pt
+    for run in paragraph.runs:
+        if run.font.size is not None:
+            return run.font.size.pt
+    return None
 
 
 def _sample_curves() -> pd.DataFrame:
@@ -84,6 +95,25 @@ def _sample_payload(*, with_cost: bool = False) -> dict:
         analysis["profit_proxy_result"] = profit_result
         analysis["unit_cost"] = 12.0
     return {"analyses": [analysis]}
+
+
+def _sample_nms_result() -> NMSResult:
+    return NMSResult(
+        curves=pd.DataFrame(
+            {
+                "price": [10.0, 20.0, 30.0, 40.0],
+                "trial_pct": [15.0, 42.0, 68.0, 31.0],
+                "revenue_per_100": [150.0, 840.0, 2040.0, 1240.0],
+            }
+        ),
+        max_trial_price=30.0,
+        max_revenue_price=30.0,
+        base_n=40,
+        included_n=38,
+        puki_filter_applied=True,
+        puki_threshold=2,
+        weighting_applied=False,
+    )
 
 
 def test_plotly_png_render_succeeds_when_browser_available() -> None:
@@ -195,11 +225,19 @@ def test_pptx_chart_builders_receive_marker_overrides(monkeypatch) -> None:
         captured["turnover"] = label_side_overrides
         return go.Figure()
 
+    def fake_nms_figure(*args, label_side_overrides=None, language=None, **kwargs):
+        captured["nms"] = {
+            "label_side_overrides": label_side_overrides,
+            "language": language,
+        }
+        return go.Figure()
+
     monkeypatch.setattr("psm_tool.report.pptx_builder.make_psm_figure", fake_psm_figure)
     monkeypatch.setattr(
         "psm_tool.report.pptx_builder.make_turnover_index_figure",
         fake_turnover_figure,
     )
+    monkeypatch.setattr("psm_tool.report.pptx_builder.make_nms_figure", fake_nms_figure)
     monkeypatch.setattr("psm_tool.report.pptx_builder.figure_to_png_bytes", lambda fig: TINY_PNG)
     monkeypatch.setattr(
         "psm_tool.report.pptx_builder.kpi_summary_png_bytes",
@@ -207,15 +245,22 @@ def test_pptx_chart_builders_receive_marker_overrides(monkeypatch) -> None:
     )
 
     payload = _sample_payload()
+    payload["analyses"][0]["nms_result"] = _sample_nms_result()
+    payload["analyses"][0]["language"] = "de"
     payload["analyses"][0]["marker_label_side_overrides"] = {
         "psm": {"pmi": "left"},
         "turnover": {"max_turnover_price": "right"},
+        "nms": {"max_revenue": "left"},
     }
 
     build_pptx_report(payload)
 
     assert captured["psm"] == {"pmi": "left"}
     assert captured["turnover"] == {"max_turnover_price": "right"}
+    assert captured["nms"] == {
+        "label_side_overrides": {"max_revenue": "left"},
+        "language": "de",
+    }
 
 
 def test_pptx_headline_fitting_wraps_and_reduces_before_shortening() -> None:
@@ -327,6 +372,133 @@ def test_pptx_export_shapes_stay_within_slide_bounds() -> None:
             assert int(shape.top) >= 0
             assert int(shape.left + shape.width) <= slide_width
             assert int(shape.top + shape.height) <= slide_height
+
+
+def test_pptx_export_prefers_smaller_title_font_before_shortening(monkeypatch) -> None:
+    monkeypatch.setattr("psm_tool.report.pptx_builder.kpi_summary_png_bytes", lambda analysis: TINY_PNG)
+    monkeypatch.setattr("psm_tool.report.pptx_builder.figure_to_png_bytes", lambda fig: TINY_PNG)
+    monkeypatch.setattr(
+        "psm_tool.report.pptx_builder._psm_action_title",
+        lambda analysis: (
+            "Perception: The model suggests using the accepted range as pricing guidance "
+            "under the current assumptions while preserving the complete recommendation sentence "
+            "for the current export scenario and keeping the entire pricing recommendation readable."
+        ),
+    )
+
+    presentation = Presentation(BytesIO(build_pptx_report(_sample_payload())))
+    title_shape = next(
+        shape
+        for shape in presentation.slides[1].shapes
+        if hasattr(shape, "text") and "Perception:" in shape.text
+    )
+
+    assert not title_shape.text.endswith("...")
+    assert title_shape.text.endswith(".")
+    font_size = _paragraph_font_size_pt(title_shape.text_frame.paragraphs[0])
+    assert font_size is not None
+    assert font_size < TITLE_FONT_SIZE_PT
+    assert font_size >= TITLE_FIT_MIN_FONT_SIZE_PT
+
+
+def test_pptx_export_summary_bullets_keep_font_size_and_drop_redundant_prefix(monkeypatch) -> None:
+    monkeypatch.setattr("psm_tool.report.pptx_builder.kpi_summary_png_bytes", lambda analysis: TINY_PNG)
+    monkeypatch.setattr("psm_tool.report.pptx_builder.figure_to_png_bytes", lambda fig: TINY_PNG)
+    monkeypatch.setattr(
+        "psm_tool.report.pptx_builder.build_psm_summary",
+        lambda *args, **kwargs: [
+            "Perception: The accepted range for the selected market remains broad enough to support a complete pricing statement without cutting off the sentence when exported to PowerPoint.",
+            "Perception: The optimal price point should remain fully readable even when the export needs to use a slightly smaller font size in the summary area.",
+            "Perception: Supporting explanation text should prefer readable wrapping and smaller type instead of ending the message with an ellipsis.",
+            "Perception: This final sentence is intentionally long so the regression test exercises the fit-first behavior in the PowerPoint summary box.",
+        ],
+    )
+
+    presentation = Presentation(BytesIO(build_pptx_report(_sample_payload())))
+    bullet_shape = next(
+        shape
+        for shape in presentation.slides[1].shapes
+        if hasattr(shape, "text") and shape.text.startswith("- The accepted range")
+    )
+
+    assert "..." not in bullet_shape.text
+    assert "Perception:" not in bullet_shape.text
+    paragraph_sizes = [
+        size
+        for paragraph in bullet_shape.text_frame.paragraphs
+        if (size := _paragraph_font_size_pt(paragraph)) is not None
+        if paragraph.text.strip()
+    ]
+    assert paragraph_sizes
+    assert min(paragraph_sizes) == 11
+
+
+def test_pptx_export_turnover_and_nms_summaries_drop_lens_prefixes(monkeypatch) -> None:
+    monkeypatch.setattr("psm_tool.report.pptx_builder.kpi_summary_png_bytes", lambda analysis: TINY_PNG)
+    monkeypatch.setattr("psm_tool.report.pptx_builder.figure_to_png_bytes", lambda fig: TINY_PNG)
+    monkeypatch.setattr(
+        "psm_tool.report.pptx_builder.build_turnover_summary",
+        lambda *args, **kwargs: [
+            "Economics proxy: The highest turnover is reached at 1200 EUR under the current assumptions.",
+            "Economics proxy: At this point the turnover index reaches 100 on the 0-100 scale.",
+            "Economics proxy: The turnover peak sits above the PI peak under the current assumptions.",
+        ],
+    )
+    monkeypatch.setattr(
+        "psm_tool.report.pptx_builder.build_nms_summary",
+        lambda *args, **kwargs: [
+            "Modeled demand: The highest trial sits at 900 EUR under the current assumptions.",
+            "Modeled demand: The highest modeled revenue sits at 1200 EUR under the current assumptions.",
+            "Modeled demand: Revenue peaks at a higher price than trial under the current assumptions.",
+            "Modeled demand: The two markers should be interpreted together.",
+        ],
+    )
+
+    payload = _sample_payload()
+    payload["analyses"][0]["nms_result"] = _sample_nms_result()
+    presentation = Presentation(BytesIO(build_pptx_report(payload)))
+
+    turnover_shape = next(
+        shape
+        for shape in presentation.slides[2].shapes
+        if hasattr(shape, "text") and shape.text.startswith("- The highest turnover")
+    )
+    nms_shape = next(
+        shape
+        for shape in presentation.slides[3].shapes
+        if hasattr(shape, "text") and shape.text.startswith("- The highest trial")
+    )
+
+    assert "Economics proxy:" not in turnover_shape.text
+    assert "Modeled demand:" not in nms_shape.text
+    assert "..." not in turnover_shape.text
+    assert "..." not in nms_shape.text
+
+
+def test_pptx_export_side_kpis_do_not_hard_clip_when_box_can_fit(monkeypatch) -> None:
+    monkeypatch.setattr("psm_tool.report.pptx_builder.kpi_summary_png_bytes", lambda analysis: TINY_PNG)
+    monkeypatch.setattr("psm_tool.report.pptx_builder.figure_to_png_bytes", lambda fig: TINY_PNG)
+
+    payload = _sample_payload()
+    payload["analyses"][0]["nms_result"] = _sample_nms_result()
+    payload["analyses"][0]["currency"] = "EUR-LONG"
+
+    presentation = Presentation(BytesIO(build_pptx_report(payload)))
+    side_shape = next(
+        shape
+        for shape in presentation.slides[3].shapes
+        if hasattr(shape, "text") and "Included N" in shape.text
+    )
+
+    assert "..." not in side_shape.text
+    paragraph_sizes = [
+        size
+        for paragraph in side_shape.text_frame.paragraphs
+        if (size := _paragraph_font_size_pt(paragraph)) is not None
+        if paragraph.text.strip()
+    ]
+    assert paragraph_sizes
+    assert min(paragraph_sizes) <= 11
 
 
 def test_excel_export_contains_expected_sheets() -> None:

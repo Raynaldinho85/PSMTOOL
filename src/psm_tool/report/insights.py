@@ -440,17 +440,17 @@ def build_nms_summary(
 
     sentences = [
         (
-            f"Das höchste Trial liegt bei {max_trial_text} {currency}."
+            f"Die höchste Kaufabsicht liegt bei {max_trial_text} {currency}."
             if selected_language == "de"
             else f"The highest trial is at {max_trial_text} {currency}."
         ),
         (
-            f"Das höchste modellierte Revenue liegt bei {max_revenue_text} {currency}."
+            f"Der höchste modellierte Umsatz liegt bei {max_revenue_text} {currency}."
             if selected_language == "de"
             else f"The highest modeled revenue is at {max_revenue_text} {currency}."
         ),
         (
-            "NMS Trial und Revenue sind modellierte Nachfrage-Proxys, keine beobachtete Nachfrage."
+            "NMS-Kaufabsicht und Umsatz sind modellierte Nachfrage-Proxys, keine beobachtete Nachfrage."
             if selected_language == "de"
             else "NMS trial and revenue are modeled demand proxies, not observed demand."
         ),
@@ -460,7 +460,7 @@ def build_nms_summary(
         delta = max_revenue_price - max_trial_price
         if abs(delta) < 1e-9:
             sentences.append(
-                "Trial- und Revenue-Peaks liegen auf demselben Preisniveau."
+                "Kaufabsicht und Umsatz erreichen auf demselben Preisniveau ihr Maximum."
                 if selected_language == "de"
                 else "Trial and revenue peaks align at the same price level."
             )
@@ -469,8 +469,8 @@ def build_nms_summary(
                 _pick_text(
                     selected_language,
                     (
-                        "Revenue erreicht sein Maximum bei einem höheren Preis "
-                        "als Trial; das deutet auf einen Monetarisierungs-"
+                        "Der Umsatz erreicht sein Maximum bei einem höheren Preis "
+                        "als die Kaufabsicht; das deutet auf einen Monetarisierungs-"
                         "Trade-off hin."
                     ),
                     (
@@ -484,8 +484,8 @@ def build_nms_summary(
                 _pick_text(
                     selected_language,
                     (
-                        "Revenue erreicht sein Maximum bei einem niedrigeren "
-                        "Preis als Trial; das deutet darauf hin, dass ein "
+                        "Der Umsatz erreicht sein Maximum bei einem niedrigeren "
+                        "Preis als die Kaufabsicht; das deutet darauf hin, dass ein "
                         "früherer Preis das Modellergebnis maximiert."
                     ),
                     (

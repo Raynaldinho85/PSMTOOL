@@ -200,14 +200,14 @@ def _turnover_card(
     selected_language = normalize_language(language)
     turnover = analysis.get("turnover_index_result")
     value = _format_price(currency, getattr(turnover, "max_turnover_price", None))
-    label = "Max Turnover" if selected_language == "de" else tr("Max Turnover Price", language)
+    label = "Max Umsatz" if selected_language == "de" else tr("Max Turnover Price", language)
     term = (
-        "Preis mit höchstem Turnover"
+        "Preis mit höchstem Umsatz"
         if selected_language == "de"
         else tr("Highest Turnover Index", language)
     )
     explanation = (
-        "Preis mit höchstem Turnover Index"
+        "Preis mit höchstem Umsatz"
         if selected_language == "de"
         else tr("Price with highest turnover index", language)
     )

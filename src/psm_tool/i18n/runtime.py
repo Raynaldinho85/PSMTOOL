@@ -145,6 +145,14 @@ _OVERRIDE_TRANSLATIONS: dict[str, TranslationEntry] = {
         en="PI unit note: {note}",
         de="Hinweis zur PI-Einheit: {note}",
     ),
+    "override.results.pi_fraction_normalized": TranslationEntry(
+        en="PI unit normalized: detected fraction scale (0..1) and converted to percent (0..100).",
+        de="PI-Einheit normalisiert: 0..1-Skala erkannt und in Prozent (0..100) umgerechnet.",
+    ),
+    "override.results.pi_code11_normalized": TranslationEntry(
+        en="PI unit normalized: detected coded scale (1..11) and converted to percent (0..100).",
+        de="PI-Einheit normalisiert: codierte Skala (1..11) erkannt und in Prozent (0..100) umgerechnet.",
+    ),
     "override.results.requires_clean_opp": TranslationEntry(
         en="Requires clean OPP for optimization statements.",
         de="Erfordert einen cleanen OPP für Optimierungsaussagen.",
@@ -216,6 +224,17 @@ _OVERRIDE_TRANSLATIONS: dict[str, TranslationEntry] = {
         en="Static export preflight failed: {error}",
         de="Preflight für statischen Export fehlgeschlagen: {error}",
     ),
+    "override.export.preflight_succeeded": TranslationEntry(
+        en=(
+            "Static export preflight succeeded. Please wait until your export is ready. "
+            "Depending on the size of the export, this may take a few seconds to a few minutes."
+        ),
+        de=(
+            "Preflight für den statischen Export erfolgreich. Bitte warten Sie, bis Ihr "
+            "Export bereit ist. Je nach Umfang des Exports kann dies wenige Sekunden bis "
+            "einige Minuten dauern."
+        ),
+    ),
     "override.report.intersection_status": TranslationEntry(
         en="Intersection status: {statuses}.",
         de="Schnittpunktstatus: {statuses}.",
@@ -231,7 +250,23 @@ _OVERRIDE_TRANSLATIONS: dict[str, TranslationEntry] = {
     ),
     "override.report.max_profit_index": TranslationEntry(
         en="Max Profit Index",
-        de="Maximaler Profit Index",
+        de="Maximaler Profit-Index",
+    ),
+    "override.results.profit_index_tab": TranslationEntry(
+        en="Profit Index (0-100)",
+        de="Profit-Index (0-100)",
+    ),
+    "override.results.profit_index_series": TranslationEntry(
+        en="Profit Index",
+        de="Profit-Index",
+    ),
+    "override.results.profit_chart_title": TranslationEntry(
+        en="Purchase Intention & Profit Index (0-100)",
+        de="Kaufabsicht & Profit-Index (0-100)",
+    ),
+    "override.results.maximum_profit_index": TranslationEntry(
+        en="Maximum Profit Index",
+        de="Maximaler Profit-Index",
     ),
     "override.pptx.turnover_diagnostics": TranslationEntry(
         en="Economics proxy: Model suggests turnover diagnostics only.",
@@ -245,6 +280,78 @@ _OVERRIDE_TRANSLATIONS: dict[str, TranslationEntry] = {
         en="Economics proxy: Model suggests profit diagnostics only.",
         de="Ökonomik-Proxy: Das Modell liefert nur Profit-Diagnostik.",
     ),
+    "override.results.tested_price": TranslationEntry(
+        en="Tested Price",
+        de="Testpreis",
+    ),
+    "override.results.show_tested_price": TranslationEntry(
+        en="Show Tested Price",
+        de="Testpreis anzeigen",
+    ),
+    "override.results.tested_price_explanation": TranslationEntry(
+        en="Price tested in study",
+        de="Testpreis in der Studie",
+    ),
+    "override.results.apply": TranslationEntry(
+        en="Apply",
+        de="Anwenden",
+    ),
+    "override.results.apply_caption": TranslationEntry(
+        en="Changes take effect after clicking Apply.",
+        de="Änderungen werden erst nach Klick auf Anwenden übernommen.",
+    ),
+    "override.results.valid_footer": TranslationEntry(
+        en="valid",
+        de="gültig",
+    ),
+    "override.results.total_footer": TranslationEntry(
+        en="total",
+        de="gesamt",
+    ),
+    "override.nms.chart_title": TranslationEntry(
+        en="NMS Trial + Revenue",
+        de="NMS Kaufabsicht + Umsatz",
+    ),
+    "override.nms.trial_pct": TranslationEntry(
+        en="Trial %",
+        de="Kaufabsicht (%)",
+    ),
+    "override.nms.revenue_per_100": TranslationEntry(
+        en="Revenue / 100",
+        de="Umsatz / 100",
+    ),
+    "override.nms.max_trial_marker": TranslationEntry(
+        en="MaxTrial",
+        de="Max. Kaufabsicht",
+    ),
+    "override.nms.max_revenue_marker": TranslationEntry(
+        en="MaxRevenue",
+        de="Max. Umsatz",
+    ),
+    "override.nms.max_trial_price": TranslationEntry(
+        en="Max Trial Price",
+        de="Max. Kaufabsicht",
+    ),
+    "override.nms.max_revenue_price": TranslationEntry(
+        en="Max Revenue Price",
+        de="Max. Umsatz",
+    ),
+    "override.nms.max_trial_price_subtitle": TranslationEntry(
+        en="(Price where modeled trial intent reaches its maximum)",
+        de="(Preis, bei dem die modellierte Kaufabsicht ihr Maximum erreicht)",
+    ),
+    "override.nms.max_revenue_price_subtitle": TranslationEntry(
+        en="(Price where modeled revenue per 100 reaches its maximum)",
+        de="(Preis, bei dem der modellierte Umsatz pro 100 sein Maximum erreicht)",
+    ),
+    "override.nms.max_trial_glossary": TranslationEntry(
+        en="Price where modeled trial intent reaches its maximum.",
+        de="Preis, bei dem die modellierte Kaufabsicht ihr Maximum erreicht.",
+    ),
+    "override.nms.max_revenue_glossary": TranslationEntry(
+        en="Price where modeled revenue per 100 prospects reaches its maximum.",
+        de="Preis, bei dem der modellierte Umsatz pro 100 Interessenten sein Maximum erreicht.",
+    ),
     "override.pptx.accepted_range": TranslationEntry(
         en="Accepted range: {accepted_range_text}",
         de="Akzeptierter Preisbereich: {accepted_range_text}",
@@ -255,11 +362,11 @@ _OVERRIDE_TRANSLATIONS: dict[str, TranslationEntry] = {
     ),
     "override.pptx.max_trial": TranslationEntry(
         en="Max Trial: {currency} {price:.2f}",
-        de="Max Trial: {currency} {price:.2f}",
+        de="Max. Kaufabsicht: {currency} {price:.2f}",
     ),
     "override.pptx.max_revenue": TranslationEntry(
         en="Max Revenue: {currency} {price:.2f}",
-        de="Max Revenue: {currency} {price:.2f}",
+        de="Max. Umsatz: {currency} {price:.2f}",
     ),
     "override.pptx.included_n_line": TranslationEntry(
         en="Included N: {included_n}",
@@ -296,6 +403,10 @@ _OVERRIDE_TRANSLATIONS: dict[str, TranslationEntry] = {
     "override.kpi_summary.not_available": TranslationEntry(
         en="Not available",
         de="Nicht verfügbar",
+    ),
+    "override.pptx.nms_context": TranslationEntry(
+        en="Modeled demand: Model suggests trial/revenue context.",
+        de="Modellierte Nachfrage: Kaufabsicht und Umsatz einordnen.",
     ),
 }
 

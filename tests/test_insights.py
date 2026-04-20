@@ -146,6 +146,22 @@ def test_build_nms_explanations_returns_expected_rows() -> None:
     assert rows[3]["value"] == "<= 2"
 
 
+def test_build_nms_explanations_and_summary_use_new_german_wording() -> None:
+    rows = build_nms_explanations(_base_nms_result(), currency="EUR", language="de")
+
+    assert [row["label"] for row in rows[:2]] == ["Max. Kaufabsicht", "Max. Umsatz"]
+    assert rows[0]["explanation"] == "Preis, bei dem die modellierte Kaufabsicht ihr Maximum erreicht."
+    assert (
+        rows[1]["explanation"]
+        == "Preis, bei dem der modellierte Umsatz pro 100 Interessenten sein Maximum erreicht."
+    )
+
+    lines = build_nms_summary(_base_nms_result(), currency="EUR", segment_label="DE", language="de")
+    assert any("Kaufabsicht" in line for line in lines)
+    assert any("Umsatz" in line for line in lines)
+    assert not any(" Trial" in line or "Revenue" in line for line in lines[:-1])
+
+
 def test_build_nms_summary_aligned_peaks() -> None:
     nms_result = _base_nms_result()
     nms_result["max_revenue_price"] = 90.0

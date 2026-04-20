@@ -38,9 +38,11 @@ from psm_tool.report.wording_policy import can_recommend
 from psm_tool.ui.auth import require_auth
 from psm_tool.ui.page_nav import render_page_nav_bottom, render_page_nav_top
 from psm_tool.ui.results_logic import (
+    apply_economics_settings,
     apply_manual_defaults_on_enter,
+    apply_manual_grid_settings,
+    apply_tested_price_settings,
     parse_tested_price,
-    resolve_tested_price_activation,
 )
 from psm_tool.ui.style import inject_base_styles, render_notice
 
@@ -191,6 +193,27 @@ def _sync_marker_overrides_from_widgets(
                 )
 
 
+def _store_marker_override_from_widget(
+    selection_key: str,
+    chart_id: str,
+    marker_key: str,
+    language: str,
+) -> None:
+    widget_key = _marker_override_widget_key(selection_key, chart_id, marker_key)
+    translated_options = tuple(tr(value, language) for value in MARKER_SIDE_OPTIONS)
+    selected = str(st.session_state.get(widget_key, translated_options[0]))
+    try:
+        option = MARKER_SIDE_OPTIONS[translated_options.index(selected)]
+    except ValueError:
+        option = selected
+    _set_marker_override(
+        selection_key=selection_key,
+        chart_id=chart_id,
+        marker_key=marker_key,
+        option=option,
+    )
+
+
 def _marker_label_side_overrides(selection_key: str, chart_id: str) -> dict[str, MarkerSide]:
     store = _marker_override_store()
     selection_overrides = store.get(selection_key, {})
@@ -221,18 +244,31 @@ def _render_marker_label_override_controls(
             current = chart_overrides.get(marker_key)
             current_option = current.capitalize() if current in {"left", "right"} else "Auto"
             index = MARKER_SIDE_OPTIONS.index(current_option)
-            option = st.selectbox(
+            widget_key = _marker_override_widget_key(selection_key, chart_id, marker_key)
+            if widget_key not in st.session_state or st.session_state.get(widget_key) not in translated_options:
+                st.session_state[widget_key] = translated_options[index]
+            st.selectbox(
                 label,
                 options=translated_options,
                 index=index,
-                key=_marker_override_widget_key(selection_key, chart_id, marker_key),
+                key=widget_key,
+                on_change=_store_marker_override_from_widget,
+                args=(selection_key, chart_id, marker_key, language),
             )
-            _set_marker_override(
-                selection_key=selection_key,
-                chart_id=chart_id,
-                marker_key=marker_key,
-                option=MARKER_SIDE_OPTIONS[translated_options.index(str(option))],
-            )
+
+
+def _clear_tested_price_marker_overrides(selection_key: str) -> None:
+    for chart_id in ("psm", "turnover", "nms"):
+        _set_marker_override(
+            selection_key=selection_key,
+            chart_id=chart_id,
+            marker_key="tested_price",
+            option="Auto",
+        )
+        st.session_state.pop(
+            _marker_override_widget_key(selection_key, chart_id, "tested_price"),
+            None,
+        )
 
 
 def _on_selection_change(product_key: str, country_key: str) -> None:
@@ -591,7 +627,11 @@ def _apply_psm_axis_footer(
 ) -> None:
     selection_value = f"{escape(selected_product)} / {escape(selected_segment)}"
     price_value = escape(currency or "n/a")
-    analysis_value = f"{analysis_n} (valid {valid_n} / total {total_n})"
+    analysis_value = (
+        f"{analysis_n} ("
+        f"{escape(tr('valid', language))}: {valid_n} / "
+        f"{escape(tr('total', language))}: {total_n})"
+    )
 
     selection_text = (
         f"<span style='color:#78716c;'>{escape(tr('Selection:', language))}</span> "
@@ -956,50 +996,70 @@ def main() -> None:
             "economics_enabled_by_product", {}
         )
         unit_cost_key = _cost_key(str(selected_product), str(selected_segment))
-        economics_toggle_key = f"economics_enabled::{unit_cost_key}"
-        widget_key = f"unit_cost_input::{unit_cost_key}"
+        economics_toggle_key = f"economics_enabled_draft::{unit_cost_key}"
+        unit_cost_input_key = f"unit_cost_input_draft::{unit_cost_key}"
+        stored_economics_enabled = bool(economics_enabled_map.get(unit_cost_key, False))
+        stored_unit_cost = float(cost_map.get(unit_cost_key, 0.0))
         if economics_toggle_key not in st.session_state:
-            st.session_state[economics_toggle_key] = bool(
-                economics_enabled_map.get(unit_cost_key, False)
-            )
-        if widget_key not in st.session_state:
-            st.session_state[widget_key] = float(cost_map.get(unit_cost_key, 0.0))
+            st.session_state[economics_toggle_key] = stored_economics_enabled
+        if unit_cost_input_key not in st.session_state:
+            st.session_state[unit_cost_input_key] = stored_unit_cost
 
-        economics_enabled = st.toggle(tr("Economics", language), key=economics_toggle_key)
-        economics_enabled_map[unit_cost_key] = bool(economics_enabled)
-        if economics_enabled:
-            unit_cost_value = st.number_input(
-                tr("Unit cost", language),
-                min_value=0.0,
-                step=1.0,
-                format="%.2f",
-                key=widget_key,
-                help=tr(
-                    (
-                        "Same currency as selected country ({currency}). Used "
-                        "only for calculations and exports in this session."
+        economics_draft_enabled = st.toggle(tr("Economics", language), key=economics_toggle_key)
+        economics_details_visible = economics_draft_enabled or stored_economics_enabled
+        economics_submitted = False
+        if economics_details_visible:
+            with st.form(
+                key=f"economics_form::{unit_cost_key}",
+                enter_to_submit=False,
+                border=False,
+            ):
+                st.number_input(
+                    tr("Unit cost", language),
+                    min_value=0.0,
+                    step=1.0,
+                    format="%.2f",
+                    key=unit_cost_input_key,
+                    help=tr(
+                        (
+                            "Same currency as selected country ({currency}). Used "
+                            "only for calculations and exports in this session."
+                        ),
+                        language,
+                        currency=currency,
                     ),
-                    language,
-                    currency=currency,
-                ),
-            )
-            cost_map[unit_cost_key] = float(unit_cost_value)
+                )
+                st.caption(tr("Changes take effect after clicking Apply.", language))
+                economics_submitted = st.form_submit_button(tr("Apply", language))
+        economics_enabled, stored_unit_cost = apply_economics_settings(
+            submitted=economics_submitted,
+            draft_enabled=bool(st.session_state.get(economics_toggle_key, False)),
+            draft_unit_cost=float(st.session_state.get(unit_cost_input_key, 0.0)),
+            stored_enabled=stored_economics_enabled,
+            stored_unit_cost=stored_unit_cost,
+        )
+        economics_enabled_map[unit_cost_key] = economics_enabled
+        cost_map[unit_cost_key] = stored_unit_cost
 
         tested_price_map: dict[str, float] = st.session_state.setdefault("tested_price_by_key", {})
         tested_price_active_map: dict[str, bool] = st.session_state.setdefault(
             "tested_price_active_by_key", {}
         )
         tested_price_scope = _selection_key(str(selected_product), str(selected_segment))
-        tested_price_input_key = f"tested_price_input::{tested_price_scope}"
-        tested_price_active_key = f"tested_price_active::{tested_price_scope}"
-        tested_price_previous_key = f"tested_price_previous::{tested_price_scope}"
+        tested_price_input_key = f"tested_price_input_draft::{tested_price_scope}"
+        tested_price_active_key = f"tested_price_active_draft::{tested_price_scope}"
+        stored_tested_price = tested_price_map.get(tested_price_scope)
+        stored_tested_price_active = bool(tested_price_active_map.get(tested_price_scope, False))
         if (
             tested_price_input_key not in st.session_state
-            and tested_price_scope in tested_price_map
+            and stored_tested_price is not None
         ):
-            st.session_state[tested_price_input_key] = f"{tested_price_map[tested_price_scope]:g}"
+            st.session_state[tested_price_input_key] = f"{float(stored_tested_price):g}"
+        st.session_state.setdefault(tested_price_input_key, "")
+        if tested_price_active_key not in st.session_state:
+            st.session_state[tested_price_active_key] = stored_tested_price_active
 
-        tested_price_raw = st.text_input(
+        st.text_input(
             tr("Tested Price", language),
             key=tested_price_input_key,
             placeholder=tr("Enter price", language),
@@ -1008,37 +1068,40 @@ def main() -> None:
                 language,
             ),
         )
-        tested_price_value = parse_tested_price(tested_price_raw)
-        previous_tested_price = st.session_state.get(
-            tested_price_previous_key,
-            tested_price_map.get(tested_price_scope),
+        tested_price_draft_value = parse_tested_price(
+            st.session_state.get(tested_price_input_key, "")
         )
-        requested_tested_price_active = bool(
-            st.session_state.get(
-                tested_price_active_key,
-                tested_price_active_map.get(tested_price_scope, False),
-            )
+        tested_price_details_visible = (
+            tested_price_draft_value is not None
+            or stored_tested_price is not None
+            or stored_tested_price_active
         )
-        tested_price_active_default, stored_tested_price = resolve_tested_price_activation(
-            parsed_price=tested_price_value,
-            previous_valid_price=(
-                float(previous_tested_price) if previous_tested_price is not None else None
+        tested_price_submitted = False
+        if tested_price_details_visible:
+            with st.form(
+                key=f"tested_price_form::{tested_price_scope}",
+                enter_to_submit=False,
+                border=False,
+            ):
+                st.toggle(
+                    tr("Show Tested Price", language),
+                    key=tested_price_active_key,
+                )
+                st.caption(tr("Changes take effect after clicking Apply.", language))
+                tested_price_submitted = st.form_submit_button(tr("Apply", language))
+        tested_price_value, tested_price_active = apply_tested_price_settings(
+            submitted=tested_price_submitted,
+            raw_value=st.session_state.get(tested_price_input_key, ""),
+            requested_active=bool(st.session_state.get(tested_price_active_key, False)),
+            stored_price=(
+                float(stored_tested_price) if stored_tested_price is not None else None
             ),
-            requested_active=requested_tested_price_active,
-        )
-        st.session_state[tested_price_previous_key] = stored_tested_price
-        if stored_tested_price is None:
-            tested_price_map.pop(tested_price_scope, None)
-        else:
-            tested_price_map[tested_price_scope] = float(stored_tested_price)
-        st.session_state[tested_price_active_key] = tested_price_active_default
-        tested_price_active = st.toggle(
-            tr("Show Tested Price", language),
-            key=tested_price_active_key,
-            disabled=tested_price_value is None,
+            stored_active=stored_tested_price_active,
         )
         if tested_price_value is None:
-            tested_price_active = False
+            tested_price_map.pop(tested_price_scope, None)
+        else:
+            tested_price_map[tested_price_scope] = float(tested_price_value)
         tested_price_active_map[tested_price_scope] = bool(tested_price_active)
 
         opp_for_manual_default = _estimate_opp_for_manual_default(
@@ -1091,25 +1154,53 @@ def main() -> None:
         st.session_state[manual_min_key] = manual_min_state
         st.session_state[manual_max_key] = manual_max_state
         st.session_state[previous_mode_key] = mode
+        manual_min_draft_key = f"results_manual_min_draft::{control_scope}"
+        manual_max_draft_key = f"results_manual_max_draft::{control_scope}"
+        manual_step_draft_key = f"results_manual_step_draft::{control_scope}"
+        if manual_min_draft_key not in st.session_state or mode != previous_mode:
+            st.session_state[manual_min_draft_key] = manual_min_state
+        if manual_max_draft_key not in st.session_state or mode != previous_mode:
+            st.session_state[manual_max_draft_key] = manual_max_state
+        if manual_step_draft_key not in st.session_state or mode != previous_mode:
+            st.session_state[manual_step_draft_key] = float(st.session_state.get(manual_step_key, 5.0))
 
         manual_min: float | None = None
         manual_max: float | None = None
         manual_step: float | None = None
         if mode == "manual":
-            manual_col1, manual_col2, manual_col3 = st.columns(3)
-            manual_min = float(
-                manual_col1.number_input(tr("Manual min", language), key=manual_min_key)
-            )
-            manual_max = float(
-                manual_col2.number_input(tr("Manual max", language), key=manual_max_key)
-            )
-            manual_step = float(
+            with st.form(
+                key=f"manual_grid_form::{control_scope}",
+                enter_to_submit=False,
+                border=False,
+            ):
+                manual_col1, manual_col2, manual_col3 = st.columns(3)
+                manual_col1.number_input(
+                    tr("Manual min", language),
+                    key=manual_min_draft_key,
+                )
+                manual_col2.number_input(
+                    tr("Manual max", language),
+                    key=manual_max_draft_key,
+                )
                 manual_col3.number_input(
                     tr("Manual step", language),
-                    key=manual_step_key,
+                    key=manual_step_draft_key,
                     min_value=0.01,
                 )
+                st.caption(tr("Changes take effect after clicking Apply.", language))
+                manual_grid_submitted = st.form_submit_button(tr("Apply", language))
+            manual_min, manual_max, manual_step = apply_manual_grid_settings(
+                submitted=manual_grid_submitted,
+                draft_min=float(st.session_state.get(manual_min_draft_key, manual_min_state)),
+                draft_max=float(st.session_state.get(manual_max_draft_key, manual_max_state)),
+                draft_step=float(st.session_state.get(manual_step_draft_key, 5.0)),
+                stored_min=manual_min_state,
+                stored_max=manual_max_state,
+                stored_step=float(st.session_state.get(manual_step_key, 5.0)),
             )
+            st.session_state[manual_min_key] = manual_min
+            st.session_state[manual_max_key] = manual_max
+            st.session_state[manual_step_key] = manual_step
 
     unit_cost = float(cost_map.get(unit_cost_key, 0.0)) if economics_enabled else None
     tested_price_benchmarks = (
@@ -1124,6 +1215,8 @@ def main() -> None:
         else []
     )
     selection_key = _selection_key(str(selected_product), str(selected_segment))
+    if not tested_price_benchmarks:
+        _clear_tested_price_marker_overrides(selection_key)
     tested_price_marker_option = (
         [("tested_price", tr("Tested Price", language))] if tested_price_benchmarks else []
     )
@@ -1145,10 +1238,6 @@ def main() -> None:
             ("max_revenue", tr("MaxRevenue", language)),
         ],
     }
-    _sync_marker_overrides_from_widgets(
-        selection_key=selection_key,
-        marker_options_by_chart=marker_options_by_chart,
-    )
     psm_marker_overrides = _marker_label_side_overrides(selection_key, "psm")
     turnover_marker_overrides = _marker_label_side_overrides(selection_key, "turnover")
     nms_marker_overrides = _marker_label_side_overrides(selection_key, "nms")

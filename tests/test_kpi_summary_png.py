@@ -99,6 +99,30 @@ def test_kpi_summary_adds_symmetric_sixth_card_for_active_valid_tested_price() -
     assert _bottom_card_x0s(fig) == list(CARD_LAYOUTS[6][1])
 
 
+def test_kpi_summary_localizes_tested_price_card_for_german() -> None:
+    analysis = _sample_analysis()
+    analysis["tested_price"] = 455.4
+    analysis["tested_price_active"] = True
+    analysis["language"] = "de"
+
+    fig = make_kpi_summary_figure(analysis)
+    texts = "\n".join(_annotation_texts(fig))
+
+    assert "<b>Testpreis</b>" in texts
+    assert "Testpreis in der Studie" in texts
+
+
+def test_kpi_summary_localizes_turnover_card_for_german() -> None:
+    analysis = _sample_analysis()
+    analysis["language"] = "de"
+
+    fig = make_kpi_summary_figure(analysis)
+    texts = "\n".join(_annotation_texts(fig))
+
+    assert "<b>Max Umsatz</b>" in texts
+    assert "Preis mit höchstem Umsatz" in texts
+
+
 def test_kpi_summary_ignores_inactive_or_invalid_tested_price() -> None:
     invalid_values = [455.4, 0, -1, "bad", float("nan"), float("inf")]
     active_flags = [False, True, True, True, True, True]

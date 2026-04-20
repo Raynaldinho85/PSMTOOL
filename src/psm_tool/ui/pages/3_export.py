@@ -149,7 +149,13 @@ def main() -> None:
         )
 
     preflight_ok = True
-    preflight_message = tr("Static export preflight succeeded.", language)
+    preflight_message = tr(
+        (
+            "Static export preflight succeeded. Please wait until your export is ready. "
+            "Depending on the size of the export, this may take a few seconds to a few minutes."
+        ),
+        language,
+    )
     try:
         check_kaleido_browser(language)
     except BrowserPreflightError as exc:

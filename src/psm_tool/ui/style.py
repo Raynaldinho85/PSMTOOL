@@ -634,6 +634,7 @@ def inject_base_styles(*, max_width: int = DEFAULT_DESKTOP_MAX_WIDTH) -> None:
                 isQuickNav ||
                 label.startsWith("Previous: ") ||
                 label.startsWith("Next: ") ||
+                label.startsWith("Zurück: ") ||
                 label.startsWith("Zurueck: ") ||
                 label.startsWith("Weiter: ");
               if (!usesFallbackNavLabel) return;

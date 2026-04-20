@@ -64,6 +64,19 @@ def test_nms_plot_places_trial_left_and_revenue_right_of_marker() -> None:
     assert annotations["MaxRevenue"] == "left"
 
 
+def test_nms_plot_localizes_marker_labels_for_german() -> None:
+    prices = np.arange(10.0, 55.0, 5.0)
+    result = compute_nms(_nms_input(), prices, puki_threshold=2)
+    fig = make_nms_figure(result, language="de")
+
+    assert fig.layout.title.text == "NMS Kaufabsicht + Umsatz"
+    assert [trace.name for trace in fig.data] == ["Kaufabsicht (%)", "Umsatz / 100"]
+    annotations = {str(annotation.text) for annotation in fig.layout.annotations}
+    assert {"Kaufabsicht (%)", "Umsatz / 100"}.issubset(annotations)
+    assert "Max. Kaufabsicht" in annotations
+    assert "Max. Umsatz" in annotations
+
+
 def test_nms_close_tested_price_cluster_uses_distinct_label_positions() -> None:
     prices = np.arange(10.0, 55.0, 5.0)
     result = compute_nms(_nms_input(), prices, puki_threshold=2)
@@ -232,3 +245,21 @@ def test_profit_plot_break_even_left_and_max_profit_right() -> None:
     assert str(annotations["Maximum Profit Proxy"].xanchor) == "left"
     assert float(annotations["Break-even (Cost)"].y) > 1.0
     assert float(annotations["Maximum Profit Proxy"].y) > 1.0
+
+
+def test_profit_plot_localizes_title_and_legend_for_german() -> None:
+    prices = np.array([10.0, 20.0, 30.0, 40.0, 50.0])
+    pi = np.array([18.0, 40.0, 55.0, 45.0, 25.0])
+    turnover_result = compute_turnover_index(prices, pi)
+    profit_result = compute_profit_proxy(prices, pi, unit_cost=20.0)
+    fig = make_pi_economics_figure(
+        turnover_result,
+        currency="EUR",
+        mode="profit",
+        profit_result=profit_result,
+        unit_cost=20.0,
+        language="de",
+    )
+
+    assert fig.layout.title.text == "Kaufabsicht & Profit-Index (0-100)"
+    assert [trace.name for trace in fig.data[:2]] == ["Kaufabsicht", "Profit-Index"]

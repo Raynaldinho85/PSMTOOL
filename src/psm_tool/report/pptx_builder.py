@@ -26,14 +26,19 @@ EMU_PER_INCH = 914400.0
 CHART_EXPORT_RATIO = 16.0 / 9.0
 TITLE_FONT_SIZE_PT = 23
 TITLE_MIN_FONT_SIZE_PT = 21
+TITLE_FIT_MIN_FONT_SIZE_PT = 17
 CONTEXT_FONT_SIZE_PT = 11
 SUMMARY_FONT_SIZE_PT = 11
+SUMMARY_MIN_FONT_SIZE_PT = 9
 SIDE_KPI_FONT_SIZE_PT = 11
+SIDE_KPI_MIN_FONT_SIZE_PT = 9
 TITLE_WRAP_CHAR_CAPACITY = 96
 TITLE_REDUCED_WRAP_CHAR_CAPACITY = 122
 TITLE_SHORTEN_CHAR_CAPACITY = 132
 TITLE_MIN_SEMANTIC_CHARS = 34
 BULLET_MAX_CHARS = 140
+SIDE_KPI_MAX_CHARS = 92
+PPTX_FONT_FAMILY_CANDIDATES = ("Calibri", "Arial", "Aptos", "DejaVu Sans", "Liberation Sans")
 HEADLINE_TRAILING_BOUNDARIES = (
     " under ",
     " with ",
@@ -184,6 +189,16 @@ def _word_boundary_headline(text: str, max_chars: int) -> str:
     return f"{clean}..."
 
 
+def _semantic_truncate_text(text: str, max_chars: int) -> str:
+    clean = _clean_headline_text(text)
+    if len(clean) <= max_chars:
+        return clean
+    return (
+        _phrase_boundary_headline(clean, max_chars)
+        or _word_boundary_headline(clean, max_chars)
+    )
+
+
 def _fit_headline_for_pptx(text: str) -> tuple[str, int]:
     clean = _clean_headline_text(text)
     if len(clean) <= TITLE_WRAP_CHAR_CAPACITY:
@@ -199,14 +214,93 @@ def _fit_headline_for_pptx(text: str) -> tuple[str, int]:
     )
 
 
+def _configure_paragraph_layout(paragraph) -> None:
+    paragraph.space_before = Pt(0)
+    paragraph.space_after = Pt(0)
+    paragraph.line_spacing = 1.0
+
+
+def _set_text_frame_paragraphs(frame, paragraphs: list[str]) -> None:
+    frame.clear()
+    for idx, paragraph_text in enumerate(paragraphs):
+        paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
+        paragraph.text = paragraph_text
+        _configure_paragraph_layout(paragraph)
+
+
+def _best_fit_font_choice(frame, max_size: int) -> tuple[str, int] | None:
+    for family in PPTX_FONT_FAMILY_CANDIDATES:
+        try:
+            size = frame._best_fit_font_size(family, max_size, False, False, None)
+        except Exception:
+            continue
+        return family, size
+    return None
+
+
+def _apply_font_size(frame, family: str, size: int) -> None:
+    try:
+        frame._apply_fit(family, size, False, False)
+    except Exception:
+        frame.word_wrap = True
+    for paragraph in frame.paragraphs:
+        paragraph.font.name = family
+        paragraph.font.size = Pt(size)
+        for run in paragraph.runs:
+            run.font.name = family
+            run.font.size = Pt(size)
+
+
+def _fit_text_frame_candidates(
+    frame,
+    *,
+    paragraph_candidates: list[list[str]],
+    max_size: int,
+    min_size: int,
+) -> int:
+    if not paragraph_candidates:
+        return max_size
+
+    fallback_choice: tuple[list[str], tuple[str, int] | None] | None = None
+    for paragraphs in paragraph_candidates:
+        _set_text_frame_paragraphs(frame, paragraphs)
+        choice = _best_fit_font_choice(frame, max_size)
+        if choice is None:
+            fallback_choice = (paragraphs, None)
+            continue
+        family, fitted_size = choice
+        fallback_choice = (paragraphs, choice)
+        if fitted_size >= min_size:
+            _apply_font_size(frame, family, fitted_size)
+            return fitted_size
+
+    final_paragraphs, final_choice = fallback_choice or (paragraph_candidates[-1], None)
+    _set_text_frame_paragraphs(frame, final_paragraphs)
+    if final_choice is not None:
+        family, fitted_size = final_choice
+        _apply_font_size(frame, family, max(1, fitted_size))
+        return fitted_size
+    _apply_font_size(frame, PPTX_FONT_FAMILY_CANDIDATES[0], min_size)
+    return min_size
+
+
 def _add_title(slide, *, x: float, y: float, width: float, text: str) -> float:
-    title_h = 0.72
+    title_h = 0.84
     title_box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(title_h))
     frame = title_box.text_frame
     _text_frame_defaults(frame)
-    headline_text, font_size = _fit_headline_for_pptx(text)
-    frame.text = headline_text
-    frame.paragraphs[0].font.size = Pt(font_size)
+    full_text = _clean_headline_text(text)
+    shortened_text, _font_size = _fit_headline_for_pptx(text)
+    candidates = [[full_text]]
+    if shortened_text != full_text:
+        candidates.append([shortened_text])
+    fitted_size = _fit_text_frame_candidates(
+        frame,
+        paragraph_candidates=candidates,
+        max_size=TITLE_FONT_SIZE_PT,
+        min_size=TITLE_FIT_MIN_FONT_SIZE_PT,
+    )
+    frame.paragraphs[0].font.size = Pt(fitted_size)
     frame.paragraphs[0].font.bold = True
     return title_h
 
@@ -250,15 +344,40 @@ def _add_bullet_text(
     sentences: list[str],
     max_items: int,
     font_size: int,
+    strip_leading_label: str | None = None,
+    preserve_font_size: bool = False,
 ) -> None:
     box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(height))
     frame = box.text_frame
     _text_frame_defaults(frame)
-    frame.clear()
-    for idx, sentence in enumerate(sentences[:max_items]):
-        paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
-        paragraph.text = f"- {_truncate_text(sentence, BULLET_MAX_CHARS)}"
-        paragraph.font.size = Pt(min(font_size, SUMMARY_FONT_SIZE_PT))
+    label_prefix = (
+        f"{_clean_headline_text(strip_leading_label)}:"
+        if strip_leading_label
+        else None
+    )
+
+    def _summary_line(sentence: str) -> str:
+        clean = _clean_headline_text(sentence)
+        if label_prefix and clean.startswith(label_prefix):
+            clean = clean[len(label_prefix) :].strip()
+        return clean
+
+    summary_font_size = min(font_size, SUMMARY_FONT_SIZE_PT)
+    bullet_lines = [f"- {_summary_line(sentence)}" for sentence in sentences[:max_items]]
+    fallback_lines = [
+        f"- {_semantic_truncate_text(_summary_line(sentence), BULLET_MAX_CHARS)}"
+        for sentence in sentences[:max_items]
+    ]
+    tighter_lines = [
+        f"- {_semantic_truncate_text(_summary_line(sentence), 110)}"
+        for sentence in sentences[:max_items]
+    ]
+    _fit_text_frame_candidates(
+        frame,
+        paragraph_candidates=[bullet_lines, fallback_lines, tighter_lines],
+        max_size=summary_font_size,
+        min_size=summary_font_size if preserve_font_size else SUMMARY_MIN_FONT_SIZE_PT,
+    )
 
 
 def _headline_from_sentence(sentence: str, fallback: str) -> str:
@@ -584,11 +703,14 @@ def _add_kpi_summary(
     text_box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(height))
     frame = text_box.text_frame
     _text_frame_defaults(frame)
-    frame.clear()
-    for idx, line in enumerate(lines):
-        paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
-        paragraph.text = _truncate_text(line, 92)
-        paragraph.font.size = Pt(SIDE_KPI_FONT_SIZE_PT)
+    full_lines = [_clean_headline_text(line) for line in lines]
+    shortened_lines = [_semantic_truncate_text(line, SIDE_KPI_MAX_CHARS) for line in lines]
+    _fit_text_frame_candidates(
+        frame,
+        paragraph_candidates=[full_lines, shortened_lines],
+        max_size=SIDE_KPI_FONT_SIZE_PT,
+        min_size=SIDE_KPI_MIN_FONT_SIZE_PT,
+    )
 
 
 def _add_kpi_summary_slide(presentation: Presentation, analysis: dict[str, Any]) -> None:
@@ -629,10 +751,10 @@ def _add_psm_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
         lens=tr("Perception", normalize_language(analysis.get("language"))),
     )
 
-    summary_h = min(1.45, max(1.10, slide_h * 0.18))
+    summary_h = min(1.60, max(1.20, slide_h * 0.20))
     summary_y = slide_h - margin - summary_h
     chart_top = context_y + context_h + 0.07
-    chart_h = max(2.6, summary_y - chart_top - 0.08)
+    chart_h = max(2.45, summary_y - chart_top - 0.08)
 
     kpi_w = min(3.7, max(2.8, content_w * 0.29))
     chart_w = max(4.6, content_w - kpi_w - gap)
@@ -710,6 +832,8 @@ def _add_psm_summary_bullets(
         sentences=sentences,
         max_items=4,
         font_size=12,
+        strip_leading_label=tr("Perception", language),
+        preserve_font_size=True,
     )
 
 
@@ -740,10 +864,10 @@ def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, An
         lens=tr("Economics proxy", normalize_language(analysis.get("language"))),
     )
 
-    summary_h = min(1.35, max(1.00, slide_h * 0.17))
+    summary_h = min(1.50, max(1.10, slide_h * 0.19))
     summary_y = slide_h - margin - summary_h
     chart_top = context_y + context_h + 0.07
-    chart_h = max(2.55, summary_y - chart_top - 0.08)
+    chart_h = max(2.40, summary_y - chart_top - 0.08)
 
     figure = make_turnover_index_figure(
         turnover_result,
@@ -779,6 +903,8 @@ def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, An
         sentences=summary_sentences,
         max_items=3,
         font_size=12,
+        strip_leading_label=tr("Economics proxy", normalize_language(analysis.get("language"))),
+        preserve_font_size=True,
     )
     return True
 
@@ -811,10 +937,10 @@ def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
         lens=tr("Modeled demand", normalize_language(analysis.get("language"))),
     )
 
-    summary_h = min(1.35, max(1.05, slide_h * 0.17))
+    summary_h = min(1.50, max(1.10, slide_h * 0.19))
     summary_y = slide_h - margin - summary_h
     chart_top = context_y + context_h + 0.07
-    chart_h = max(2.55, summary_y - chart_top - 0.08)
+    chart_h = max(2.40, summary_y - chart_top - 0.08)
 
     meta_w = min(3.2, max(2.6, content_w * 0.27))
     chart_w = max(4.5, content_w - meta_w - gap)
@@ -846,7 +972,6 @@ def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
     )
     frame = box.text_frame
     _text_frame_defaults(frame)
-    frame.clear()
     language = normalize_language(analysis.get("language"))
     lines = [
         tr(
@@ -863,10 +988,14 @@ def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
         ),
         tr("Included N: {included_n}", language, included_n=int(nms_result.included_n)),
     ]
-    for idx, line in enumerate(lines):
-        paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
-        paragraph.text = line
-        paragraph.font.size = Pt(SIDE_KPI_FONT_SIZE_PT)
+    full_lines = [_clean_headline_text(line) for line in lines]
+    shortened_lines = [_semantic_truncate_text(line, SIDE_KPI_MAX_CHARS) for line in lines]
+    _fit_text_frame_candidates(
+        frame,
+        paragraph_candidates=[full_lines, shortened_lines],
+        max_size=SIDE_KPI_FONT_SIZE_PT,
+        min_size=SIDE_KPI_MIN_FONT_SIZE_PT,
+    )
 
     _add_nms_summary_bullets(
         slide,
@@ -908,10 +1037,10 @@ def _add_profit_slide(presentation: Presentation, analysis: dict[str, Any]) -> b
         lens=tr("Economics proxy", normalize_language(analysis.get("language"))),
     )
 
-    summary_h = min(1.35, max(1.05, slide_h * 0.17))
+    summary_h = min(1.50, max(1.10, slide_h * 0.19))
     summary_y = slide_h - margin - summary_h
     chart_top = context_y + context_h + 0.07
-    chart_h = max(2.55, summary_y - chart_top - 0.08)
+    chart_h = max(2.40, summary_y - chart_top - 0.08)
 
     figure = make_pi_economics_figure(
         turnover_result,
@@ -978,6 +1107,8 @@ def _add_nms_summary_bullets(
         sentences=sentences,
         max_items=4,
         font_size=12,
+        strip_leading_label=tr("Modeled demand", normalize_language(analysis.get("language"))),
+        preserve_font_size=True,
     )
 
 
