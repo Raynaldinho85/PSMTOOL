@@ -5,6 +5,8 @@ import importlib.util
 import streamlit as st
 
 from psm_tool.config import GridConfig
+from psm_tool.i18n import get_language, t, tr
+from psm_tool.i18n.knowledge import get_knowledge_markdown
 from psm_tool.io.validate import (
     OPTIONAL_COLUMNS,
     PI_UNIT_NORMALIZED_WARNING,
@@ -14,20 +16,16 @@ from psm_tool.io.validate import (
     template_columns,
 )
 from psm_tool.ui.auth import require_auth
-from psm_tool.ui.knowledge_content import (
-    get_knowledge_markdown_de,
-    get_knowledge_markdown_en,
-)
 from psm_tool.ui.page_nav import render_page_nav_top
 from psm_tool.ui.style import inject_base_styles, render_notice
 
-TAB_ORDER = [
-    "Overview",
-    "PSM (Price Sensitivity Meter)",
-    "NMS (Newton-Miller-Smith)",
-    "Quality & Grid",
-    "Exports & Privacy",
-    "FAQ",
+TAB_SPECS = [
+    ("Overview", "knowledge.tab.overview"),
+    ("PSM (Price Sensitivity Meter)", "knowledge.tab.psm"),
+    ("NMS (Newton-Miller-Smith)", "knowledge.tab.nms"),
+    ("Quality & Grid", "knowledge.tab.quality_grid"),
+    ("Exports & Privacy", "knowledge.tab.exports_privacy"),
+    ("FAQ", "knowledge.tab.faq"),
 ]
 
 ORDERING_RULE = "too_cheap < bargain < expensive_acceptable < too_expensive"
@@ -64,53 +62,52 @@ def _render_tab_content(
     st.markdown(markdown_map[tab_name])
 
     if tab_name == "Overview":
-        render_notice(
-            ("Deterministic only: calculations and explanations are static and rule-based.")
-            if language == "English"
-            else "Deterministisch: Berechnungen und Erlaeuterungen sind regelbasiert."
-        )
+        render_notice(t("knowledge.notice.deterministic", language))
         with st.expander(
-            "Input schema details" if language == "English" else "Input-Schema im Detail",
+            t("knowledge.expander.input_schema", language),
             expanded=False,
         ):
             st.markdown(
-                "Required columns: " + ", ".join(config_snapshot["required_columns"])
-                if language == "English"
-                else "Pflichtspalten: " + ", ".join(config_snapshot["required_columns"])
+                t(
+                    "knowledge.schema.required",
+                    language,
+                    columns=", ".join(config_snapshot["required_columns"]),
+                )
             )
             st.markdown(
-                "Recommended columns: " + ", ".join(config_snapshot["recommended_columns"])
-                if language == "English"
-                else "Empfohlene Spalten: " + ", ".join(config_snapshot["recommended_columns"])
+                t(
+                    "knowledge.schema.recommended",
+                    language,
+                    columns=", ".join(config_snapshot["recommended_columns"]),
+                )
             )
             st.markdown(
-                "Optional columns: " + ", ".join(config_snapshot["optional_columns"])
-                if language == "English"
-                else "Optionale Spalten: " + ", ".join(config_snapshot["optional_columns"])
+                t(
+                    "knowledge.schema.optional",
+                    language,
+                    columns=", ".join(config_snapshot["optional_columns"]),
+                )
             )
-            if sav_available:
-                render_notice(
-                    "SAV support is enabled in this environment."
-                    if language == "English"
-                    else "SAV-Unterstuetzung ist in dieser Umgebung aktiv.",
+            render_notice(
+                tr(
+                    (
+                        "SAV uploads are intentionally disabled in the app so uploaded "
+                        "files remain fully in-memory."
+                    ),
+                    language,
                 )
-            else:
-                render_notice(
-                    "SAV support is optional; not installed in this environment."
-                    if language == "English"
-                    else "SAV-Unterstuetzung ist optional und in dieser Umgebung nicht installiert."
-                )
+            )
 
     if tab_name == "PSM (Price Sensitivity Meter)":
         render_notice(
-            f"Validity rule used by code: `{config_snapshot['ordering_rule']}`"
-            if language == "English"
-            else f"Plausi-Regel im Code: `{config_snapshot['ordering_rule']}`"
+            t(
+                "knowledge.notice.validity_rule",
+                language,
+                ordering_rule=config_snapshot["ordering_rule"],
+            )
         )
         with st.expander(
-            "Intersection statuses implemented"
-            if language == "English"
-            else "Implementierte Schnittpunkt-Status",
+            t("knowledge.expander.intersection_statuses", language),
             expanded=False,
         ):
             for status in config_snapshot["intersection_statuses"]:
@@ -118,81 +115,50 @@ def _render_tab_content(
 
     if tab_name == "NMS (Newton-Miller-Smith)":
         if config_snapshot["pi_normalization_note_available"]:
-            render_notice(
-                (
-                    "PI unit invariant: internal PI is percent 0..100. "
-                    "Fraction-scale input can be normalized with warning notes."
-                )
-                if language == "English"
-                else (
-                    "PI-Invariante: intern ist PI Prozent 0..100. "
-                    "Fraction-Input kann mit Hinweis normalisiert werden."
-                )
-            )
+            render_notice(t("knowledge.notice.pi_normalized", language))
         else:
-            render_notice(
-                ("PI unit expectation is 0..100 percent. Fraction input can compress PI curves.")
-                if language == "English"
-                else "Erwartete PI-Einheit ist 0..100 Prozent. Fraction-Input kann PI komprimieren."
-            )
+            render_notice(t("knowledge.notice.pi_expected", language))
 
     if tab_name == "Quality & Grid":
-        render_notice(
-            "Default currency snapping values are read from config."
-            if language == "English"
-            else "Default-Currency-Snapping wird aus der Config gelesen."
-        )
+        render_notice(t("knowledge.notice.currency_snap", language))
         with st.expander(
-            "Current snap mapping" if language == "English" else "Aktuelles Snap-Mapping",
+            t("knowledge.expander.snap_mapping", language),
             expanded=False,
         ):
             for currency, increment in config_snapshot["default_currency_snap"].items():
                 st.markdown(f"- {currency}: {increment:g}")
 
     if tab_name == "Exports & Privacy":
-        render_notice(
-            ("PPTX image export requires a working Chrome/Chromium runtime.")
-            if language == "English"
-            else "PPTX-Bildexport benoetigt eine funktionierende Chrome/Chromium-Runtime."
-        )
+        render_notice(t("knowledge.notice.pptx_runtime", language))
 
     if tab_name == "FAQ":
         with st.expander(
-            "Quick pre-share checks" if language == "English" else "Schnelle Checks vor dem Teilen",
+            t("knowledge.expander.pre_share_checks", language),
             expanded=False,
         ):
-            if language == "English":
-                st.markdown("- Verify PI units and PI source mode.")
-                st.markdown("- Verify segment/currency consistency.")
-                st.markdown("- Verify export preflight before PPTX generation.")
-            else:
-                st.markdown("- PI-Einheiten und PI-Quelle pruefen.")
-                st.markdown("- Segment-/Waehrungskonsistenz pruefen.")
-                st.markdown("- Export-Preflight vor PPTX pruefen.")
+            st.markdown(t("knowledge.faq.check_pi_units", language))
+            st.markdown(t("knowledge.faq.check_segment_currency", language))
+            st.markdown(t("knowledge.faq.check_export_preflight", language))
 
 
 def main() -> None:
     require_auth()
     inject_base_styles(max_width=2800)
-    st.markdown('<p class="psm-page-eyebrow">Reference</p>', unsafe_allow_html=True)
-    st.title("Knowledge & Methodology")
-    render_page_nav_top("knowledge")
-
-    language = st.radio(
-        "Language / Sprache",
-        options=["English", "Deutsch"],
-        horizontal=True,
+    language = get_language()
+    st.markdown(
+        f'<p class="psm-page-eyebrow">{t("knowledge.eyebrow", language)}</p>',
+        unsafe_allow_html=True,
     )
+    st.title(t("knowledge.title", language))
+    render_page_nav_top("knowledge")
 
     config_snapshot = _config_snapshot()
     sav_available = _sav_available()
-    if language == "English":
-        markdown_map = get_knowledge_markdown_en(config_snapshot, sav_available)
-    else:
-        markdown_map = get_knowledge_markdown_de(config_snapshot, sav_available)
+    markdown_map = get_knowledge_markdown(language, config_snapshot, sav_available)
 
-    tabs = st.tabs(TAB_ORDER)
-    for tab, tab_name in zip(tabs, TAB_ORDER, strict=False):
+    tab_names = [t(label_key, language) for _tab_name, label_key in TAB_SPECS]
+    tabs = st.tabs(tab_names)
+    for tab, (tab_name, _label_key) in zip(tabs, TAB_SPECS, strict=False):
         with tab:
             _render_tab_content(
                 tab_name=tab_name,
@@ -202,11 +168,7 @@ def main() -> None:
                 sav_available=sav_available,
             )
 
-    st.caption(
-        "Back to Results: open page '2 Results' from the sidebar."
-        if language == "English"
-        else "Zurueck zu Results: oeffne Seite '2 Results' in der Sidebar."
-    )
+    st.caption(t("knowledge.caption.back_results", language))
 
 
 if __name__ == "__main__":

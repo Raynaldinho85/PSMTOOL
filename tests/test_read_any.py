@@ -9,6 +9,7 @@ import pytest
 
 from psm_tool.io.read_any import (
     SAVDependencyError,
+    SAVUploadNotSupportedError,
     read_any,
     read_optional_pi_ladder,
     read_pi_ladder,
@@ -46,6 +47,14 @@ def test_read_any_sav_raises_dependency_error_when_pyreadstat_missing() -> None:
         pytest.skip("pyreadstat is installed; missing-dependency scenario not applicable.")
 
     with pytest.raises(SAVDependencyError):
+        read_any(b"dummy", filename="input.sav")
+
+
+def test_read_any_sav_bytes_are_blocked_to_keep_uploads_in_memory() -> None:
+    if importlib.util.find_spec("pyreadstat") is None:
+        pytest.skip("pyreadstat missing; in-memory SAV guard only applies when SAV support exists.")
+
+    with pytest.raises(SAVUploadNotSupportedError, match="processed fully in-memory"):
         read_any(b"dummy", filename="input.sav")
 
 

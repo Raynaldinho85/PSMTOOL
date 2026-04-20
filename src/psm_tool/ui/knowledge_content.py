@@ -16,9 +16,11 @@ def _format_currency_snap(config_snapshot: dict) -> str:
 
 
 def _format_supported_files(sav_available: bool) -> str:
-    if sav_available:
-        return "- CSV, XLSX, SAV (SAV support is installed in this environment)."
-    return "- CSV, XLSX. SAV support is optional and not installed in this environment."
+    _ = sav_available
+    return (
+        "- CSV, XLSX. SAV uploads are intentionally disabled in the app so uploaded files "
+        "remain fully in-memory."
+    )
 
 
 def _format_intersection_statuses(config_snapshot: dict) -> str:

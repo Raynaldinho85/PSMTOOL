@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import re
 from html import escape
+from typing import Literal
 
 import pandas as pd
 import streamlit as st
@@ -14,12 +15,14 @@ from psm_tool.core.grid import build_price_grid_details
 from psm_tool.core.metrics import compute_psm_kpis
 from psm_tool.core.nms import compute_nms
 from psm_tool.core.outliers import apply_outlier_filter
-from psm_tool.core.qc import apply_psm_validity_filter, compute_qc_report
+from psm_tool.core.qc import apply_psm_validity_filter, apply_puki_filter, compute_qc_report
 from psm_tool.core.turnover_index import (
     compute_profit_proxy,
     compute_turnover_index,
     resolve_purchase_intention_curve,
 )
+from psm_tool.i18n import get_language, tr
+from psm_tool.plots.benchmarks import PriceBenchmark
 from psm_tool.plots.nms_plot import make_nms_figure
 from psm_tool.plots.psm_plot import make_psm_figure
 from psm_tool.plots.turnover_index_plot import make_pi_economics_figure
@@ -30,14 +33,40 @@ from psm_tool.report.insights import (
     build_turnover_summary,
     describe_turnover_source,
 )
+from psm_tool.report.kpi_summary_png import make_kpi_summary_figure
 from psm_tool.report.wording_policy import can_recommend
 from psm_tool.ui.auth import require_auth
 from psm_tool.ui.page_nav import render_page_nav_bottom, render_page_nav_top
-from psm_tool.ui.results_logic import apply_manual_defaults_on_enter
+from psm_tool.ui.results_logic import (
+    apply_manual_defaults_on_enter,
+    parse_tested_price,
+    resolve_tested_price_activation,
+)
 from psm_tool.ui.style import inject_base_styles, render_notice
 
 PRICE_COLUMNS = ["too_cheap", "bargain", "expensive_acceptable", "too_expensive"]
 OUTLIER_LABEL_TO_LEVEL = {"Mild": "mild", "Medium": "medium", "Strict": "strict"}
+MARKER_SIDE_OPTIONS = ("Auto", "Left", "Right")
+MarkerSide = Literal["left", "right"]
+
+
+def _build_results_tab_specs(
+    *,
+    has_turnover: bool,
+    has_profit: bool,
+    has_nms: bool,
+    language: str = "en",
+) -> list[tuple[str, str]]:
+    tab_specs: list[tuple[str, str]] = [("PSM", "psm")]
+    if has_turnover:
+        tab_specs.append((tr("Purchase Intention + Turnover Index", language), "turnover"))
+    if has_profit:
+        tab_specs.append((tr("Profit Index (0-100)", language), "profit"))
+    if has_nms:
+        tab_specs.append((tr("NMS Trial + Revenue", language), "nms_trial_revenue"))
+    tab_specs.append((tr("KPI Summary", language), "kpi_summary"))
+    tab_specs.append((tr("Quality Control", language), "quality_control"))
+    return tab_specs
 
 
 def _series_or_default(df: pd.DataFrame, column: str, default: str) -> pd.Series:
@@ -102,6 +131,110 @@ def _cost_key(product_id: str, segment: str) -> str:
     return f"segment::{segment}"
 
 
+def _selection_key(product_id: str, segment: str) -> str:
+    product = str(product_id).strip() or "default_product"
+    segment_value = str(segment).strip() or "default_segment"
+    return f"{product}::{segment_value}"
+
+
+def _marker_override_widget_key(selection_key: str, chart_id: str, marker_key: str) -> str:
+    return f"marker_label_side::{selection_key}::{chart_id}::{marker_key}"
+
+
+def _marker_override_store() -> dict[str, dict[str, dict[str, MarkerSide]]]:
+    store = st.session_state.setdefault("marker_label_side_overrides_by_key", {})
+    return store if isinstance(store, dict) else {}
+
+
+def _set_marker_override(
+    *,
+    selection_key: str,
+    chart_id: str,
+    marker_key: str,
+    option: str,
+) -> None:
+    store = _marker_override_store()
+    selection_overrides = dict(store.get(selection_key, {}))
+    chart_overrides = dict(selection_overrides.get(chart_id, {}))
+    normalized = option.strip().lower()
+    if normalized == "left":
+        chart_overrides[marker_key] = "left"
+    elif normalized == "right":
+        chart_overrides[marker_key] = "right"
+    else:
+        chart_overrides.pop(marker_key, None)
+
+    if chart_overrides:
+        selection_overrides[chart_id] = chart_overrides
+    else:
+        selection_overrides.pop(chart_id, None)
+    if selection_overrides:
+        store[selection_key] = selection_overrides
+    else:
+        store.pop(selection_key, None)
+
+
+def _sync_marker_overrides_from_widgets(
+    *,
+    selection_key: str,
+    marker_options_by_chart: dict[str, list[tuple[str, str]]],
+) -> None:
+    for chart_id, marker_options in marker_options_by_chart.items():
+        for marker_key, _label in marker_options:
+            widget_key = _marker_override_widget_key(selection_key, chart_id, marker_key)
+            if widget_key in st.session_state:
+                _set_marker_override(
+                    selection_key=selection_key,
+                    chart_id=chart_id,
+                    marker_key=marker_key,
+                    option=str(st.session_state[widget_key]),
+                )
+
+
+def _marker_label_side_overrides(selection_key: str, chart_id: str) -> dict[str, MarkerSide]:
+    store = _marker_override_store()
+    selection_overrides = store.get(selection_key, {})
+    chart_overrides = selection_overrides.get(chart_id, {})
+    return {str(key): value for key, value in chart_overrides.items() if value in {"left", "right"}}
+
+
+def _render_marker_label_override_controls(
+    *,
+    selection_key: str,
+    chart_id: str,
+    marker_options: list[tuple[str, str]],
+    language: str,
+) -> None:
+    if not marker_options:
+        return
+    with st.expander(tr("Marker label placement", language), expanded=False):
+        st.caption(
+            tr(
+                "Use only when automatic marker label placement still overlaps.",
+                language,
+            )
+        )
+        store = _marker_override_store()
+        chart_overrides = store.get(selection_key, {}).get(chart_id, {})
+        translated_options = tuple(tr(value, language) for value in MARKER_SIDE_OPTIONS)
+        for marker_key, label in marker_options:
+            current = chart_overrides.get(marker_key)
+            current_option = current.capitalize() if current in {"left", "right"} else "Auto"
+            index = MARKER_SIDE_OPTIONS.index(current_option)
+            option = st.selectbox(
+                label,
+                options=translated_options,
+                index=index,
+                key=_marker_override_widget_key(selection_key, chart_id, marker_key),
+            )
+            _set_marker_override(
+                selection_key=selection_key,
+                chart_id=chart_id,
+                marker_key=marker_key,
+                option=MARKER_SIDE_OPTIONS[translated_options.index(str(option))],
+            )
+
+
 def _on_selection_change(product_key: str, country_key: str) -> None:
     if product_key in st.session_state:
         st.session_state["results_selected_product"] = str(st.session_state[product_key])
@@ -148,8 +281,15 @@ def _render_kpi_card(*, title: str, subtitle: str | None, value: str) -> None:
     )
 
 
-def _subtitle_with_badges(base: str, *, lens: str, caution: str | None = None) -> str:
-    caution_part = f" [Caution:{caution}]" if caution else ""
+def _subtitle_with_badges(
+    base: str,
+    *,
+    lens: str,
+    caution: str | None = None,
+    language: str | None = None,
+) -> str:
+    caution_label = tr(caution, language) if caution else None
+    caution_part = f" [Caution:{caution_label}]" if caution_label else ""
     return f"[Lens:{lens}]{caution_part} ({base})"
 
 
@@ -199,6 +339,7 @@ def _build_turnover_summary_safe(
     segment_label: str,
     source: str | None,
     kpi_statuses: dict[str, str] | None = None,
+    language: str | None = None,
 ) -> list[str]:
     try:
         return build_turnover_summary(
@@ -207,9 +348,10 @@ def _build_turnover_summary_safe(
             segment_label=segment_label,
             source=source,
             kpi_statuses=kpi_statuses,
+            language=language,
         )
     except TypeError as exc:
-        if "unexpected keyword argument 'kpi_statuses'" not in str(exc):
+        if "unexpected keyword argument" not in str(exc):
             raise
         return build_turnover_summary(
             turnover_result,
@@ -226,6 +368,7 @@ def _build_profit_summary_safe(
     segment_label: str,
     product_label: str,
     kpi_statuses: dict[str, str] | None = None,
+    language: str | None = None,
 ) -> list[str]:
     try:
         return build_profit_summary(
@@ -234,9 +377,10 @@ def _build_profit_summary_safe(
             segment_label=segment_label,
             product_label=product_label,
             kpi_statuses=kpi_statuses,
+            language=language,
         )
     except TypeError as exc:
-        if "unexpected keyword argument 'kpi_statuses'" not in str(exc):
+        if "unexpected keyword argument" not in str(exc):
             raise
         return build_profit_summary(
             profit_result,
@@ -246,9 +390,9 @@ def _build_profit_summary_safe(
         )
 
 
-def _render_summary_bullets(summary_lines: list[str]) -> None:
+def _render_summary_bullets(summary_lines: list[str], language: str | None = None) -> None:
     if not summary_lines:
-        st.markdown("- No summary available.")
+        st.markdown(f"- {tr('No summary available.', language)}")
         return
     bullet_text = "\n".join(f"- {_strip_lens_prefix(line)}" for line in summary_lines)
     st.markdown(bullet_text)
@@ -262,6 +406,7 @@ def _render_kpi_cards(
     price_symbol: str,
     kpis: dict[str, float | str],
     additional_metrics: dict[str, MetricResult],
+    language: str,
 ) -> dict[str, dict[str, float | str | bool | None]]:
     pmi_value, pmi_caution = _format_intersection_value(kpis, key="pmi", price_symbol=price_symbol)
     opp_value, opp_caution = _format_intersection_value(kpis, key="opp", price_symbol=price_symbol)
@@ -272,33 +417,45 @@ def _render_kpi_cards(
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         _render_kpi_card(
-            title="PMI",
+            title=tr("PMI", language),
             subtitle=_subtitle_with_badges(
-                "Point of Marginal Inexpensiveness", lens="Perception", caution=pmi_caution
+                tr("Point of Marginal Inexpensiveness", language),
+                lens=tr("Perception", language),
+                caution=pmi_caution,
+                language=language,
             ),
             value=pmi_value,
         )
     with col2:
         _render_kpi_card(
-            title="OPP",
+            title=tr("OPP", language),
             subtitle=_subtitle_with_badges(
-                "Optimal Pricing Point", lens="Perception", caution=opp_caution
+                tr("Optimal Pricing Point", language),
+                lens=tr("Perception", language),
+                caution=opp_caution,
+                language=language,
             ),
             value=opp_value,
         )
     with col3:
         _render_kpi_card(
-            title="IDP",
+            title=tr("IDP", language),
             subtitle=_subtitle_with_badges(
-                "Indifference Pricing Point", lens="Perception", caution=idp_caution
+                tr("Indifference Pricing Point", language),
+                lens=tr("Perception", language),
+                caution=idp_caution,
+                language=language,
             ),
             value=idp_value,
         )
     with col4:
         _render_kpi_card(
-            title="PME",
+            title=tr("PME", language),
             subtitle=_subtitle_with_badges(
-                "Point of Marginal Expensiveness", lens="Perception", caution=pme_caution
+                tr("Point of Marginal Expensiveness", language),
+                lens=tr("Perception", language),
+                caution=pme_caution,
+                language=language,
             ),
             value=pme_value,
         )
@@ -323,9 +480,12 @@ def _render_kpi_cards(
             accepted_caution = "unstable"
             accepted_reason = "Requires clean PMI and PME intersections."
         _render_kpi_card(
-            title="Accepted Range",
+            title=tr("Accepted Range", language),
             subtitle=_subtitle_with_badges(
-                "Range consumers find acceptable", lens="Perception", caution=accepted_caution
+                tr("Range consumers find acceptable", language),
+                lens=tr("Perception", language),
+                caution=accepted_caution,
+                language=language,
             ),
             value=accepted_range_value,
         )
@@ -334,7 +494,7 @@ def _render_kpi_cards(
             "display_value": accepted_range_value,
             "diagnostic_value": float(kpis["accepted_high"]) - float(kpis["accepted_low"]),
             "reason": accepted_reason,
-            "lens": "Perception",
+            "lens": tr("Perception", language),
         }
     with col6:
         if opp_clean and idp_clean:
@@ -346,9 +506,12 @@ def _render_kpi_cards(
             stress_caution = "unstable"
             stress_reason = "Requires clean OPP and IDP intersections."
         _render_kpi_card(
-            title="Price Stress",
+            title=tr("Price Stress", language),
             subtitle=_subtitle_with_badges(
-                "Difference between OPP and IDP", lens="Perception", caution=stress_caution
+                tr("Difference between OPP and IDP", language),
+                lens=tr("Perception", language),
+                caution=stress_caution,
+                language=language,
             ),
             value=stress_value,
         )
@@ -357,7 +520,7 @@ def _render_kpi_cards(
             "display_value": stress_value,
             "diagnostic_value": float(kpis.get("price_stress", 0.0)),
             "reason": stress_reason,
-            "lens": "Perception",
+            "lens": tr("Perception", language),
         }
     st.markdown("<div class='psm-kpi-row-gap'></div>", unsafe_allow_html=True)
 
@@ -395,11 +558,12 @@ def _render_kpi_cards(
         )
         with column:
             _render_kpi_card(
-                title=title,
+                title=tr(title, language),
                 subtitle=_subtitle_with_badges(
-                    base_subtitle,
-                    lens=metric.lens,
+                    tr(base_subtitle, language),
+                    lens=tr(metric.lens, language),
                     caution=metric_caution,
+                    language=language,
                 ),
                 value=metric_value,
             )
@@ -408,7 +572,7 @@ def _render_kpi_cards(
             "display_value": metric_value,
             "diagnostic_value": metric.diagnostic_value,
             "reason": metric.reason,
-            "lens": metric.lens,
+            "lens": tr(metric.lens, language),
         }
     st.markdown("<div class='psm-kpi-row-gap'></div>", unsafe_allow_html=True)
     return derived_payload
@@ -423,17 +587,18 @@ def _apply_psm_axis_footer(
     total_n: int,
     valid_n: int,
     analysis_n: int,
+    language: str,
 ) -> None:
     selection_value = f"{escape(selected_product)} / {escape(selected_segment)}"
     price_value = escape(currency or "n/a")
     analysis_value = f"{analysis_n} (valid {valid_n} / total {total_n})"
 
     selection_text = (
-        "<span style='color:#78716c;'>Selection:</span> "
+        f"<span style='color:#78716c;'>{escape(tr('Selection:', language))}</span> "
         f"<span style='color:#1c1917;'>{selection_value}</span>"
     )
     price_text = (
-        "<span style='color:#78716c;'>Price:</span> "
+        f"<span style='color:#78716c;'>{escape(tr('Price:', language))}</span> "
         f"<span style='color:#1c1917;'>{price_value}</span>"
     )
     analysis_text = (
@@ -504,18 +669,40 @@ def _render_selection_controls_box(
     p95_label: str,
     product_key: str,
     country_key: str,
+    language: str,
 ) -> None:
     with st.container(border=True):
         header_col, info_col = st.columns([0.93, 0.07])
         with header_col:
-            st.subheader("Selection")
+            st.subheader(tr("Selection", language))
         with info_col:
             with st.popover("i"):
-                st.caption("Grid details")
-                st.caption(f"Method: {grid_method} | Increment: {increment_label}")
-                st.caption(f"Range: {min_price:.2f} to {max_price:.2f}")
-                st.caption(f"Step: {step:.2f}")
-                st.caption(f"P05/P95: {p05_label} / {p95_label}")
+                st.caption(tr("Grid details", language))
+                st.caption(
+                    tr(
+                        "Method: {grid_method} | Increment: {increment_label}",
+                        language,
+                        grid_method=grid_method,
+                        increment_label=increment_label,
+                    )
+                )
+                st.caption(
+                    tr(
+                        "Range: {min_price:.2f} to {max_price:.2f}",
+                        language,
+                        min_price=min_price,
+                        max_price=max_price,
+                    )
+                )
+                st.caption(tr("Step: {step:.2f}", language, step=step))
+                st.caption(
+                    tr(
+                        "P05/P95: {p05_label} / {p95_label}",
+                        language,
+                        p05_label=p05_label,
+                        p95_label=p95_label,
+                    )
+                )
         select_col1, select_col2 = st.columns(2)
         product_index = (
             product_values.index(selected_product) if selected_product in product_values else 0
@@ -528,7 +715,7 @@ def _render_selection_controls_box(
         if st.session_state.get(country_key) != selected_segment:
             st.session_state[country_key] = selected_segment
         select_col1.selectbox(
-            "Product",
+            tr("Product", language),
             options=product_values,
             index=product_index,
             key=product_key,
@@ -536,7 +723,7 @@ def _render_selection_controls_box(
             args=(product_key, country_key),
         )
         select_col2.selectbox(
-            "Country",
+            tr("Country", language),
             options=segment_values,
             index=country_index,
             key=country_key,
@@ -550,6 +737,7 @@ def _apply_focus_autoscale(
     *,
     kpis: dict[str, float | str],
     increment: float | None,
+    extra_prices: list[float] | None = None,
 ) -> None:
     opp = float(kpis.get("opp", float("nan")))
     idp = float(kpis.get("idp", float("nan")))
@@ -569,6 +757,9 @@ def _apply_focus_autoscale(
     )
     if math.isfinite(max_kpi):
         axis_max = max(axis_max, max_kpi)
+    for price in extra_prices or []:
+        if math.isfinite(float(price)):
+            axis_max = max(axis_max, float(price))
 
     if increment is not None and increment > 0:
         axis_max = math.ceil(axis_max / increment) * increment
@@ -583,6 +774,7 @@ def _apply_pair_focus_autoscale(
     first_price: float,
     second_price: float,
     increment: float | None,
+    extra_prices: list[float] | None = None,
 ) -> None:
     if not (math.isfinite(first_price) and math.isfinite(second_price)):
         return
@@ -593,6 +785,9 @@ def _apply_pair_focus_autoscale(
 
     axis_max = first_price + second_price
     axis_max = max(axis_max, first_price, second_price)
+    for price in extra_prices or []:
+        if math.isfinite(float(price)):
+            axis_max = max(axis_max, float(price))
     if increment is not None and increment > 0:
         axis_max = math.ceil(axis_max / increment) * increment
     axis_max = max(axis_max, 1.0)
@@ -613,11 +808,18 @@ def _estimate_opp_for_manual_default(
     currency: str,
     snap_enabled: bool,
     plausibility_filter_enabled: bool,
+    puki_threshold: int,
+    puki_filter_enabled: bool,
     outlier_enabled: bool,
     outlier_level: str,
 ) -> float:
     valid_df, _ = apply_psm_validity_filter(group_df)
     analysis_base_df = valid_df if plausibility_filter_enabled else group_df.copy()
+    analysis_base_df, _puki_mask = apply_puki_filter(
+        analysis_base_df,
+        puki_threshold=puki_threshold,
+        enabled=puki_filter_enabled,
+    )
     analysis_df = apply_outlier_filter(
         analysis_base_df,
         columns=PRICE_COLUMNS,
@@ -646,24 +848,37 @@ def _estimate_opp_for_manual_default(
 def main() -> None:
     require_auth()
     inject_base_styles(max_width=2800)
-    st.markdown('<p class="psm-page-eyebrow">Analysis Workspace</p>', unsafe_allow_html=True)
-    st.title("2. Results")
+    language = get_language()
+    st.markdown(
+        f'<p class="psm-page-eyebrow">{tr("Analysis Workspace", language)}</p>',
+        unsafe_allow_html=True,
+    )
+    st.title(tr("2. Results", language))
     render_page_nav_top("results")
 
     df: pd.DataFrame | None = st.session_state.get("psm_input_df")
     if df is None:
         render_notice(
-            "No dataset loaded. Run page '1 Upload' first (or again) to load data. "
-            "Upload unlocks Results and Export."
+            tr(
+                (
+                    "No dataset loaded. Run page '1 Upload' first (or again) "
+                    "to load data. Upload unlocks Results and Export."
+                ),
+                language,
+            )
         )
-        if st.button("Go to Upload", width="stretch", key="results_go_upload_btn"):
+        if st.button(
+            tr("Go to Upload", language),
+            width="stretch",
+            key="results_go_upload_btn",
+        ):
             st.switch_page("pages/1_upload.py")
         render_page_nav_bottom("results")
         return
 
     product_values = sorted(_series_or_default(df, "product_id", "default_product").unique())
     if len(product_values) == 0:
-        render_notice("No product values available in dataset.")
+        render_notice(tr("No product values available in dataset.", language))
         render_page_nav_bottom("results")
         return
     if st.session_state.get("results_selected_product") not in product_values:
@@ -675,7 +890,7 @@ def main() -> None:
     ].copy()
     segment_values = sorted(_series_or_default(product_df, "segment", "default_segment").unique())
     if len(segment_values) == 0:
-        render_notice("No country values available for selected product.")
+        render_notice(tr("No country values available for selected product.", language))
         render_page_nav_bottom("results")
         return
     if st.session_state.get("results_selected_segment") not in segment_values:
@@ -686,40 +901,55 @@ def main() -> None:
         _series_or_default(product_df, "segment", "default_segment") == selected_segment
     ].copy()
     if len(group_df) == 0:
-        render_notice("No data for selected product/country.")
+        render_notice(tr("No data for selected product/country.", language))
         render_page_nav_bottom("results")
         return
 
     currency = str(_series_or_default(group_df, "currency", "").iloc[0]).upper()
 
     with st.container(border=True):
-        st.subheader("Analysis Controls")
-        snap_enabled = st.toggle("Snap to currency increment", value=True)
+        st.subheader(tr("Analysis Controls", language))
+        snap_enabled = st.toggle(tr("Snap to currency increment", language), value=True)
         plausibility_filter_enabled = st.toggle(
-            "Apply plausibility filter (strict ordering)",
+            tr("Apply plausibility filter (strict ordering)", language),
             value=True,
-            help="Rule: too_cheap < bargain < expensive_acceptable < too_expensive",
+            help=tr(
+                "Rule: too_cheap < bargain < expensive_acceptable < too_expensive",
+                language,
+            ),
         )
 
-        outlier_enabled = st.toggle("Outlier filter enabled", value=False)
-        outlier_label = "Medium"
+        outlier_enabled = st.toggle(tr("Outlier filter enabled", language), value=False)
+        outlier_option_labels = {
+            "Mild": tr("Mild", language),
+            "Medium": tr("Medium", language),
+            "Strict": tr("Strict", language),
+        }
+        outlier_label = outlier_option_labels["Medium"]
         if outlier_enabled:
             outlier_label = st.selectbox(
-                "Outlier level",
-                options=["Mild", "Medium", "Strict"],
+                tr("Outlier level", language),
+                options=list(outlier_option_labels.values()),
                 index=1,
             )
-        outlier_level = OUTLIER_LABEL_TO_LEVEL[outlier_label]
+        outlier_level_key = next(
+            key for key, value in outlier_option_labels.items() if value == outlier_label
+        )
+        outlier_level = OUTLIER_LABEL_TO_LEVEL[outlier_level_key]
 
         has_puki = "puki" in group_df.columns
         puki_threshold = 2
         if has_puki:
             include_neutral = st.toggle(
-                "Include neutral PUKI (<=3)", value=False, key="puki_neutral"
+                tr("Include neutral PUKI (<=3) in analysis", language),
+                value=False,
+                key="puki_neutral",
             )
             puki_threshold = 3 if include_neutral else 2
         else:
-            st.caption("PUKI column missing: PI filter is not applied.")
+            st.caption(
+                tr("PUKI column missing: analysis population filter is not applied.", language)
+            )
 
         cost_map: dict[str, float] = st.session_state.setdefault("unit_cost_by_product", {})
         economics_enabled_map: dict[str, bool] = st.session_state.setdefault(
@@ -735,27 +965,89 @@ def main() -> None:
         if widget_key not in st.session_state:
             st.session_state[widget_key] = float(cost_map.get(unit_cost_key, 0.0))
 
-        economics_enabled = st.toggle("Economics", key=economics_toggle_key)
+        economics_enabled = st.toggle(tr("Economics", language), key=economics_toggle_key)
         economics_enabled_map[unit_cost_key] = bool(economics_enabled)
         if economics_enabled:
             unit_cost_value = st.number_input(
-                "Unit cost",
+                tr("Unit cost", language),
                 min_value=0.0,
                 step=1.0,
                 format="%.2f",
                 key=widget_key,
-                help=(
-                    f"Same currency as selected country ({currency}). "
-                    "Used only for calculations and exports in this session."
+                help=tr(
+                    (
+                        "Same currency as selected country ({currency}). Used "
+                        "only for calculations and exports in this session."
+                    ),
+                    language,
+                    currency=currency,
                 ),
             )
             cost_map[unit_cost_key] = float(unit_cost_value)
+
+        tested_price_map: dict[str, float] = st.session_state.setdefault("tested_price_by_key", {})
+        tested_price_active_map: dict[str, bool] = st.session_state.setdefault(
+            "tested_price_active_by_key", {}
+        )
+        tested_price_scope = _selection_key(str(selected_product), str(selected_segment))
+        tested_price_input_key = f"tested_price_input::{tested_price_scope}"
+        tested_price_active_key = f"tested_price_active::{tested_price_scope}"
+        tested_price_previous_key = f"tested_price_previous::{tested_price_scope}"
+        if (
+            tested_price_input_key not in st.session_state
+            and tested_price_scope in tested_price_map
+        ):
+            st.session_state[tested_price_input_key] = f"{tested_price_map[tested_price_scope]:g}"
+
+        tested_price_raw = st.text_input(
+            tr("Tested Price", language),
+            key=tested_price_input_key,
+            placeholder=tr("Enter price", language),
+            help=tr(
+                "Positive numeric price to show as a benchmark line on charts.",
+                language,
+            ),
+        )
+        tested_price_value = parse_tested_price(tested_price_raw)
+        previous_tested_price = st.session_state.get(
+            tested_price_previous_key,
+            tested_price_map.get(tested_price_scope),
+        )
+        requested_tested_price_active = bool(
+            st.session_state.get(
+                tested_price_active_key,
+                tested_price_active_map.get(tested_price_scope, False),
+            )
+        )
+        tested_price_active_default, stored_tested_price = resolve_tested_price_activation(
+            parsed_price=tested_price_value,
+            previous_valid_price=(
+                float(previous_tested_price) if previous_tested_price is not None else None
+            ),
+            requested_active=requested_tested_price_active,
+        )
+        st.session_state[tested_price_previous_key] = stored_tested_price
+        if stored_tested_price is None:
+            tested_price_map.pop(tested_price_scope, None)
+        else:
+            tested_price_map[tested_price_scope] = float(stored_tested_price)
+        st.session_state[tested_price_active_key] = tested_price_active_default
+        tested_price_active = st.toggle(
+            tr("Show Tested Price", language),
+            key=tested_price_active_key,
+            disabled=tested_price_value is None,
+        )
+        if tested_price_value is None:
+            tested_price_active = False
+        tested_price_active_map[tested_price_scope] = bool(tested_price_active)
 
         opp_for_manual_default = _estimate_opp_for_manual_default(
             group_df=group_df,
             currency=currency,
             snap_enabled=snap_enabled,
             plausibility_filter_enabled=plausibility_filter_enabled,
+            puki_threshold=puki_threshold,
+            puki_filter_enabled=has_puki,
             outlier_enabled=outlier_enabled,
             outlier_level=outlier_level,
         )
@@ -774,7 +1066,16 @@ def main() -> None:
         st.session_state.setdefault(manual_max_key, 100.0)
         st.session_state.setdefault(manual_step_key, 5.0)
 
-        mode = st.selectbox("Grid mode", options=["auto", "manual"], key=mode_key)
+        mode = st.selectbox(
+            tr("Grid mode", language),
+            options=[tr("auto", language), tr("manual", language)],
+            key=mode_key,
+        )
+        mode_lookup = {
+            tr("auto", language): "auto",
+            tr("manual", language): "manual",
+        }
+        mode = mode_lookup[mode]
         previous_mode = str(st.session_state.get(previous_mode_key, "auto"))
         manual_min_state = float(st.session_state.get(manual_min_key, 0.0))
         manual_max_state = float(st.session_state.get(manual_max_key, 100.0))
@@ -796,17 +1097,61 @@ def main() -> None:
         manual_step: float | None = None
         if mode == "manual":
             manual_col1, manual_col2, manual_col3 = st.columns(3)
-            manual_min = float(manual_col1.number_input("Manual min", key=manual_min_key))
-            manual_max = float(manual_col2.number_input("Manual max", key=manual_max_key))
+            manual_min = float(
+                manual_col1.number_input(tr("Manual min", language), key=manual_min_key)
+            )
+            manual_max = float(
+                manual_col2.number_input(tr("Manual max", language), key=manual_max_key)
+            )
             manual_step = float(
                 manual_col3.number_input(
-                    "Manual step",
+                    tr("Manual step", language),
                     key=manual_step_key,
                     min_value=0.01,
                 )
             )
 
     unit_cost = float(cost_map.get(unit_cost_key, 0.0)) if economics_enabled else None
+    tested_price_benchmarks = (
+        [
+            PriceBenchmark(
+                label=tr("Tested Price", language),
+                price=float(tested_price_value),
+                key="tested_price",
+            )
+        ]
+        if tested_price_active and tested_price_value is not None
+        else []
+    )
+    selection_key = _selection_key(str(selected_product), str(selected_segment))
+    tested_price_marker_option = (
+        [("tested_price", tr("Tested Price", language))] if tested_price_benchmarks else []
+    )
+    marker_options_by_chart = {
+        "psm": [
+            ("pmi", "PMI"),
+            ("opp", "OPP"),
+            ("idp", "IDP"),
+            ("pme", "PME"),
+            *tested_price_marker_option,
+        ],
+        "turnover": [
+            ("max_turnover_price", tr("Max Turnover Price", language)),
+            *tested_price_marker_option,
+        ],
+        "nms": [
+            ("max_trial", tr("MaxTrial", language)),
+            *tested_price_marker_option,
+            ("max_revenue", tr("MaxRevenue", language)),
+        ],
+    }
+    _sync_marker_overrides_from_widgets(
+        selection_key=selection_key,
+        marker_options_by_chart=marker_options_by_chart,
+    )
+    psm_marker_overrides = _marker_label_side_overrides(selection_key, "psm")
+    turnover_marker_overrides = _marker_label_side_overrides(selection_key, "turnover")
+    nms_marker_overrides = _marker_label_side_overrides(selection_key, "nms")
 
     grid_cfg = _build_grid_config(mode, snap_enabled, manual_min, manual_max, manual_step)
 
@@ -818,8 +1163,15 @@ def main() -> None:
     valid_df, valid_mask = apply_psm_validity_filter(group_df)
     invalid_ordering_n = int((~valid_mask).sum())
     analysis_base_df = valid_df if plausibility_filter_enabled else group_df.copy()
-    outlier_result = apply_outlier_filter(
+    puki_filtered_df, puki_analysis_mask = apply_puki_filter(
         analysis_base_df,
+        puki_threshold=puki_threshold,
+        enabled=has_puki,
+    )
+    puki_filter_applied_to_analysis = has_puki
+    puki_excluded_from_analysis_n = int((~puki_analysis_mask).sum()) if has_puki else 0
+    outlier_result = apply_outlier_filter(
+        puki_filtered_df,
         columns=PRICE_COLUMNS,
         level=outlier_level,
         enabled=outlier_enabled,
@@ -827,20 +1179,29 @@ def main() -> None:
     analysis_df = outlier_result.filtered_df
 
     if plausibility_filter_enabled and len(valid_df) == 0:
-        render_notice("No PSM-valid respondents after applying ordering checks.")
+        render_notice(tr("No PSM-valid respondents after applying ordering checks.", language))
         st.dataframe(qc.as_frame(), width="stretch")
         render_page_nav_bottom("results")
         return
 
     if not plausibility_filter_enabled and invalid_ordering_n > 0:
         render_notice(
-            "Plausibility filter is disabled: "
-            f"{invalid_ordering_n} respondents with non-ordered thresholds are included."
+            tr(
+                (
+                    "Plausibility filter is disabled: {count} respondents "
+                    "with non-ordered thresholds are included."
+                ),
+                language,
+                count=invalid_ordering_n,
+            )
         )
 
     if len(analysis_df) == 0:
         render_notice(
-            "All respondents in the current analysis base were excluded by outlier filtering."
+            tr(
+                "No respondents remain in the current analysis base after PUKI/outlier filtering.",
+                language,
+            )
         )
         qc_df = qc.as_frame()
         qc_df["plausibility_filter_applied"] = plausibility_filter_enabled
@@ -854,6 +1215,8 @@ def main() -> None:
         qc_df["outlier_q_low"] = outlier_result.q_low
         qc_df["outlier_q_high"] = outlier_result.q_high
         qc_df["outlier_excluded_n"] = outlier_result.excluded_n
+        qc_df["puki_filter_applied_to_analysis"] = puki_filter_applied_to_analysis
+        qc_df["puki_excluded_from_analysis_n"] = puki_excluded_from_analysis_n
         qc_df["analysis_n_after_outlier"] = 0
         st.dataframe(qc_df, width="stretch")
         render_page_nav_bottom("results")
@@ -871,8 +1234,20 @@ def main() -> None:
     curves = compute_psm_curves(analysis_df, grid_details.prices, weight_col=weight_col)
     kpi_result = compute_psm_kpis(curves)
     kpi_dict = kpi_result.as_dict()
-    figure = make_psm_figure(curves, kpi_result)
-    _apply_focus_autoscale(figure, kpis=kpi_dict, increment=grid_details.increment)
+    figure = make_psm_figure(
+        curves,
+        kpi_result,
+        price_benchmarks=tested_price_benchmarks,
+        label_side_overrides=psm_marker_overrides,
+        language=language,
+    )
+    tested_price_axis_values = [float(tested_price_value)] if tested_price_benchmarks else []
+    _apply_focus_autoscale(
+        figure,
+        kpis=kpi_dict,
+        increment=grid_details.increment,
+        extra_prices=tested_price_axis_values,
+    )
     _apply_psm_axis_footer(
         figure,
         selected_product=str(selected_product),
@@ -881,6 +1256,7 @@ def main() -> None:
         total_n=len(group_df),
         valid_n=len(valid_df),
         analysis_n=len(analysis_df),
+        language=language,
     )
 
     nms_result = None
@@ -961,25 +1337,34 @@ def main() -> None:
     qc_df["outlier_q_low"] = outlier_result.q_low
     qc_df["outlier_q_high"] = outlier_result.q_high
     qc_df["outlier_excluded_n"] = outlier_result.excluded_n
+    qc_df["puki_filter_applied_to_analysis"] = puki_filter_applied_to_analysis
+    qc_df["puki_excluded_from_analysis_n"] = puki_excluded_from_analysis_n
     qc_df["analysis_n_after_outlier"] = int(len(analysis_df))
     qc_df["psm_weighting_applied"] = psm_weighting_applied
 
     derived_metric_payload: dict[str, dict[str, float | str | bool | None]] = {}
 
-    tab_specs: list[tuple[str, str]] = [("PSM", "psm")]
-    if turnover_result is not None:
-        tab_specs.append(("Purchase Intention + Turnover Index", "turnover"))
-    if profit_result is not None and unit_cost is not None and turnover_result is not None:
-        tab_specs.append(("Profit Index (0-100)", "profit"))
-    if nms_result is not None:
-        tab_specs.append(("NMS Trial + Revenue", "nms_trial_revenue"))
-    tab_specs.append(("Quality Control", "quality_control"))
+    has_profit_tab = (
+        profit_result is not None and unit_cost is not None and turnover_result is not None
+    )
+    tab_specs = _build_results_tab_specs(
+        has_turnover=turnover_result is not None,
+        has_profit=has_profit_tab,
+        has_nms=nms_result is not None,
+        language=language,
+    )
     tab_objects = st.tabs([label for label, _ in tab_specs])
     tab_map = {key: tab for tab, (_, key) in zip(tab_objects, tab_specs, strict=False)}
 
     with tab_map["psm"]:
         with st.container(border=True):
             st.plotly_chart(figure, width="stretch")
+        _render_marker_label_override_controls(
+            selection_key=selection_key,
+            chart_id="psm",
+            marker_options=marker_options_by_chart["psm"],
+            language=language,
+        )
         _render_selection_controls_box(
             product_values=product_values,
             segment_values=segment_values,
@@ -994,32 +1379,38 @@ def main() -> None:
             p95_label=p95_label,
             product_key="results_selected_product",
             country_key="results_selected_segment",
+            language=language,
         )
 
         derived_metric_payload = _render_kpi_cards(
             currency + " ",
             kpi_dict,
             additional_metrics,
+            language,
         )
 
         with st.container(border=True):
-            st.markdown("**Summary**")
+            st.markdown(f"**{tr('Summary', language)}**")
             summary_lines = build_psm_summary(
                 kpi_dict,
                 currency=currency,
                 segment_label=str(selected_segment),
                 product_label=str(selected_product),
+                language=language,
             )
-            _render_summary_bullets(summary_lines)
+            _render_summary_bullets(summary_lines, language)
 
     if "turnover" in tab_map and turnover_result is not None:
         with tab_map["turnover"]:
             for note in pi_unit_notes:
-                st.caption(f"PI unit note: {note}")
+                st.caption(tr("PI unit note: {note}", language, note=note))
             turnover_fig = make_pi_economics_figure(
                 turnover_result,
                 currency=currency,
                 mode="turnover",
+                price_benchmarks=tested_price_benchmarks,
+                label_side_overrides=turnover_marker_overrides,
+                language=language,
             )
             max_trial_like_price = _series_max_price(turnover_result.df, "purchase_intention_pct")
             _apply_pair_focus_autoscale(
@@ -1027,6 +1418,7 @@ def main() -> None:
                 first_price=float(turnover_result.max_turnover_price),
                 second_price=max_trial_like_price,
                 increment=increment,
+                extra_prices=tested_price_axis_values,
             )
             _apply_psm_axis_footer(
                 turnover_fig,
@@ -1036,9 +1428,16 @@ def main() -> None:
                 total_n=len(group_df),
                 valid_n=len(valid_df),
                 analysis_n=len(analysis_df),
+                language=language,
             )
             with st.container(border=True):
                 st.plotly_chart(turnover_fig, width="stretch")
+            _render_marker_label_override_controls(
+                selection_key=selection_key,
+                chart_id="turnover",
+                marker_options=marker_options_by_chart["turnover"],
+                language=language,
+            )
             _render_selection_controls_box(
                 product_values=product_values,
                 segment_values=segment_values,
@@ -1053,8 +1452,9 @@ def main() -> None:
                 p95_label=p95_label,
                 product_key="results_selected_product_turnover",
                 country_key="results_selected_segment_turnover",
+                language=language,
             )
-            source_label, source_note = describe_turnover_source(turnover_source)
+            source_label, source_note = describe_turnover_source(turnover_source, language)
             turnover_recommendation_allowed = can_recommend(
                 {"opp": str(kpi_dict.get("opp_status", "closest"))},
                 allow_interval=False,
@@ -1067,11 +1467,12 @@ def main() -> None:
                     else "—"
                 )
                 _render_kpi_card(
-                    title="Maximum Turnover Price",
+                    title=tr("Maximum Turnover Price", language),
                     subtitle=_subtitle_with_badges(
-                        "Price where turnover index reaches its maximum",
-                        lens="Economics proxy",
+                        tr("Price where turnover index reaches its maximum", language),
+                        lens=tr("Economics proxy", language),
                         caution=None if turnover_recommendation_allowed else "unstable",
+                        language=language,
                     ),
                     value=max_turnover_display,
                 )
@@ -1082,18 +1483,23 @@ def main() -> None:
                     else "—"
                 )
                 _render_kpi_card(
-                    title="Maximum Turnover Index",
+                    title=tr("Maximum Turnover Index", language),
                     subtitle=_subtitle_with_badges(
-                        "Normalized turnover score at max-turnover price",
-                        lens="Economics proxy",
+                        tr("Normalized turnover score at max-turnover price", language),
+                        lens=tr("Economics proxy", language),
                         caution=None if turnover_recommendation_allowed else "unstable",
+                        language=language,
                     ),
                     value=max_turnover_index_display,
                 )
             with t_col3:
                 _render_kpi_card(
-                    title="PI Source",
-                    subtitle=_subtitle_with_badges(source_note, lens="Modeled demand"),
+                    title=tr("PI Source", language),
+                    subtitle=_subtitle_with_badges(
+                        source_note,
+                        lens=tr("Modeled demand", language),
+                        language=language,
+                    ),
                     value=source_label,
                 )
             st.markdown("<div class='psm-kpi-row-gap'></div>", unsafe_allow_html=True)
@@ -1104,9 +1510,9 @@ def main() -> None:
                 "reason": (
                     None
                     if turnover_recommendation_allowed
-                    else "Requires clean OPP for optimization statements."
+                    else tr("Requires clean OPP for optimization statements.", language)
                 ),
-                "lens": "Economics proxy",
+                "lens": tr("Economics proxy", language),
             }
             derived_metric_payload["max_turnover_index"] = {
                 "is_stable": turnover_recommendation_allowed,
@@ -1115,13 +1521,13 @@ def main() -> None:
                 "reason": (
                     None
                     if turnover_recommendation_allowed
-                    else "Requires clean OPP for optimization statements."
+                    else tr("Requires clean OPP for optimization statements.", language)
                 ),
-                "lens": "Economics proxy",
+                "lens": tr("Economics proxy", language),
             }
 
             with st.container(border=True):
-                st.markdown("**Purchase Intention and Turnover Summary**")
+                st.markdown(f"**{tr('Purchase Intention and Turnover Summary', language)}**")
                 summary_lines = _build_turnover_summary_safe(
                     turnover_result=turnover_result,
                     currency=currency,
@@ -1130,25 +1536,29 @@ def main() -> None:
                     kpi_statuses={
                         "opp": str(kpi_dict.get("opp_status", "closest")),
                     },
+                    language=language,
                 )
-                _render_summary_bullets(summary_lines)
+                _render_summary_bullets(summary_lines, language)
 
     if "profit" in tab_map and turnover_result is not None and profit_result is not None:
         with tab_map["profit"]:
             for note in pi_unit_notes:
-                st.caption(f"PI unit note: {note}")
+                st.caption(tr("PI unit note: {note}", language, note=note))
             profit_fig = make_pi_economics_figure(
                 turnover_result,
                 currency=currency,
                 mode="profit",
                 profit_result=profit_result,
                 unit_cost=float(unit_cost),
+                price_benchmarks=tested_price_benchmarks,
+                language=language,
             )
             _apply_pair_focus_autoscale(
                 profit_fig,
                 first_price=float(profit_result.max_profit_price),
                 second_price=float(turnover_result.max_turnover_price),
                 increment=increment,
+                extra_prices=tested_price_axis_values,
             )
             _apply_psm_axis_footer(
                 profit_fig,
@@ -1158,6 +1568,7 @@ def main() -> None:
                 total_n=len(group_df),
                 valid_n=len(valid_df),
                 analysis_n=len(analysis_df),
+                language=language,
             )
             with st.container(border=True):
                 st.plotly_chart(profit_fig, width="stretch")
@@ -1175,6 +1586,7 @@ def main() -> None:
                 p95_label=p95_label,
                 product_key="results_selected_product_profit",
                 country_key="results_selected_segment_profit",
+                language=language,
             )
             profit_recommendation_allowed = can_recommend(
                 {
@@ -1191,20 +1603,22 @@ def main() -> None:
                     else "—"
                 )
                 _render_kpi_card(
-                    title="Maximum Profit Price",
+                    title=tr("Maximum Profit Price", language),
                     subtitle=_subtitle_with_badges(
-                        "Price where profit proxy reaches its maximum",
-                        lens="Economics proxy",
+                        tr("Price where profit proxy reaches its maximum", language),
+                        lens=tr("Economics proxy", language),
                         caution=None if profit_recommendation_allowed else "unstable",
+                        language=language,
                     ),
                     value=max_profit_display,
                 )
             with p_col2:
                 _render_kpi_card(
-                    title="Break-even (Cost)",
+                    title=tr("Break-even (Cost)", language),
                     subtitle=_subtitle_with_badges(
-                        "Price where unit margin equals zero",
-                        lens="Economics proxy",
+                        tr("Price where unit margin equals zero", language),
+                        lens=tr("Economics proxy", language),
+                        language=language,
                     ),
                     value=f"{currency} {float(unit_cost):.2f}",
                 )
@@ -1215,11 +1629,12 @@ def main() -> None:
                     else "—"
                 )
                 _render_kpi_card(
-                    title="Maximum Profit Index",
+                    title=tr("Maximum Profit Index", language),
                     subtitle=_subtitle_with_badges(
-                        "Normalized profit proxy score at the optimum",
-                        lens="Economics proxy",
+                        tr("Normalized profit proxy score at the optimum", language),
+                        lens=tr("Economics proxy", language),
                         caution=None if profit_recommendation_allowed else "unstable",
+                        language=language,
                     ),
                     value=max_profit_index_display,
                 )
@@ -1231,9 +1646,9 @@ def main() -> None:
                 "reason": (
                     None
                     if profit_recommendation_allowed
-                    else "Requires clean PMI and PME for optimization statements."
+                    else tr("Requires clean PMI and PME for optimization statements.", language)
                 ),
-                "lens": "Economics proxy",
+                "lens": tr("Economics proxy", language),
             }
             derived_metric_payload["max_profit_index"] = {
                 "is_stable": profit_recommendation_allowed,
@@ -1242,12 +1657,12 @@ def main() -> None:
                 "reason": (
                     None
                     if profit_recommendation_allowed
-                    else "Requires clean PMI and PME for optimization statements."
+                    else tr("Requires clean PMI and PME for optimization statements.", language)
                 ),
-                "lens": "Economics proxy",
+                "lens": tr("Economics proxy", language),
             }
             with st.container(border=True):
-                st.markdown("**Profit Summary**")
+                st.markdown(f"**{tr('Profit Summary', language)}**")
                 summary_lines = _build_profit_summary_safe(
                     profit_result=profit_result,
                     currency=currency,
@@ -1257,19 +1672,26 @@ def main() -> None:
                         "pmi": str(kpi_dict.get("pmi_status", "closest")),
                         "pme": str(kpi_dict.get("pme_status", "closest")),
                     },
+                    language=language,
                 )
-                _render_summary_bullets(summary_lines)
+                _render_summary_bullets(summary_lines, language)
 
     if "nms_trial_revenue" in tab_map and nms_result is not None:
         with tab_map["nms_trial_revenue"]:
             for note in pi_unit_notes:
-                st.caption(f"PI unit note: {note}")
-            nms_fig = make_nms_figure(nms_result)
+                st.caption(tr("PI unit note: {note}", language, note=note))
+            nms_fig = make_nms_figure(
+                nms_result,
+                price_benchmarks=tested_price_benchmarks,
+                label_side_overrides=nms_marker_overrides,
+                language=language,
+            )
             _apply_pair_focus_autoscale(
                 nms_fig,
                 first_price=float(nms_result.max_trial_price),
                 second_price=float(nms_result.max_revenue_price),
                 increment=increment,
+                extra_prices=tested_price_axis_values,
             )
             _apply_psm_axis_footer(
                 nms_fig,
@@ -1279,9 +1701,16 @@ def main() -> None:
                 total_n=len(group_df),
                 valid_n=len(valid_df),
                 analysis_n=int(nms_result.included_n),
+                language=language,
             )
             with st.container(border=True):
                 st.plotly_chart(nms_fig, width="stretch")
+            _render_marker_label_override_controls(
+                selection_key=selection_key,
+                chart_id="nms",
+                marker_options=marker_options_by_chart["nms"],
+                language=language,
+            )
             _render_selection_controls_box(
                 product_values=product_values,
                 segment_values=segment_values,
@@ -1296,51 +1725,84 @@ def main() -> None:
                 p95_label=p95_label,
                 product_key="results_selected_product_nms",
                 country_key="results_selected_segment_nms",
+                language=language,
             )
             n_col1, n_col2, n_col3 = st.columns(3)
             with n_col1:
                 _render_kpi_card(
-                    title="Max Trial Price",
-                    subtitle="(Price where modeled trial intent reaches its maximum)",
+                    title=tr("Max Trial Price", language),
+                    subtitle=tr("(Price where modeled trial intent reaches its maximum)", language),
                     value=f"{currency} {nms_result.max_trial_price:.2f}",
                 )
             with n_col2:
                 _render_kpi_card(
-                    title="Max Revenue Price",
-                    subtitle="(Price where modeled revenue per 100 reaches its maximum)",
+                    title=tr("Max Revenue Price", language),
+                    subtitle=tr(
+                        "(Price where modeled revenue per 100 reaches its maximum)", language
+                    ),
                     value=f"{currency} {nms_result.max_revenue_price:.2f}",
                 )
             with n_col3:
                 _render_kpi_card(
-                    title="NMS Included N",
-                    subtitle="(Respondents included after PI eligibility and missing checks)",
+                    title=tr("NMS Included N", language),
+                    subtitle=tr(
+                        "(Respondents included after PI eligibility and missing checks)", language
+                    ),
                     value=str(nms_result.included_n),
                 )
             st.markdown("<div class='psm-kpi-row-gap'></div>", unsafe_allow_html=True)
             if nms_result.filter_note:
-                st.caption(nms_result.filter_note)
+                st.caption(tr(str(nms_result.filter_note), language))
             if weight_col and not nms_result.weighting_applied:
                 st.caption(
-                    "NMS weight fallback active: invalid/empty weights were replaced by "
-                    "unweighted averaging."
+                    tr(
+                        (
+                            "NMS weight fallback active: invalid/empty weights "
+                            "were replaced by unweighted averaging."
+                        ),
+                        language,
+                    )
                 )
             with st.container(border=True):
-                st.markdown("**Summary**")
+                st.markdown(f"**{tr('Summary', language)}**")
                 summary_lines = build_nms_summary(
                     nms_result,
                     currency=currency,
                     segment_label=str(selected_segment),
+                    language=language,
                 )
-                _render_summary_bullets(summary_lines)
+                _render_summary_bullets(summary_lines, language)
+
+    with tab_map["kpi_summary"]:
+        kpi_summary_fig = make_kpi_summary_figure(
+            {
+                "product_id": selected_product,
+                "segment": selected_segment,
+                "currency": currency,
+                "kpis": kpi_dict,
+                "turnover_index_result": turnover_result,
+                "tested_price": tested_price_value,
+                "tested_price_active": bool(tested_price_active),
+                "language": language,
+            }
+        )
+        with st.container(border=True):
+            st.plotly_chart(kpi_summary_fig, width="stretch")
 
     with tab_map["quality_control"]:
         st.dataframe(qc_df, width="stretch")
         if weight_col and not psm_weighting_applied:
             st.caption(
-                "Weight fallback active: weight column exists but is unusable "
-                "(all missing/zero/invalid). Unweighted calculation was applied."
+                tr(
+                    (
+                        "Weight fallback active: weight column exists but is "
+                        "unusable (all missing/zero/invalid). Unweighted "
+                        "calculation was applied."
+                    ),
+                    language,
+                )
             )
-        with st.expander("Outlier bounds", expanded=False):
+        with st.expander(tr("Outlier bounds", language), expanded=False):
             st.dataframe(outlier_result.bounds.reset_index(), width="stretch")
 
     st.session_state["psm_analysis_payload"] = {
@@ -1360,7 +1822,15 @@ def main() -> None:
         "derived_metric_status": derived_metric_payload,
         "turnover_source": turnover_source,
         "unit_cost": unit_cost,
+        "tested_price": tested_price_value,
+        "tested_price_active": bool(tested_price_active),
+        "language": language,
+        "marker_label_side_overrides": dict(
+            st.session_state.get("marker_label_side_overrides_by_key", {}).get(selection_key, {})
+        ),
         "puki_threshold": puki_threshold,
+        "puki_filter_applied_to_analysis": puki_filter_applied_to_analysis,
+        "puki_excluded_from_analysis_n": puki_excluded_from_analysis_n,
         "plausibility_filter_applied": plausibility_filter_enabled,
         "invalid_ordering_n": invalid_ordering_n,
         "outlier_settings": {

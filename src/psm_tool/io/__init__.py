@@ -7,6 +7,7 @@ from psm_tool.io.price_sanitization import (
 )
 from psm_tool.io.read_any import (
     SAVDependencyError,
+    SAVUploadNotSupportedError,
     read_any,
     read_optional_pi_ladder,
     read_pi_ladder,
@@ -24,6 +25,7 @@ __all__ = [
     "filter_valid_prices",
     "is_valid_price",
     "SAVDependencyError",
+    "SAVUploadNotSupportedError",
     "read_any",
     "read_optional_pi_ladder",
     "read_pi_ladder",

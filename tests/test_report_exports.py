@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from io import BytesIO
 
 import numpy as np
@@ -14,9 +15,24 @@ from psm_tool.plots.render_static import (
     BrowserPreflightError,
     check_kaleido_browser,
     figure_to_png_bytes,
+    prepare_figure_for_static_export,
 )
 from psm_tool.report.excel_export import build_excel_report
-from psm_tool.report.pptx_builder import build_pptx_report
+from psm_tool.report.pptx_builder import (
+    TITLE_FONT_SIZE_PT,
+    TITLE_MIN_FONT_SIZE_PT,
+    _chart_label_overrides,
+    _contained_rect,
+    _fit_headline_for_pptx,
+    _headline_from_sentence,
+    _png_ratio,
+    _truncate_text,
+    build_pptx_report,
+)
+
+TINY_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+)
 
 
 def _sample_curves() -> pd.DataFrame:
@@ -82,6 +98,57 @@ def test_plotly_png_render_succeeds_when_browser_available() -> None:
     assert len(payload) > 100
 
 
+def test_static_export_preparation_adds_safe_chart_margins() -> None:
+    fig = go.Figure(data=[go.Scatter(x=[0, 1], y=[0, 1])])
+    fig.update_layout(margin={"l": 5, "r": 10, "t": 20, "b": 15})
+
+    prepared = prepare_figure_for_static_export(fig)
+
+    assert prepared.layout.margin.l >= 70
+    assert prepared.layout.margin.r >= 70
+    assert prepared.layout.margin.t >= 120
+    assert prepared.layout.margin.b >= 40
+    assert fig.layout.margin.t == 20
+
+
+def test_static_export_preparation_can_keep_exact_figure_margins() -> None:
+    fig = go.Figure(data=[go.Scatter(x=[0, 1], y=[0, 1])])
+    fig.update_layout(margin={"l": 0, "r": 0, "t": 0, "b": 0})
+
+    prepared = prepare_figure_for_static_export(fig, safe_margins=False)
+
+    assert prepared.layout.margin.l == 0
+    assert prepared.layout.margin.r == 0
+    assert prepared.layout.margin.t == 0
+    assert prepared.layout.margin.b == 0
+
+
+def test_pptx_contained_rect_preserves_image_ratio() -> None:
+    x, y, width, height = _contained_rect(
+        x=1.0,
+        y=2.0,
+        width=8.0,
+        height=2.0,
+        image_ratio=16.0 / 9.0,
+    )
+
+    assert x > 1.0
+    assert y == 2.0
+    assert height == 2.0
+    assert round(width / height, 6) == round(16.0 / 9.0, 6)
+
+
+def test_png_ratio_reads_png_header() -> None:
+    png = (
+        b"\x89PNG\r\n\x1a\n"
+        + b"\x00\x00\x00\rIHDR"
+        + (1600).to_bytes(4, "big")
+        + (900).to_bytes(4, "big")
+    )
+
+    assert round(_png_ratio(png), 6) == round(16.0 / 9.0, 6)
+
+
 def test_pptx_export_builds_report() -> None:
     try:
         check_kaleido_browser()
@@ -102,6 +169,107 @@ def test_pptx_export_builds_report() -> None:
     assert "Model suggests" in full_text
     assert "Perception | Classic / DE (EUR)" in full_text
     assert "Economics proxy | Classic / DE (EUR)" in full_text
+
+
+def test_pptx_chart_label_overrides_are_read_by_chart_id() -> None:
+    analysis = {
+        "marker_label_side_overrides": {
+            "psm": {"pmi": "left", "opp": "auto"},
+            "nms": {"max_revenue": "right"},
+        }
+    }
+
+    assert _chart_label_overrides(analysis, "psm") == {"pmi": "left"}
+    assert _chart_label_overrides(analysis, "nms") == {"max_revenue": "right"}
+    assert _chart_label_overrides(analysis, "turnover") == {}
+
+
+def test_pptx_chart_builders_receive_marker_overrides(monkeypatch) -> None:
+    captured = {}
+
+    def fake_psm_figure(*args, label_side_overrides=None, **kwargs):
+        captured["psm"] = label_side_overrides
+        return go.Figure()
+
+    def fake_turnover_figure(*args, label_side_overrides=None, **kwargs):
+        captured["turnover"] = label_side_overrides
+        return go.Figure()
+
+    monkeypatch.setattr("psm_tool.report.pptx_builder.make_psm_figure", fake_psm_figure)
+    monkeypatch.setattr(
+        "psm_tool.report.pptx_builder.make_turnover_index_figure",
+        fake_turnover_figure,
+    )
+    monkeypatch.setattr("psm_tool.report.pptx_builder.figure_to_png_bytes", lambda fig: TINY_PNG)
+    monkeypatch.setattr(
+        "psm_tool.report.pptx_builder.kpi_summary_png_bytes",
+        lambda analysis: TINY_PNG,
+    )
+
+    payload = _sample_payload()
+    payload["analyses"][0]["marker_label_side_overrides"] = {
+        "psm": {"pmi": "left"},
+        "turnover": {"max_turnover_price": "right"},
+    }
+
+    build_pptx_report(payload)
+
+    assert captured["psm"] == {"pmi": "left"}
+    assert captured["turnover"] == {"max_turnover_price": "right"}
+
+
+def test_pptx_headline_fitting_wraps_and_reduces_before_shortening() -> None:
+    headline = (
+        "This headline is intentionally long enough to need a slightly smaller font "
+        "while still fitting as wrapped PowerPoint title text"
+    )
+
+    fitted, font_size = _fit_headline_for_pptx(headline)
+
+    assert fitted == headline
+    assert font_size < TITLE_FONT_SIZE_PT
+    assert font_size >= TITLE_MIN_FONT_SIZE_PT
+    assert not fitted.endswith("...")
+
+
+def test_pptx_headline_shortening_uses_phrase_boundaries() -> None:
+    headline = (
+        "The acceptable range remains stable under current assumptions with additional "
+        "diagnostic detail that would otherwise overrun the available PowerPoint title box"
+    )
+
+    fitted, font_size = _fit_headline_for_pptx(headline)
+
+    assert fitted == "The acceptable range remains stable."
+    assert font_size == TITLE_MIN_FONT_SIZE_PT
+    assert not fitted.endswith("...")
+    assert not fitted.endswith(("under...", "under curre...", "The acceptable r..."))
+
+
+def test_pptx_headline_last_resort_shortening_does_not_cut_mid_word() -> None:
+    headline = (
+        "A deliberately long headline made of meaningful words that has no low information "
+        "trailing connector and therefore must fall back to a clean whole word ending before "
+        "the title box becomes too crowded"
+    )
+
+    fitted, _ = _fit_headline_for_pptx(headline)
+    without_ellipsis = fitted.removesuffix("...")
+
+    assert fitted.endswith("...")
+    assert without_ellipsis
+    assert headline.startswith(without_ellipsis)
+    assert headline[len(without_ellipsis) :].startswith(" ")
+
+
+def test_pptx_headline_source_no_longer_clips_before_presentation_fitting() -> None:
+    headline = (
+        "The acceptable range remains semantically complete even when the presentation "
+        "layer later has to decide how to fit it into the title box"
+    )
+
+    assert _headline_from_sentence(headline, "Fallback") == headline
+    assert _truncate_text("abcdefghijklmnopqrstuvwxyz", 10) == "abcdefg..."
 
 
 def test_pptx_export_includes_profit_sentence_only_when_cost_is_provided() -> None:
@@ -139,8 +307,9 @@ def test_pptx_export_adds_all_available_slides_for_each_analysis() -> None:
     payload["analyses"] = [analysis, {**analysis, "product_id": "Premium", "segment": "CH"}]
 
     presentation = Presentation(BytesIO(build_pptx_report(payload)))
-    # Per analysis: PSM + Turnover + Profit (+ NMS only when available; sample payload has no NMS)
-    assert len(presentation.slides) == 6
+    # Per analysis: KPI Summary + PSM + Turnover + Profit
+    # (+ NMS only when available; sample payload has no NMS)
+    assert len(presentation.slides) == 8
 
 
 def test_pptx_export_shapes_stay_within_slide_bounds() -> None:

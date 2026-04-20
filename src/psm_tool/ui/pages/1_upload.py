@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-import tempfile
 from importlib import resources
 from io import BytesIO
-from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
 from psm_tool.config import AppConfig
+from psm_tool.i18n import get_language, tr
 from psm_tool.io.read_any import (
     SAVDependencyError,
+    SAVUploadNotSupportedError,
     read_any,
     read_optional_pi_ladder,
 )
@@ -34,34 +34,6 @@ def _xlsx_template_bytes() -> bytes:
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         _empty_template_df().to_excel(writer, sheet_name="template", index=False)
     return output.getvalue()
-
-
-def _sav_template_bytes() -> tuple[bytes | None, str | None]:
-    try:
-        import pyreadstat  # type: ignore[import-not-found]
-    except ImportError:
-        return (
-            None,
-            "SAV template download requires optional dependency 'pyreadstat' "
-            "(install with: pip install -e .[sav]).",
-        )
-
-    temp_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            suffix=".sav",
-            prefix=".tmp_psm_template_",
-            dir=Path.cwd(),
-            delete=False,
-        ) as handle:
-            temp_path = Path(handle.name)
-        pyreadstat.write_sav(_empty_template_df(), str(temp_path))
-        return temp_path.read_bytes(), None
-    except Exception as exc:
-        return None, f"SAV template generation unavailable: {exc}"
-    finally:
-        if temp_path is not None and temp_path.exists():
-            temp_path.unlink()
 
 
 def _load_sample_dataset() -> pd.DataFrame:
@@ -92,7 +64,7 @@ def _store_dataset(
 
 def _display_source_name(source_name: str) -> str:
     if source_name.strip().lower() == "sample_psm.csv":
-        return "demo_psm.csv (synthetic example dataset)"
+        return tr("demo_psm.csv (synthetic example dataset)")
     return source_name
 
 
@@ -107,22 +79,23 @@ def _render_validation_messages() -> None:
 
 
 def _render_loaded_dataset_summary(df: pd.DataFrame, *, demo_mode: bool) -> None:
+    language = get_language()
     segments = int(df["segment"].nunique(dropna=True)) if "segment" in df.columns else 0
     products = int(df["product_id"].nunique(dropna=True)) if "product_id" in df.columns else 0
     currencies = int(df["currency"].nunique(dropna=True)) if "currency" in df.columns else 0
 
     col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("Rows", f"{len(df)}")
-    col2.metric("Columns", f"{len(df.columns)}")
-    col3.metric("Countries", f"{segments}")
-    col4.metric("Product Categories", f"{products}")
-    col5.metric("Currencies", f"{currencies}")
+    col1.metric(tr("Rows", language), f"{len(df)}")
+    col2.metric(tr("Columns", language), f"{len(df.columns)}")
+    col3.metric(tr("Countries", language), f"{segments}")
+    col4.metric(tr("Product Categories", language), f"{products}")
+    col5.metric(tr("Currencies", language), f"{currencies}")
 
     if demo_mode:
-        st.caption("DEMO_MODE hides raw row preview.")
+        st.caption(tr("DEMO_MODE hides raw row preview.", language))
         return
 
-    with st.expander("Preview first 30 rows", expanded=False):
+    with st.expander(tr("Preview first 30 rows", language), expanded=False):
         st.dataframe(df.head(30), width="stretch")
 
 
@@ -130,27 +103,36 @@ def main() -> None:
     require_auth()
     config = AppConfig()
     inject_base_styles(max_width=2800)
+    language = get_language()
 
-    st.markdown('<p class="psm-page-eyebrow">Data Intake</p>', unsafe_allow_html=True)
-    st.title("1. Upload")
-    st.caption("Accepted formats: CSV, XLSX, SAV")
+    st.markdown(
+        f'<p class="psm-page-eyebrow">{tr("Data Intake", language)}</p>',
+        unsafe_allow_html=True,
+    )
+    st.title(tr("1. Upload", language))
+    st.caption(tr("Accepted formats: CSV, XLSX", language))
     render_page_nav_top("upload")
 
     with st.container(border=True):
         st.markdown(
-            "Privacy safeguard: all uploaded files are processed in-memory "
-            "and not persisted by default."
+            tr(
+                (
+                    "Privacy safeguard: all uploaded files are processed "
+                    "in-memory and not persisted by default."
+                ),
+                language,
+            )
         )
 
     with st.container(border=True):
         st.markdown(
-            '<div class="psm-card-title">Template and Demo Data</div>',
+            f'<div class="psm-card-title">{tr("Template and Demo Data", language)}</div>',
             unsafe_allow_html=True,
         )
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         with col1:
             st.download_button(
-                "Download CSV template",
+                tr("Download CSV template", language),
                 data=_csv_template_bytes(),
                 file_name="psm_template.csv",
                 mime="text/csv",
@@ -158,25 +140,14 @@ def main() -> None:
             )
         with col2:
             st.download_button(
-                "Download XLSX template",
+                tr("Download XLSX template", language),
                 data=_xlsx_template_bytes(),
                 file_name="psm_template.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 width="stretch",
             )
         with col3:
-            sav_bytes, sav_hint = _sav_template_bytes()
-            st.download_button(
-                "Download SAV template",
-                data=sav_bytes if sav_bytes is not None else b"",
-                file_name="psm_template.sav",
-                mime="application/octet-stream",
-                width="stretch",
-                disabled=sav_bytes is None,
-                help=sav_hint if sav_hint else "SPSS template with the required schema.",
-            )
-        with col4:
-            if st.button("Load example dataset", width="stretch"):
+            if st.button(tr("Load example dataset", language), width="stretch"):
                 _store_dataset(
                     _load_sample_dataset(),
                     source_name="sample_psm.csv",
@@ -184,19 +155,29 @@ def main() -> None:
                 )
 
     with st.container(border=True):
-        st.markdown('<div class="psm-card-title">Upload Input File</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="psm-card-title">{tr("Upload Input File", language)}</div>',
+            unsafe_allow_html=True,
+        )
         if has_loaded_dataset(st.session_state):
             source = str(st.session_state.get("psm_input_source") or "loaded dataset")
             source = _display_source_name(source)
-            render_notice(f"Current dataset loaded: {source}", tone="positive")
-            if st.button("Remove current dataset", type="secondary", width="stretch"):
+            render_notice(
+                tr("Current dataset loaded: {source}", language, source=source),
+                tone="positive",
+            )
+            if st.button(
+                tr("Remove current dataset", language),
+                type="secondary",
+                width="stretch",
+            ):
                 clear_loaded_dataset_state(st.session_state)
                 st.rerun()
         else:
             uploaded = st.file_uploader(
-                "Choose input dataset",
-                type=["csv", "xlsx", "sav"],
-                help="Required template columns must match exactly.",
+                tr("Choose input dataset", language),
+                type=["csv", "xlsx"],
+                help=tr("Required template columns must match exactly.", language),
             )
             if uploaded is not None:
                 try:
@@ -204,13 +185,22 @@ def main() -> None:
                     frame = read_any(payload, filename=uploaded.name)
                 except SAVDependencyError as exc:
                     render_notice(str(exc))
+                except SAVUploadNotSupportedError as exc:
+                    render_notice(str(exc))
                 except Exception as exc:
                     render_notice(f"Failed to read '{uploaded.name}': {exc}")
                 else:
                     if config.demo_mode and len(frame) > config.max_rows_demo:
                         render_notice(
-                            "DEMO_MODE upload limit exceeded: "
-                            f"{len(frame)} rows provided, max {config.max_rows_demo} allowed."
+                            tr(
+                                (
+                                    "DEMO_MODE upload limit exceeded: {rows} "
+                                    "rows provided, max {limit} allowed."
+                                ),
+                                language,
+                                rows=len(frame),
+                                limit=config.max_rows_demo,
+                            )
                         )
                     else:
                         auto_ladder = read_optional_pi_ladder(payload, filename=uploaded.name)
@@ -220,13 +210,24 @@ def main() -> None:
                             pi_ladder_df=auto_ladder,
                         )
                         render_notice(
-                            f"Loaded '{uploaded.name}' with {len(frame)} rows.",
+                            tr(
+                                "Loaded '{filename}' with {rows} rows.",
+                                language,
+                                filename=uploaded.name,
+                                rows=len(frame),
+                            ),
                             tone="positive",
                         )
                         if auto_ladder is not None:
                             render_notice(
-                                "Detected optional purchase intention ladder table "
-                                "(sheet 'purchase_intention').",
+                                tr(
+                                    (
+                                        "Detected optional purchase intention "
+                                        "ladder table (sheet "
+                                        "'purchase_intention')."
+                                    ),
+                                    language,
+                                ),
                                 tone="positive",
                             )
 
@@ -234,12 +235,12 @@ def main() -> None:
 
     current_df = st.session_state.get("psm_input_df")
     if current_df is None:
-        render_notice("No valid dataset loaded yet.")
+        render_notice(tr("No valid dataset loaded yet.", language))
         render_page_nav_bottom("upload")
         return
 
     with st.container(border=True):
-        render_notice("Dataset loaded and valid for analysis.", tone="positive")
+        render_notice(tr("Dataset loaded and valid for analysis.", language), tone="positive")
         _render_loaded_dataset_summary(current_df, demo_mode=config.demo_mode)
 
     render_page_nav_bottom("upload")

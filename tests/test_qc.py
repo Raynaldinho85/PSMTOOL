@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from psm_tool.core.qc import apply_psm_validity_filter, compute_qc_report
+from psm_tool.core.qc import apply_psm_validity_filter, apply_puki_filter, compute_qc_report
 
 
 def _qc_df() -> pd.DataFrame:
@@ -40,3 +40,55 @@ def test_compute_qc_report_handles_missing_puki_column() -> None:
     assert qc.puki_filter_applied is False
     assert qc.puki_threshold is None
     assert qc.puki_pass_n is None
+
+
+def test_apply_puki_filter_mixed_thresholds() -> None:
+    df = pd.DataFrame({"puki": [2, 3], "value": ["strict", "neutral"]})
+
+    strict, strict_mask = apply_puki_filter(df, puki_threshold=2)
+    neutral, neutral_mask = apply_puki_filter(df, puki_threshold=3)
+
+    assert strict["value"].tolist() == ["strict"]
+    assert strict_mask.tolist() == [True, False]
+    assert neutral["value"].tolist() == ["strict", "neutral"]
+    assert neutral_mask.tolist() == [True, True]
+
+
+def test_apply_puki_filter_only_twos_is_unchanged_by_threshold_three() -> None:
+    df = pd.DataFrame({"puki": [1, 2], "value": [10, 20]})
+
+    strict, _ = apply_puki_filter(df, puki_threshold=2)
+    neutral, _ = apply_puki_filter(df, puki_threshold=3)
+
+    assert strict["value"].tolist() == [10, 20]
+    assert neutral["value"].tolist() == [10, 20]
+
+
+def test_apply_puki_filter_only_threes_are_controlled_by_threshold() -> None:
+    df = pd.DataFrame({"puki": [3, 3], "value": [10, 20]})
+
+    strict, strict_mask = apply_puki_filter(df, puki_threshold=2)
+    neutral, neutral_mask = apply_puki_filter(df, puki_threshold=3)
+
+    assert strict.empty
+    assert strict_mask.tolist() == [False, False]
+    assert neutral["value"].tolist() == [10, 20]
+    assert neutral_mask.tolist() == [True, True]
+
+
+def test_apply_puki_filter_excludes_missing_and_non_numeric_values() -> None:
+    df = pd.DataFrame({"puki": [2, None, "bad", 3], "value": [10, 20, 30, 40]})
+
+    filtered, mask = apply_puki_filter(df, puki_threshold=3)
+
+    assert filtered["value"].tolist() == [10, 40]
+    assert mask.tolist() == [True, False, False, True]
+
+
+def test_apply_puki_filter_missing_column_is_noop() -> None:
+    df = pd.DataFrame({"value": [10, 20]})
+
+    filtered, mask = apply_puki_filter(df, puki_threshold=2)
+
+    assert filtered.equals(df)
+    assert mask.tolist() == [True, True]

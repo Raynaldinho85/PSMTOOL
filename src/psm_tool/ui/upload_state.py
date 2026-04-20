@@ -14,3 +14,5 @@ def clear_loaded_dataset_state(state: MutableMapping[str, object]) -> None:
     state["psm_validation_errors"] = []
     state["psm_validation_warnings"] = []
     state["psm_input_source"] = None
+    state["tested_price_by_key"] = {}
+    state["tested_price_active_by_key"] = {}

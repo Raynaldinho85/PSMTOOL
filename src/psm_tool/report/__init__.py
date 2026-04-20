@@ -7,6 +7,7 @@ from psm_tool.report.insights import (
     build_nms_summary,
     build_psm_summary,
 )
+from psm_tool.report.kpi_summary_png import kpi_summary_png_bytes, make_kpi_summary_figure
 from psm_tool.report.pptx_builder import build_pptx_report
 
 __all__ = [
@@ -16,4 +17,6 @@ __all__ = [
     "build_nms_summary",
     "build_pptx_report",
     "build_psm_summary",
+    "kpi_summary_png_bytes",
+    "make_kpi_summary_figure",
 ]

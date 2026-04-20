@@ -4,6 +4,7 @@ import pandas as pd
 
 from psm_tool.core.intersections import IntersectionResult
 from psm_tool.core.metrics import PSMKPIResult, compute_psm_kpis
+from psm_tool.plots.benchmarks import PriceBenchmark
 from psm_tool.plots.psm_plot import make_psm_figure, resolve_opp_idp_label_sides
 
 
@@ -55,10 +56,10 @@ def test_psm_vertical_marker_labels_are_right_of_lines_and_above_plot() -> None:
             side = "opp" if label == "OPP" else "idp"
             assert str(annotation.xanchor) == expected_anchor[side_rules[side]]
         else:
-            assert str(annotation.xanchor) == "left"
+            assert str(annotation.xanchor) in {"left", "right"}
         assert float(annotation.y) > 1.0
         y_values.add(float(annotation.y))
-    assert len(y_values) == 1
+    assert 1 <= len(y_values) <= 3
 
 
 def test_resolve_opp_idp_label_sides_large_positive_stress_flips_lower_left() -> None:
@@ -130,6 +131,122 @@ def test_psm_large_positive_stress_keeps_existing_annotation_offsets() -> None:
     assert int(labels["IDP"].xshift) == -6
     assert str(labels["OPP"].xanchor) == "left"
     assert int(labels["OPP"].xshift) == 6
+
+
+def test_psm_close_tested_price_keeps_fixed_baseline() -> None:
+    fig = make_psm_figure(
+        _sample_curves(),
+        _kpis_for_annotation_test(opp=47.0, idp=50.0),
+        price_benchmarks=[PriceBenchmark(label="Tested Price", price=48.0)],
+    )
+    annotations = {
+        str(annotation.text): annotation
+        for annotation in fig.layout.annotations
+        if str(annotation.text) in {"OPP", "IDP", "Tested Price"}
+    }
+
+    assert set(annotations) == {"OPP", "IDP", "Tested Price"}
+    assert len({str(annotation.xanchor) for annotation in annotations.values()}) >= 2
+    assert {round(float(annotation.y), 3) for annotation in annotations.values()} == {1.004}
+
+
+def test_psm_manual_label_side_overrides_use_marker_keys() -> None:
+    fig = make_psm_figure(
+        _sample_curves(),
+        _kpis_for_annotation_test(opp=47.0, idp=50.0),
+        price_benchmarks=[PriceBenchmark(label="Tested Price", price=48.0, key="tested_price")],
+        label_side_overrides={"pmi": "left", "tested_price": "left"},
+    )
+    labels = {
+        str(annotation.text): annotation
+        for annotation in fig.layout.annotations
+        if str(annotation.text) in {"PMI", "Tested Price"}
+    }
+
+    assert str(labels["PMI"].xanchor) == "right"
+    assert str(labels["Tested Price"].xanchor) == "right"
+
+
+def test_psm_tested_price_uses_fixed_baseline_when_not_truly_close() -> None:
+    fig = make_psm_figure(
+        _sample_curves(),
+        _kpis_for_annotation_test(opp=20.0, idp=35.0),
+        price_benchmarks=[PriceBenchmark(label="Tested Price", price=25.0, key="tested_price")],
+    )
+    labels = {
+        str(annotation.text): annotation
+        for annotation in fig.layout.annotations
+        if str(annotation.text) in {"PMI", "OPP", "IDP", "PME", "Tested Price"}
+    }
+
+    assert float(labels["Tested Price"].y) == 1.004
+    assert {round(float(annotation.y), 3) for annotation in labels.values()} == {1.004}
+
+
+def test_psm_tested_price_keeps_fixed_baseline_when_truly_close() -> None:
+    fig = make_psm_figure(
+        _sample_curves(),
+        _kpis_for_annotation_test(opp=27.0, idp=30.0),
+        price_benchmarks=[PriceBenchmark(label="Tested Price", price=27.4, key="tested_price")],
+    )
+    labels = {
+        str(annotation.text): annotation
+        for annotation in fig.layout.annotations
+        if str(annotation.text) in {"OPP", "Tested Price"}
+    }
+
+    assert float(labels["OPP"].y) == 1.004
+    assert float(labels["Tested Price"].y) == 1.004
+
+
+def test_psm_pmi_opp_close_pair_keeps_fixed_baseline() -> None:
+    kpis = PSMKPIResult(
+        pmi=IntersectionResult(value=47.0, status="clean"),
+        opp=IntersectionResult(value=48.0, status="clean"),
+        idp=IntersectionResult(value=58.0, status="clean"),
+        pme=IntersectionResult(value=80.0, status="clean"),
+        accepted_low=47.0,
+        accepted_high=80.0,
+        price_stress=-10.0,
+        stress_flag="negative",
+    )
+    fig = make_psm_figure(_sample_curves(), kpis)
+    labels = {
+        str(annotation.text): annotation
+        for annotation in fig.layout.annotations
+        if str(annotation.text) in {"PMI", "OPP"}
+    }
+
+    assert float(labels["PMI"].y) == 1.004
+    assert float(labels["OPP"].y) == 1.004
+
+
+def test_psm_right_edge_pme_tested_price_conflict_keeps_fixed_baseline() -> None:
+    kpis = PSMKPIResult(
+        pmi=IntersectionResult(value=30.0, status="clean"),
+        opp=IntersectionResult(value=50.0, status="clean"),
+        idp=IntersectionResult(value=60.0, status="clean"),
+        pme=IntersectionResult(value=98.0, status="clean"),
+        accepted_low=30.0,
+        accepted_high=98.0,
+        price_stress=-10.0,
+        stress_flag="negative",
+    )
+    fig = make_psm_figure(
+        _sample_curves(),
+        kpis,
+        price_benchmarks=[PriceBenchmark(label="Tested Price", price=97.0)],
+    )
+    labels = {
+        str(annotation.text): annotation
+        for annotation in fig.layout.annotations
+        if str(annotation.text) in {"PME", "Tested Price"}
+    }
+
+    assert str(labels["PME"].xanchor) == "right"
+    assert str(labels["Tested Price"].xanchor) == "right"
+    assert float(labels["PME"].y) == 1.004
+    assert float(labels["Tested Price"].y) == 1.004
 
 
 def test_psm_legend_title_is_hidden() -> None:

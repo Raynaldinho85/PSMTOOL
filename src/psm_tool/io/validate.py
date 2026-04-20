@@ -6,6 +6,7 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
+from psm_tool.i18n.runtime import tr
 from psm_tool.io.price_sanitization import sanitize_negative_price_columns
 
 REQUIRED_COLUMNS = {
@@ -87,7 +88,12 @@ def _coerce_numeric(df: pd.DataFrame, warnings: list[str]) -> None:
         newly_missing = max(new_missing - original_missing, 0)
         if newly_missing:
             warnings.append(
-                f"Column '{column}' has {newly_missing} non-numeric values; coerced to missing."
+                tr(
+                    "Column '{column}' has {count} non-numeric values; coerced to missing.",
+                    None,
+                    column=column,
+                    count=newly_missing,
+                )
             )
         df[column] = coerced.astype(float)
 
@@ -97,15 +103,25 @@ def _range_checks(df: pd.DataFrame, warnings: list[str]) -> None:
         invalid_weight = int((df["weight"] <= 0).fillna(False).sum())
         if invalid_weight:
             warnings.append(
-                f"Column 'weight' has {invalid_weight} non-positive values; "
-                "they are ignored in weighted stats."
+                tr(
+                    (
+                        "Column 'weight' has {count} non-positive "
+                        "values; they are ignored in weighted stats."
+                    ),
+                    None,
+                    count=invalid_weight,
+                )
             )
 
     if "puki" in df.columns:
         invalid_puki = int((~df["puki"].isin([1, 2, 3, 4, 5])).fillna(False).sum())
         if invalid_puki:
             warnings.append(
-                f"Column 'puki' has {invalid_puki} values outside 1..5; they are ignored."
+                tr(
+                    "Column 'puki' has {count} values outside 1..5; they are ignored.",
+                    None,
+                    count=invalid_puki,
+                )
             )
 
     for pi_col in ("pi_bargain_pct", "pi_expensive_pct"):
@@ -114,7 +130,12 @@ def _range_checks(df: pd.DataFrame, warnings: list[str]) -> None:
         invalid_pi = int(((df[pi_col] < 0) | (df[pi_col] > 100)).fillna(False).sum())
         if invalid_pi:
             warnings.append(
-                f"Column '{pi_col}' has {invalid_pi} values outside 0..100; NMS clamps them."
+                tr(
+                    "Column '{pi_col}' has {count} values outside 0..100; NMS clamps them.",
+                    None,
+                    pi_col=pi_col,
+                    count=invalid_pi,
+                )
             )
 
 
@@ -172,7 +193,7 @@ def normalize_pi_code11_pair(
 
     out[col_a] = 10.0 + ((series_a - 1.0) * 9.0)
     out[col_b] = 10.0 + ((series_b - 1.0) * 9.0)
-    return out, PI_CODE11_NORMALIZED_WARNING
+    return out, tr(PI_CODE11_NORMALIZED_WARNING, None)
 
 
 def _fraction_strong_evidence(values: pd.Series) -> bool:
@@ -213,16 +234,16 @@ def normalize_pi_pair_units(
         mode_a == "fraction" and mode_b == "percent"
     )
     if mixed_units:
-        raise ValueError(PI_UNIT_MIXED_ERROR)
+        raise ValueError(tr(PI_UNIT_MIXED_ERROR, None))
 
     if mode_a == "fraction" and mode_b == "fraction":
         combined = pd.concat([series_a, series_b], ignore_index=True)
         if _fraction_strong_evidence(combined):
             out[col_a] = series_a * 100.0
             out[col_b] = series_b * 100.0
-            return out, PI_UNIT_NORMALIZED_WARNING
+            return out, tr(PI_UNIT_NORMALIZED_WARNING, None)
         if _fraction_is_tiny(combined):
-            return out, PI_UNIT_TINY_WARNING
+            return out, tr(PI_UNIT_TINY_WARNING, None)
 
     return out, None
 
@@ -232,9 +253,9 @@ def normalize_single_pi_series(values: pd.Series) -> tuple[pd.Series, str | None
     mode = detect_pi_unit_mode(numeric)
     if mode == "fraction":
         if _fraction_strong_evidence(numeric):
-            return numeric * 100.0, PI_UNIT_NORMALIZED_WARNING
+            return numeric * 100.0, tr(PI_UNIT_NORMALIZED_WARNING, None)
         if _fraction_is_tiny(numeric):
-            return numeric, PI_UNIT_TINY_WARNING
+            return numeric, tr(PI_UNIT_TINY_WARNING, None)
     return numeric, None
 
 
@@ -245,7 +266,13 @@ def validate_template(df: pd.DataFrame) -> ValidationResult:
     warnings: list[str] = []
 
     if missing:
-        errors.append(f"Missing required columns: {', '.join(missing)}")
+        errors.append(
+            tr(
+                "Missing required columns: {missing_columns}",
+                None,
+                missing_columns=", ".join(missing),
+            )
+        )
         return ValidationResult(
             is_valid=False,
             errors=errors,
@@ -254,7 +281,12 @@ def validate_template(df: pd.DataFrame) -> ValidationResult:
         )
 
     if "product_id" not in normalized.columns:
-        warnings.append("Recommended column 'product_id' missing; defaulting to 'default_product'.")
+        warnings.append(
+            tr(
+                "Recommended column 'product_id' missing; defaulting to 'default_product'.",
+                None,
+            )
+        )
         normalized["product_id"] = "default_product"
 
     _coerce_numeric(normalized, warnings)
@@ -263,7 +295,14 @@ def validate_template(df: pd.DataFrame) -> ValidationResult:
     )
     for column, count in negative_counts.items():
         if count > 0:
-            warnings.append(f"Column '{column}' has {count} negative values; treated as missing.")
+            warnings.append(
+                tr(
+                    "Column '{column}' has {count} negative values; treated as missing.",
+                    None,
+                    column=column,
+                    count=count,
+                )
+            )
     try:
         normalized, pi_code11_note = normalize_pi_code11_pair(normalized)
         normalized, pi_unit_note = normalize_pi_pair_units(normalized)

@@ -41,6 +41,26 @@ def apply_psm_validity_filter(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series
     return df.loc[mask].copy(), mask
 
 
+def puki_eligibility_mask(df: pd.DataFrame, *, puki_threshold: int) -> pd.Series:
+    if "puki" not in df.columns:
+        return pd.Series(True, index=df.index, dtype=bool)
+    puki_numeric = pd.to_numeric(df["puki"], errors="coerce")
+    return puki_numeric.le(float(puki_threshold)).fillna(False)
+
+
+def apply_puki_filter(
+    df: pd.DataFrame,
+    *,
+    puki_threshold: int,
+    enabled: bool = True,
+) -> tuple[pd.DataFrame, pd.Series]:
+    if not enabled or "puki" not in df.columns:
+        mask = pd.Series(True, index=df.index, dtype=bool)
+        return df.copy(), mask
+    mask = puki_eligibility_mask(df, puki_threshold=puki_threshold)
+    return df.loc[mask].copy(), mask
+
+
 def compute_qc_report(
     df: pd.DataFrame,
     *,
@@ -56,8 +76,7 @@ def compute_qc_report(
     threshold_out: int | None = None
     if puki_filter_applied:
         threshold_out = puki_threshold
-        puki_numeric = pd.to_numeric(df["puki"], errors="coerce")
-        pass_mask = puki_numeric <= float(puki_threshold)
+        pass_mask = puki_eligibility_mask(df, puki_threshold=puki_threshold)
         puki_pass_n = int(pass_mask.fillna(False).sum())
         puki_excluded_n = int((~pass_mask.fillna(False)).sum())
 

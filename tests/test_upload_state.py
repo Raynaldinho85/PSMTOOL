@@ -21,6 +21,8 @@ def test_clear_loaded_dataset_state_resets_relevant_session_keys() -> None:
         "psm_validation_errors": ["err"],
         "psm_validation_warnings": ["warn"],
         "psm_input_source": "file.csv",
+        "tested_price_by_key": {"Classic::DE": 20.0},
+        "tested_price_active_by_key": {"Classic::DE": True},
     }
 
     clear_loaded_dataset_state(state)
@@ -31,3 +33,5 @@ def test_clear_loaded_dataset_state_resets_relevant_session_keys() -> None:
     assert state["psm_validation_errors"] == []
     assert state["psm_validation_warnings"] == []
     assert state["psm_input_source"] is None
+    assert state["tested_price_by_key"] == {}
+    assert state["tested_price_active_by_key"] == {}

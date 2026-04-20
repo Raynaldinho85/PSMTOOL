@@ -36,6 +36,7 @@ tmp/
 .idea/
 .DS_Store
 Thumbs.db
+*.code-workspace
 
 # Offline package cache
 wheelhouse/

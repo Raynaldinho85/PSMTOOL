@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
+from typing import Literal
 
 import pandas as pd
 import plotly.graph_objects as go
 
 from psm_tool.core.metrics import PSMKPIResult
+from psm_tool.i18n.runtime import tr
+from psm_tool.plots.benchmarks import PriceBenchmark, add_vertical_price_markers
+from psm_tool.plots.style import apply_white_chart_theme
 
 
 def resolve_opp_idp_label_sides(opp: float, idp: float) -> dict[str, str]:
@@ -86,7 +91,14 @@ def _add_price_stress_background(fig: go.Figure, kpis: PSMKPIResult) -> None:
     )
 
 
-def make_psm_figure(curves: pd.DataFrame, kpis: PSMKPIResult | None = None) -> go.Figure:
+def make_psm_figure(
+    curves: pd.DataFrame,
+    kpis: PSMKPIResult | None = None,
+    *,
+    price_benchmarks: list[PriceBenchmark] | None = None,
+    label_side_overrides: Mapping[str, Literal["left", "right"]] | None = None,
+    language: str | None = None,
+) -> go.Figure:
     fig = go.Figure()
     palette = {
         "too_cheap": "#2563eb",
@@ -97,12 +109,12 @@ def make_psm_figure(curves: pd.DataFrame, kpis: PSMKPIResult | None = None) -> g
         "not_expensive": "#f97316",
     }
     legend_order = (
-        ("too_cheap", "Too Cheap"),
-        ("bargain", "Bargain"),
-        ("not_expensive", "Not Expensive"),
-        ("not_bargain", "Not Bargain"),
-        ("expensive", "Expensive"),
-        ("too_expensive", "Too Expensive"),
+        ("too_cheap", tr("Too Cheap", language)),
+        ("bargain", tr("Bargain", language)),
+        ("not_expensive", tr("Not Expensive", language)),
+        ("not_bargain", tr("Not Bargain", language)),
+        ("expensive", tr("Expensive", language)),
+        ("too_expensive", tr("Too Expensive", language)),
     )
     for column, label in legend_order:
         if column in curves.columns:
@@ -119,64 +131,71 @@ def make_psm_figure(curves: pd.DataFrame, kpis: PSMKPIResult | None = None) -> g
     if kpis is not None:
         _add_kpi_range_backgrounds(fig, kpis)
         _add_price_stress_background(fig, kpis)
-        marker_points = [
-            ("PMI", kpis.pmi.value),
-            ("OPP", kpis.opp.value),
-            ("IDP", kpis.idp.value),
-            ("PME", kpis.pme.value),
-        ]
-        for _key, value in marker_points:
-            fig.add_vline(
-                x=value,
+        side_rules = resolve_opp_idp_label_sides(float(kpis.opp.value), float(kpis.idp.value))
+        use_close_shift = (
+            math.isfinite(float(kpis.price_stress)) and abs(float(kpis.price_stress)) <= 5.0
+        )
+        psm_markers = [
+            PriceBenchmark(
+                label="PMI",
+                price=float(kpis.pmi.value),
+                key="pmi",
+                color="#64748b",
                 line_dash="dot",
                 line_width=1,
-            )
-
-        base_y = 1.004
-        side_rules = resolve_opp_idp_label_sides(float(kpis.opp.value), float(kpis.idp.value))
-
-        for key, value in marker_points:
-            value_float = float(value)
-            if key == "OPP":
-                side = side_rules["opp"]
-            elif key == "IDP":
-                side = side_rules["idp"]
-            else:
-                side = "right"
-            if (
-                key in {"OPP", "IDP"}
-                and math.isfinite(float(kpis.price_stress))
-                and abs(float(kpis.price_stress)) <= 5.0
-            ):
-                xanchor = "right" if side == "left" else "left"
-                xshift = -10 if side == "left" else 10
-            else:
-                xanchor, xshift = _annotation_anchor_for_side(side)
-            fig.add_annotation(
-                x=value_float,
-                y=base_y,
-                xref="x",
-                yref="paper",
-                text=key,
-                showarrow=False,
-                xanchor=xanchor,
-                yanchor="bottom",
-                xshift=xshift,
-                align="left",
-                font={"size": 12, "color": "#64748b"},
-            )
+            ),
+            PriceBenchmark(
+                label="OPP",
+                price=float(kpis.opp.value),
+                key="opp",
+                color="#64748b",
+                line_dash="dot",
+                line_width=1,
+                preferred_side=side_rules["opp"],
+                label_shift=10 if use_close_shift else 6,
+            ),
+            PriceBenchmark(
+                label="IDP",
+                price=float(kpis.idp.value),
+                key="idp",
+                color="#64748b",
+                line_dash="dot",
+                line_width=1,
+                preferred_side=side_rules["idp"],
+                label_shift=10 if use_close_shift else 6,
+            ),
+            PriceBenchmark(
+                label="PME",
+                price=float(kpis.pme.value),
+                key="pme",
+                color="#64748b",
+                line_dash="dot",
+                line_width=1,
+            ),
+        ]
+        add_vertical_price_markers(
+            fig,
+            [*psm_markers, *(price_benchmarks or [])],
+            label_side_overrides=label_side_overrides,
+        )
+    elif price_benchmarks:
+        add_vertical_price_markers(
+            fig,
+            price_benchmarks,
+            label_side_overrides=label_side_overrides,
+        )
 
     fig.update_layout(
         title={
-            "text": "Van Westendorp Price Sensitivity Meter",
+            "text": tr("Van Westendorp Price Sensitivity Meter", language),
             "x": 0.0,
             "xanchor": "left",
             "y": 0.99,
             "yanchor": "top",
             "pad": {"t": 0, "b": 30},
         },
-        xaxis_title="Price",
-        yaxis_title="Share (%)",
+        xaxis_title=tr("Price", language),
+        yaxis_title=tr("Share (%)", language),
         hovermode="x unified",
         height=500,
         legend={
@@ -188,7 +207,7 @@ def make_psm_figure(curves: pd.DataFrame, kpis: PSMKPIResult | None = None) -> g
             "x": 0.5,
         },
         margin={"t": 90, "r": 20, "b": 30, "l": 56},
-        template="plotly_white",
     )
+    apply_white_chart_theme(fig)
     fig.update_yaxes(range=[0, 100])
     return fig

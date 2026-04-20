@@ -155,6 +155,45 @@ section[data-testid="stSidebar"] {{
     background: transparent !important;
 }}
 
+section[data-testid="stSidebar"] div[data-testid="stSidebarUserContent"] {{
+    border-top: none !important;
+    box-shadow: none !important;
+    background-image: none !important;
+}}
+
+section[data-testid="stSidebar"]
+div[data-testid="stSidebarUserContent"] > div:first-child,
+section[data-testid="stSidebar"]
+div[data-testid="stSidebarUserContent"] > div:first-child > div:first-child,
+section[data-testid="stSidebar"]
+div[data-testid="stSidebarUserContent"]
+> div:first-child > div:first-child > div:first-child {{
+    border-top: none !important;
+    box-shadow: none !important;
+    background-image: none !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSidebarUserContent"]::before,
+section[data-testid="stSidebar"] div[data-testid="stSidebarUserContent"]::after,
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] + div::before,
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] + div::after {{
+    content: none !important;
+    display: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] + div,
+section[data-testid="stSidebar"]
+div[data-testid="stSidebarNav"] ~ div[data-testid="stSidebarUserContent"] {{
+    border-top: none !important;
+    box-shadow: none !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}}
+
 section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] a[aria-current="page"] {{
     background: linear-gradient(
         90deg,
@@ -315,6 +354,29 @@ section[data-testid="stSidebar"] div[data-testid="stSidebarNav"]::before {{
     margin: 0.2rem 0.15rem 0.65rem 0.2rem;
 }}
 
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] {{
+    border-bottom: none !important;
+    box-shadow: none !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] + hr,
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] ~ hr,
+section[data-testid="stSidebar"] hr {{
+    display: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"] + div,
+section[data-testid="stSidebar"]
+div[data-testid="stSidebarNav"] ~ div[data-testid="stHorizontalBlock"] {{
+    border-top: none !important;
+    box-shadow: none !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}}
+
 .psm-card-title {{
     color: #1c1917;
     font-size: 1.02rem;
@@ -430,12 +492,97 @@ div[data-testid="stPageLink"] {{
     margin-bottom: 0.15rem !important;
 }}
 
-div[data-testid="stPageLink"][data-psm-quick-nav="true"] {{
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0.12rem !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-image: none !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-image: none !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"]::before,
+section[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"]::after,
+section[data-testid="stSidebar"]
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"]::before,
+section[data-testid="stSidebar"]
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"]::after,
+section[data-testid="stSidebar"] div[data-testid="stButton"],
+section[data-testid="stSidebar"] div[data-testid="stButton"]::before,
+section[data-testid="stSidebar"] div[data-testid="stButton"]::after {{
+    border: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    content: none !important;
+}}
+
+section[data-testid="stSidebar"] button[kind] {{
+    min-height: 1.02rem !important;
+    height: 1.02rem !important;
+    min-width: 1.9rem !important;
+    padding: 0.0rem 0.12rem !important;
+    border-radius: 0.34rem !important;
+    font-size: 0.58rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}}
+
+section[data-testid="stSidebar"] button[kind] > div {{
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+}}
+
+section[data-testid="stSidebar"] button[kind] *,
+section[data-testid="stSidebar"] button[kind] span,
+section[data-testid="stSidebar"] button[kind] div p {{
+    font-size: 0.58rem !important;
+    font-weight: 600 !important;
+    line-height: 1.02 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    margin: 0 auto !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stPageLink"] {{
+    display: none !important;
+}}
+
+section[data-testid="stSidebar"]
+div[data-testid="stElementContainer"]:has(> div[data-testid="stPageLink"]) {{
     display: none !important;
 }}
 
 body[data-psm-sidebar-collapsed="true"]
-div[data-testid="stPageLink"][data-psm-quick-nav="true"] {{
+section[data-testid="stSidebar"] div[data-testid="stPageLink"] {{
+    display: block !important;
+}}
+
+body[data-psm-sidebar-collapsed="true"]
+section[data-testid="stSidebar"]
+div[data-testid="stElementContainer"]:has(> div[data-testid="stPageLink"]) {{
     display: block !important;
 }}
 
@@ -483,9 +630,44 @@ def inject_base_styles(*, max_width: int = DEFAULT_DESKTOP_MAX_WIDTH) -> None:
             pageLinkBlocks.forEach(function(block) {
               const label = (block.textContent || "").trim();
               const isQuickNav = label.startsWith("↑ ") || label.endsWith(" ↓");
-              if (!isQuickNav) return;
+              const usesFallbackNavLabel =
+                isQuickNav ||
+                label.startsWith("Previous: ") ||
+                label.startsWith("Next: ") ||
+                label.startsWith("Zurueck: ") ||
+                label.startsWith("Weiter: ");
+              if (!usesFallbackNavLabel) return;
               block.setAttribute("data-psm-quick-nav", "true");
+              const container = block.closest('div[data-testid="stElementContainer"]');
+              if (container) {
+                container.setAttribute("data-psm-quick-nav-container", "true");
+                container.style.display = collapsed ? "block" : "none";
+              }
               block.style.display = collapsed ? "block" : "none";
+            });
+
+            const activeLanguageButton = sidebar.querySelector('button[kind="primary"]');
+            const activeLanguage = (
+              (activeLanguageButton && activeLanguageButton.textContent) || ""
+            ).trim().toUpperCase();
+            const deActive = activeLanguage === "DE";
+            const navLinks = sidebar.querySelectorAll('div[data-testid="stSidebarNav"] a');
+            navLinks.forEach(function(link) {
+              const labelNode =
+                link.querySelector('[data-testid="stSidebarNavLinkLabel"]') || link;
+              const textTarget = labelNode.querySelector("p, span") || labelNode;
+              const currentLabel = (textTarget.textContent || "").trim();
+              if (!currentLabel) return;
+              if (!textTarget.dataset.psmOriginalLabel) {
+                textTarget.dataset.psmOriginalLabel = currentLabel;
+              }
+              const originalLabel = textTarget.dataset.psmOriginalLabel;
+              const normalized = originalLabel.toLowerCase();
+              if (normalized === "results") {
+                textTarget.textContent = deActive ? "ergebnisse" : originalLabel;
+              } else if (normalized === "knowledge") {
+                textTarget.textContent = deActive ? "methodik" : originalLabel;
+              }
             });
           }
 

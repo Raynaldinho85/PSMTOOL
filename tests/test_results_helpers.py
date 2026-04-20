@@ -82,3 +82,28 @@ def test_format_additional_metric_value_suppresses_unstable_values() -> None:
     )
     assert stable_value == "62.4%"
     assert stable_caution is None
+
+
+def test_results_tab_specs_insert_kpi_summary_before_quality_control() -> None:
+    module = _load_results_module()
+
+    with_nms = module._build_results_tab_specs(
+        has_turnover=True,
+        has_profit=True,
+        has_nms=True,
+    )
+    without_nms = module._build_results_tab_specs(
+        has_turnover=True,
+        has_profit=False,
+        has_nms=False,
+    )
+
+    assert with_nms[-3:] == [
+        ("NMS Trial + Revenue", "nms_trial_revenue"),
+        ("KPI Summary", "kpi_summary"),
+        ("Quality Control", "quality_control"),
+    ]
+    assert without_nms[-2:] == [
+        ("KPI Summary", "kpi_summary"),
+        ("Quality Control", "quality_control"),
+    ]

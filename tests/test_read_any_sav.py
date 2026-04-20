@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from psm_tool.io.read_any import read_any
+from psm_tool.io.read_any import SAVUploadNotSupportedError, read_any
 
 pytestmark = pytest.mark.sav
 
@@ -47,7 +47,7 @@ def test_read_any_reads_sav_from_path() -> None:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def test_read_any_reads_sav_from_bytes() -> None:
+def test_read_any_blocks_sav_from_bytes() -> None:
     pyreadstat = pytest.importorskip("pyreadstat")
     temp_dir = _local_tmp_dir()
     try:
@@ -56,8 +56,7 @@ def test_read_any_reads_sav_from_bytes() -> None:
         pyreadstat.write_sav(source, str(sav_path))
 
         payload = sav_path.read_bytes()
-        loaded = read_any(payload, filename="uploaded.sav")
-        assert set(source.columns) == set(loaded.columns)
-        assert len(loaded) == len(source)
+        with pytest.raises(SAVUploadNotSupportedError, match="processed fully in-memory"):
+            read_any(payload, filename="uploaded.sav")
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)

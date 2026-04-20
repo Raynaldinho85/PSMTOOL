@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 
+from psm_tool.i18n.runtime import normalize_language
+
 COMPETITION_CAVEAT = "No competition/substitution model is included."
 
 _IMPERATIVE_PATTERNS = [
@@ -39,32 +41,51 @@ def apply_wording_policy(
     text: str,
     lens: str,
     status_flags: Mapping[str, bool] | None = None,
+    language: str | None = None,
 ) -> str:
     """Apply deterministic wording rules for lens labels and recommendation phrasing."""
     content = " ".join(str(text).strip().split())
     if not content:
         return f"{lens}:"
 
+    selected_language = normalize_language(language)
     for pattern, replacement in _IMPERATIVE_PATTERNS:
-        content = pattern.sub(replacement, content)
+        if selected_language == "en":
+            content = pattern.sub(replacement, content)
 
-    if not re.search(r"\bModel suggests\b", content, re.IGNORECASE):
-        content = f"Model suggests {content}"
-
-    if "under current assumptions" not in content:
-        content = content.rstrip(".")
-        content = f"{content} under current assumptions."
+    if selected_language == "de":
+        if not re.search(r"\bDas Modell\b", content, re.IGNORECASE):
+            content = f"Das Modell legt nahe, dass {content}"
+        if "unter den aktuellen Annahmen" not in content:
+            content = content.rstrip(".")
+            content = f"{content} unter den aktuellen Annahmen."
+    else:
+        if not re.search(r"\bModel suggests\b", content, re.IGNORECASE):
+            content = f"Model suggests {content}"
+        if "under current assumptions" not in content:
+            content = content.rstrip(".")
+            content = f"{content} under current assumptions."
 
     flags = status_flags or {}
     if flags.get("unstable"):
         content = content.rstrip(".")
-        content = f"{content}; interpret with caution."
+        content = (
+            f"{content}; mit Vorsicht interpretieren."
+            if selected_language == "de"
+            else f"{content}; interpret with caution."
+        )
     if flags.get("recommendation_blocked"):
         content = content.rstrip(".")
-        content = f"{content}; no target-price recommendation is issued."
+        content = (
+            f"{content}; es wird keine Zielpreisempfehlung ausgesprochen."
+            if selected_language == "de"
+            else f"{content}; no target-price recommendation is issued."
+        )
 
     return f"{lens}: {content}"
 
 
-def competition_caveat_line() -> str:
+def competition_caveat_line(language: str | None = None) -> str:
+    if normalize_language(language) == "de":
+        return "Es ist kein Wettbewerbs-/Substitutionsmodell enthalten."
     return COMPETITION_CAVEAT

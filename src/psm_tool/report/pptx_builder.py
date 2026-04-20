@@ -7,6 +7,8 @@ from typing import Any
 from pptx import Presentation
 from pptx.util import Inches, Pt
 
+from psm_tool.i18n.runtime import normalize_language, tr
+from psm_tool.plots.benchmarks import PriceBenchmark, is_valid_tested_price
 from psm_tool.plots.nms_plot import make_nms_figure
 from psm_tool.plots.psm_plot import make_psm_figure
 from psm_tool.plots.render_static import figure_to_png_bytes
@@ -17,9 +19,32 @@ from psm_tool.report.insights import (
     build_psm_summary,
     build_turnover_summary,
 )
+from psm_tool.report.kpi_summary_png import kpi_summary_png_bytes
 from psm_tool.report.wording_policy import apply_wording_policy, can_recommend
 
 EMU_PER_INCH = 914400.0
+CHART_EXPORT_RATIO = 16.0 / 9.0
+TITLE_FONT_SIZE_PT = 23
+TITLE_MIN_FONT_SIZE_PT = 21
+CONTEXT_FONT_SIZE_PT = 11
+SUMMARY_FONT_SIZE_PT = 11
+SIDE_KPI_FONT_SIZE_PT = 11
+TITLE_WRAP_CHAR_CAPACITY = 96
+TITLE_REDUCED_WRAP_CHAR_CAPACITY = 122
+TITLE_SHORTEN_CHAR_CAPACITY = 132
+TITLE_MIN_SEMANTIC_CHARS = 34
+BULLET_MAX_CHARS = 140
+HEADLINE_TRAILING_BOUNDARIES = (
+    " under ",
+    " with ",
+    " based on ",
+    " because ",
+    " due to ",
+    " given ",
+    " while ",
+    " when ",
+    " for ",
+)
 
 
 def _new_presentation(template_path: str | Path | None = None) -> Presentation:
@@ -36,12 +61,152 @@ def _slide_size_in(presentation: Presentation) -> tuple[float, float]:
     return _emu_to_in(int(presentation.slide_width)), _emu_to_in(int(presentation.slide_height))
 
 
+def _contained_rect(
+    *,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    image_ratio: float,
+) -> tuple[float, float, float, float]:
+    if width <= 0 or height <= 0:
+        return x, y, max(width, 0.0), max(height, 0.0)
+    target_ratio = width / height
+    if target_ratio > image_ratio:
+        fitted_h = height
+        fitted_w = fitted_h * image_ratio
+    else:
+        fitted_w = width
+        fitted_h = fitted_w / image_ratio
+    return x + ((width - fitted_w) / 2.0), y + ((height - fitted_h) / 2.0), fitted_w, fitted_h
+
+
+def _png_ratio(image_bytes: bytes, fallback: float = CHART_EXPORT_RATIO) -> float:
+    if len(image_bytes) >= 24 and image_bytes[:8] == b"\x89PNG\r\n\x1a\n":
+        width = int.from_bytes(image_bytes[16:20], "big")
+        height = int.from_bytes(image_bytes[20:24], "big")
+        if width > 0 and height > 0:
+            return float(width) / float(height)
+    return fallback
+
+
+def _add_picture_contained(
+    slide,
+    image_bytes: bytes,
+    *,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+) -> None:
+    image_x, image_y, image_w, image_h = _contained_rect(
+        x=x,
+        y=y,
+        width=width,
+        height=height,
+        image_ratio=_png_ratio(image_bytes),
+    )
+    slide.shapes.add_picture(
+        BytesIO(image_bytes),
+        Inches(image_x),
+        Inches(image_y),
+        width=Inches(image_w),
+        height=Inches(image_h),
+    )
+
+
+def _text_frame_defaults(frame) -> None:
+    frame.word_wrap = True
+    frame.margin_left = Inches(0.03)
+    frame.margin_right = Inches(0.03)
+    frame.margin_top = Inches(0.02)
+    frame.margin_bottom = Inches(0.02)
+
+
+def _truncate_text(text: str, max_chars: int) -> str:
+    clean = str(text).strip()
+    if len(clean) <= max_chars:
+        return clean
+    return f"{clean[: max_chars - 3].rstrip(' ,;:.')}..."
+
+
+def _clean_headline_text(text: str) -> str:
+    return " ".join(str(text).strip().split())
+
+
+def _as_complete_headline_phrase(text: str) -> str:
+    clean = text.strip(" ,;:-")
+    if clean and clean[-1] not in ".!?":
+        return f"{clean}."
+    return clean
+
+
+def _phrase_boundary_headline(text: str, max_chars: int) -> str | None:
+    lower_text = text.lower()
+    for boundary in HEADLINE_TRAILING_BOUNDARIES:
+        start = 0
+        while True:
+            idx = lower_text.find(boundary, start)
+            if idx < 0:
+                break
+            candidate = text[:idx]
+            if TITLE_MIN_SEMANTIC_CHARS <= len(candidate.strip()) <= max_chars:
+                return _as_complete_headline_phrase(candidate)
+            start = idx + len(boundary)
+
+    candidates: list[str] = []
+    for separator in (". ", "; ", " - ", " – ", " — "):
+        start = 0
+        while True:
+            idx = text.find(separator, start)
+            if idx < 0:
+                break
+            end = idx + 1 if separator in {". ", "; "} else idx
+            candidates.append(text[:end])
+            start = idx + len(separator)
+
+    complete_candidates = [
+        _as_complete_headline_phrase(candidate)
+        for candidate in candidates
+        if TITLE_MIN_SEMANTIC_CHARS <= len(candidate.strip()) <= max_chars
+    ]
+    if not complete_candidates:
+        return None
+    return max(complete_candidates, key=len)
+
+
+def _word_boundary_headline(text: str, max_chars: int) -> str:
+    limit = max_chars - 3
+    split_at = text.rfind(" ", 0, limit + 1)
+    if split_at < TITLE_MIN_SEMANTIC_CHARS:
+        return text
+    clean = text[:split_at].strip(" ,;:-")
+    return f"{clean}..."
+
+
+def _fit_headline_for_pptx(text: str) -> tuple[str, int]:
+    clean = _clean_headline_text(text)
+    if len(clean) <= TITLE_WRAP_CHAR_CAPACITY:
+        return clean, TITLE_FONT_SIZE_PT
+    if len(clean) <= TITLE_REDUCED_WRAP_CHAR_CAPACITY:
+        return clean, TITLE_FONT_SIZE_PT - 1
+    if len(clean) <= TITLE_SHORTEN_CHAR_CAPACITY:
+        return clean, TITLE_MIN_FONT_SIZE_PT
+    return (
+        _phrase_boundary_headline(clean, TITLE_SHORTEN_CHAR_CAPACITY)
+        or _word_boundary_headline(clean, TITLE_SHORTEN_CHAR_CAPACITY),
+        TITLE_MIN_FONT_SIZE_PT,
+    )
+
+
 def _add_title(slide, *, x: float, y: float, width: float, text: str) -> float:
-    title_h = 0.52
+    title_h = 0.72
     title_box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(title_h))
     frame = title_box.text_frame
-    frame.text = text
-    frame.paragraphs[0].font.size = Pt(26)
+    _text_frame_defaults(frame)
+    headline_text, font_size = _fit_headline_for_pptx(text)
+    frame.text = headline_text
+    frame.paragraphs[0].font.size = Pt(font_size)
     frame.paragraphs[0].font.bold = True
     return title_h
 
@@ -55,13 +220,23 @@ def _add_context_line(
     analysis: dict[str, Any],
     lens: str,
 ) -> float:
-    context_h = 0.30
+    language = normalize_language(analysis.get("language"))
+    context_h = 0.34
     box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(context_h))
     frame = box.text_frame
-    frame.text = (
-        f"{lens} | {analysis['product_id']} / {analysis['segment']} ({analysis['currency']})"
+    _text_frame_defaults(frame)
+    frame.text = _truncate_text(
+        tr(
+            "{lens} | {product_id} / {segment} ({currency})",
+            language,
+            lens=lens,
+            product_id=analysis["product_id"],
+            segment=analysis["segment"],
+            currency=analysis["currency"],
+        ),
+        120,
     )
-    frame.paragraphs[0].font.size = Pt(12)
+    frame.paragraphs[0].font.size = Pt(CONTEXT_FONT_SIZE_PT)
     return context_h
 
 
@@ -78,21 +253,19 @@ def _add_bullet_text(
 ) -> None:
     box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(height))
     frame = box.text_frame
+    _text_frame_defaults(frame)
     frame.clear()
     for idx, sentence in enumerate(sentences[:max_items]):
         paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
-        paragraph.text = f"- {sentence}"
-        paragraph.font.size = Pt(font_size)
+        paragraph.text = f"- {_truncate_text(sentence, BULLET_MAX_CHARS)}"
+        paragraph.font.size = Pt(min(font_size, SUMMARY_FONT_SIZE_PT))
 
 
 def _headline_from_sentence(sentence: str, fallback: str) -> str:
-    text = sentence.strip()
+    text = _clean_headline_text(sentence)
     if not text:
         return fallback
-    if len(text) <= 96:
-        return text
-    short = text[:93].rstrip(" ,;:.")
-    return f"{short}..."
+    return text
 
 
 def _build_turnover_summary_safe(
@@ -102,6 +275,7 @@ def _build_turnover_summary_safe(
     segment_label: str,
     source: str | None,
     kpi_statuses: dict[str, str] | None = None,
+    language: str | None = None,
 ) -> list[str]:
     try:
         return build_turnover_summary(
@@ -110,6 +284,7 @@ def _build_turnover_summary_safe(
             segment_label=segment_label,
             source=source,
             kpi_statuses=kpi_statuses,
+            language=language,
         )
     except TypeError as exc:
         if "unexpected keyword argument 'kpi_statuses'" not in str(exc):
@@ -119,6 +294,7 @@ def _build_turnover_summary_safe(
             currency=currency,
             segment_label=segment_label,
             source=source,
+            language=language,
         )
 
 
@@ -129,6 +305,7 @@ def _build_profit_summary_safe(
     segment_label: str,
     product_label: str,
     kpi_statuses: dict[str, str] | None = None,
+    language: str | None = None,
 ) -> list[str]:
     try:
         return build_profit_summary(
@@ -137,6 +314,7 @@ def _build_profit_summary_safe(
             segment_label=segment_label,
             product_label=product_label,
             kpi_statuses=kpi_statuses,
+            language=language,
         )
     except TypeError as exc:
         if "unexpected keyword argument 'kpi_statuses'" not in str(exc):
@@ -146,6 +324,7 @@ def _build_profit_summary_safe(
             currency=currency,
             segment_label=segment_label,
             product_label=product_label,
+            language=language,
         )
 
 
@@ -154,81 +333,165 @@ def _status_map(analysis: dict[str, Any], keys: tuple[str, ...]) -> dict[str, st
     return {key: str(kpis.get(f"{key}_status", "closest")) for key in keys}
 
 
+def _tested_price_benchmarks(analysis: dict[str, Any]) -> list[PriceBenchmark]:
+    if not bool(analysis.get("tested_price_active", False)):
+        return []
+    tested_price = analysis.get("tested_price")
+    if not is_valid_tested_price(tested_price):
+        return []
+    language = normalize_language(analysis.get("language"))
+    return [
+        PriceBenchmark(
+            label=tr("Tested Price", language),
+            price=float(tested_price),
+            key="tested_price",
+        )
+    ]
+
+
+def _chart_label_overrides(analysis: dict[str, Any], chart_id: str) -> dict[str, str]:
+    overrides = analysis.get("marker_label_side_overrides", {})
+    if not isinstance(overrides, dict):
+        return {}
+    chart_overrides = overrides.get(chart_id, {})
+    if not isinstance(chart_overrides, dict):
+        return {}
+    return {
+        str(marker_key): str(side)
+        for marker_key, side in chart_overrides.items()
+        if str(side) in {"left", "right"}
+    }
+
+
 def _psm_action_title(analysis: dict[str, Any]) -> str:
+    language = normalize_language(analysis.get("language"))
     kpis = analysis["kpis"]
     statuses = _status_map(analysis, ("pmi", "opp", "idp", "pme"))
     recommendation_allowed = can_recommend(statuses, allow_interval=False)
     if recommendation_allowed:
         sentence = apply_wording_policy(
             (
-                f"Set price in accepted range {kpis['accepted_low']:.2f}-"
-                f"{kpis['accepted_high']:.2f} {analysis['currency']}."
+                f"Preis im akzeptierten Preisbereich {kpis['accepted_low']:.2f}-"
+                f"{kpis['accepted_high']:.2f} {analysis['currency']} ansetzen."
+                if language == "de"
+                else (
+                    f"Set price in accepted range {kpis['accepted_low']:.2f}-"
+                    f"{kpis['accepted_high']:.2f} {analysis['currency']}."
+                )
             ),
-            lens="Perception",
+            lens=tr("Perception", language),
+            language=language,
         )
     else:
         sentence = apply_wording_policy(
-            "OPP recommendation is blocked because PSM intersections are not clean.",
-            lens="Perception",
+            tr("OPP recommendation is blocked because PSM intersections are not clean.", language),
+            lens=tr("Perception", language),
             status_flags={"unstable": True, "recommendation_blocked": True},
+            language=language,
         )
-    return _headline_from_sentence(sentence, "Perception: Model suggests pricing guidance.")
+    return _headline_from_sentence(
+        sentence,
+        tr("Perception: Model suggests pricing guidance.", language),
+    )
 
 
 def _turnover_action_title(analysis: dict[str, Any]) -> str:
+    language = normalize_language(analysis.get("language"))
     turnover = analysis.get("turnover_index_result")
     if turnover is None:
-        return "Economics proxy: Model suggests turnover diagnostics only."
+        return tr("Economics proxy: Model suggests turnover diagnostics only.", language)
     statuses = _status_map(analysis, ("opp",))
     recommendation_allowed = can_recommend(statuses, allow_interval=False)
     if recommendation_allowed:
         sentence = apply_wording_policy(
-            f"Maximize turnover near {turnover.max_turnover_price:.2f} {analysis['currency']}.",
-            lens="Economics proxy",
+            (
+                f"Turnover nahe {turnover.max_turnover_price:.2f} "
+                f"{analysis['currency']} priorisieren."
+                if language == "de"
+                else (
+                    f"Maximize turnover near "
+                    f"{turnover.max_turnover_price:.2f} {analysis['currency']}."
+                )
+            ),
+            lens=tr("Economics proxy", language),
+            language=language,
         )
     else:
         sentence = apply_wording_policy(
-            "Turnover target-price recommendation is blocked due to non-clean intersections.",
-            lens="Economics proxy",
+            tr(
+                "Turnover target-price recommendation is blocked due to non-clean intersections.",
+                language,
+            ),
+            lens=tr("Economics proxy", language),
             status_flags={"unstable": True, "recommendation_blocked": True},
+            language=language,
         )
-    return _headline_from_sentence(sentence, "Economics proxy: Model suggests turnover guidance.")
+    return _headline_from_sentence(
+        sentence,
+        tr("Economics proxy: Model suggests turnover guidance.", language),
+    )
 
 
 def _nms_action_title(analysis: dict[str, Any]) -> str:
+    language = normalize_language(analysis.get("language"))
     nms_result = analysis.get("nms_result")
     if nms_result is None:
-        return "Modeled demand: Model suggests NMS diagnostics."
+        return tr("Modeled demand: Model suggests NMS diagnostics.", language)
     sentence = apply_wording_policy(
         (
-            f"Balance trial ({nms_result.max_trial_price:.2f}) and revenue "
-            f"({nms_result.max_revenue_price:.2f}) in {analysis['currency']}."
+            "Trial "
+            f"({nms_result.max_trial_price:.2f}) und Revenue ({nms_result.max_revenue_price:.2f}) "
+            f"in {analysis['currency']} ausbalancieren."
+            if language == "de"
+            else (
+                f"Balance trial ({nms_result.max_trial_price:.2f}) and revenue "
+                f"({nms_result.max_revenue_price:.2f}) in {analysis['currency']}."
+            )
         ),
-        lens="Modeled demand",
+        lens=tr("Modeled demand", language),
+        language=language,
     )
     return _headline_from_sentence(
-        sentence, "Modeled demand: Model suggests trial/revenue context."
+        sentence,
+        tr("Modeled demand: Model suggests trial/revenue context.", language),
     )
 
 
 def _profit_action_title(analysis: dict[str, Any]) -> str:
+    language = normalize_language(analysis.get("language"))
     profit = analysis.get("profit_proxy_result")
     if profit is None:
-        return "Economics proxy: Model suggests profit diagnostics only."
+        return tr("Economics proxy: Model suggests profit diagnostics only.", language)
     statuses = _status_map(analysis, ("pmi", "pme"))
     recommendation_allowed = can_recommend(statuses, allow_interval=False)
     if recommendation_allowed:
         sentence = apply_wording_policy(
-            f"Optimize profit proxy near {profit.max_profit_price:.2f} {analysis['currency']}.",
-            lens="Economics proxy",
+            (
+                f"Profit-Proxy nahe {profit.max_profit_price:.2f} "
+                f"{analysis['currency']} optimieren."
+                if language == "de"
+                else (
+                    f"Optimize profit proxy near "
+                    f"{profit.max_profit_price:.2f} {analysis['currency']}."
+                )
+            ),
+            lens=tr("Economics proxy", language),
+            language=language,
         )
     else:
         sentence = apply_wording_policy(
-            "Profit target-price recommendation is blocked due to non-clean intersections.",
-            lens="Economics proxy",
+            tr(
+                "Profit target-price recommendation is blocked due to non-clean intersections.",
+                language,
+            ),
+            lens=tr("Economics proxy", language),
             status_flags={"unstable": True, "recommendation_blocked": True},
+            language=language,
         )
-    return _headline_from_sentence(sentence, "Economics proxy: Model suggests profit guidance.")
+    return _headline_from_sentence(
+        sentence,
+        tr("Economics proxy: Model suggests profit guidance.", language),
+    )
 
 
 def _add_kpi_summary(
@@ -240,6 +503,7 @@ def _add_kpi_summary(
     height: float,
     analysis: dict[str, Any],
 ) -> None:
+    language = normalize_language(analysis.get("language"))
     kpis = analysis["kpis"]
     currency = analysis["currency"]
 
@@ -268,13 +532,24 @@ def _add_kpi_summary(
         q_high = outlier_settings.get("q_high")
         excluded = int(outlier_stats.get("excluded_n", 0))
         outlier_line = (
-            "Outlier filter: "
-            f"{level} ({q_low * 100:.1f}%-{q_high * 100:.1f}%), excluded n={excluded}"
+            tr(
+                "Outlier filter: {level} ({q_low:.1f}%-{q_high:.1f}%), excluded n={excluded}",
+                language,
+                level=level,
+                q_low=float(q_low) * 100.0,
+                q_high=float(q_high) * 100.0,
+                excluded=excluded,
+            )
             if q_low is not None and q_high is not None
-            else f"Outlier filter: {level}, excluded n={excluded}"
+            else tr(
+                "Outlier filter: {level}, excluded n={excluded}",
+                language,
+                level=level,
+                excluded=excluded,
+            )
         )
     else:
-        outlier_line = "Outlier filter: Off"
+        outlier_line = tr("Outlier filter: Off", language)
 
     pmi_clean = str(kpis.get("pmi_status", "closest")) == "clean"
     pme_clean = str(kpis.get("pme_status", "closest")) == "clean"
@@ -295,20 +570,39 @@ def _add_kpi_summary(
         f"OPP: {_format_point('opp')}",
         f"IDP: {_format_point('idp')}",
         f"PME: {_format_point('pme')}",
-        f"Accepted range: {accepted_range_text}",
-        f"Price stress (OPP-IDP): {stress_text}",
+        tr(
+            "Accepted range: {accepted_range_text}",
+            language,
+            accepted_range_text=accepted_range_text,
+        ),
+        tr("Price stress (OPP-IDP): {stress_text}", language, stress_text=stress_text),
         outlier_line,
     ]
     if any(not is_clean for is_clean in (pmi_clean, opp_clean, idp_clean, pme_clean)):
-        lines.append("Intersection quality: interpret with caution.")
+        lines.append(tr("Intersection quality: interpret with caution.", language))
 
     text_box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(height))
     frame = text_box.text_frame
+    _text_frame_defaults(frame)
     frame.clear()
     for idx, line in enumerate(lines):
         paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
-        paragraph.text = line
-        paragraph.font.size = Pt(13)
+        paragraph.text = _truncate_text(line, 92)
+        paragraph.font.size = Pt(SIDE_KPI_FONT_SIZE_PT)
+
+
+def _add_kpi_summary_slide(presentation: Presentation, analysis: dict[str, Any]) -> None:
+    slide = presentation.slides.add_slide(presentation.slide_layouts[6])
+    slide_w, slide_h = _slide_size_in(presentation)
+    margin = 0.35
+    _add_picture_contained(
+        slide,
+        kpi_summary_png_bytes(analysis),
+        x=margin,
+        y=margin,
+        width=slide_w - (2 * margin),
+        height=slide_h - (2 * margin),
+    )
 
 
 def _add_psm_slide(presentation: Presentation, analysis: dict[str, Any]) -> None:
@@ -332,7 +626,7 @@ def _add_psm_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
         y=context_y,
         width=content_w,
         analysis=analysis,
-        lens="Perception",
+        lens=tr("Perception", normalize_language(analysis.get("language"))),
     )
 
     summary_h = min(1.45, max(1.10, slide_h * 0.18))
@@ -347,14 +641,21 @@ def _add_psm_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
     chart_x = margin
     kpi_x = chart_x + chart_w + gap
 
-    figure = make_psm_figure(analysis["curves"], analysis["kpi_result"])
+    figure = make_psm_figure(
+        analysis["curves"],
+        analysis["kpi_result"],
+        price_benchmarks=_tested_price_benchmarks(analysis),
+        label_side_overrides=_chart_label_overrides(analysis, "psm"),
+        language=normalize_language(analysis.get("language")),
+    )
     image_bytes = figure_to_png_bytes(figure)
-    slide.shapes.add_picture(
-        BytesIO(image_bytes),
-        Inches(chart_x),
-        Inches(chart_top),
-        width=Inches(chart_w),
-        height=Inches(chart_h),
+    _add_picture_contained(
+        slide,
+        image_bytes,
+        x=chart_x,
+        y=chart_top,
+        width=chart_w,
+        height=chart_h,
     )
 
     _add_kpi_summary(
@@ -384,6 +685,7 @@ def _add_psm_summary_bullets(
     width: float,
     height: float,
 ) -> None:
+    language = normalize_language(analysis.get("language"))
     nms_result = analysis.get("nms_result")
     nms_kpis = None
     if nms_result is not None:
@@ -397,6 +699,7 @@ def _add_psm_summary_bullets(
         segment_label=str(analysis["segment"]),
         product_label=str(analysis["product_id"]),
         nms_kpis=nms_kpis,
+        language=language,
     )
     _add_bullet_text(
         slide,
@@ -434,7 +737,7 @@ def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, An
         y=context_y,
         width=content_w,
         analysis=analysis,
-        lens="Economics proxy",
+        lens=tr("Economics proxy", normalize_language(analysis.get("language"))),
     )
 
     summary_h = min(1.35, max(1.00, slide_h * 0.17))
@@ -442,14 +745,21 @@ def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, An
     chart_top = context_y + context_h + 0.07
     chart_h = max(2.55, summary_y - chart_top - 0.08)
 
-    figure = make_turnover_index_figure(turnover_result, currency=analysis["currency"])
+    figure = make_turnover_index_figure(
+        turnover_result,
+        currency=analysis["currency"],
+        price_benchmarks=_tested_price_benchmarks(analysis),
+        label_side_overrides=_chart_label_overrides(analysis, "turnover"),
+        language=normalize_language(analysis.get("language")),
+    )
     image_bytes = figure_to_png_bytes(figure)
-    slide.shapes.add_picture(
-        BytesIO(image_bytes),
-        Inches(margin),
-        Inches(chart_top),
-        width=Inches(content_w),
-        height=Inches(chart_h),
+    _add_picture_contained(
+        slide,
+        image_bytes,
+        x=margin,
+        y=chart_top,
+        width=content_w,
+        height=chart_h,
     )
 
     summary_sentences = _build_turnover_summary_safe(
@@ -458,6 +768,7 @@ def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, An
         segment_label=str(analysis["segment"]),
         source=analysis.get("turnover_source"),
         kpi_statuses=_status_map(analysis, ("opp",)),
+        language=normalize_language(analysis.get("language")),
     )
     _add_bullet_text(
         slide,
@@ -497,7 +808,7 @@ def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
         y=context_y,
         width=content_w,
         analysis=analysis,
-        lens="Modeled demand",
+        lens=tr("Modeled demand", normalize_language(analysis.get("language"))),
     )
 
     summary_h = min(1.35, max(1.05, slide_h * 0.17))
@@ -510,14 +821,20 @@ def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
     if (chart_w + meta_w + gap) > content_w:
         meta_w = max(2.2, content_w - chart_w - gap)
 
-    figure = make_nms_figure(nms_result)
+    figure = make_nms_figure(
+        nms_result,
+        price_benchmarks=_tested_price_benchmarks(analysis),
+        label_side_overrides=_chart_label_overrides(analysis, "nms"),
+        language=normalize_language(analysis.get("language")),
+    )
     image_bytes = figure_to_png_bytes(figure)
-    slide.shapes.add_picture(
-        BytesIO(image_bytes),
-        Inches(margin),
-        Inches(chart_top),
-        width=Inches(chart_w),
-        height=Inches(chart_h),
+    _add_picture_contained(
+        slide,
+        image_bytes,
+        x=margin,
+        y=chart_top,
+        width=chart_w,
+        height=chart_h,
     )
 
     box_x = margin + chart_w + gap
@@ -528,16 +845,28 @@ def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
         Inches(chart_h),
     )
     frame = box.text_frame
+    _text_frame_defaults(frame)
     frame.clear()
+    language = normalize_language(analysis.get("language"))
     lines = [
-        f"Max Trial: {analysis['currency']} {nms_result.max_trial_price:.2f}",
-        f"Max Revenue: {analysis['currency']} {nms_result.max_revenue_price:.2f}",
-        f"Included N: {int(nms_result.included_n)}",
+        tr(
+            "Max Trial: {currency} {price:.2f}",
+            language,
+            currency=analysis["currency"],
+            price=float(nms_result.max_trial_price),
+        ),
+        tr(
+            "Max Revenue: {currency} {price:.2f}",
+            language,
+            currency=analysis["currency"],
+            price=float(nms_result.max_revenue_price),
+        ),
+        tr("Included N: {included_n}", language, included_n=int(nms_result.included_n)),
     ]
     for idx, line in enumerate(lines):
         paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
         paragraph.text = line
-        paragraph.font.size = Pt(13)
+        paragraph.font.size = Pt(SIDE_KPI_FONT_SIZE_PT)
 
     _add_nms_summary_bullets(
         slide,
@@ -576,7 +905,7 @@ def _add_profit_slide(presentation: Presentation, analysis: dict[str, Any]) -> b
         y=context_y,
         width=content_w,
         analysis=analysis,
-        lens="Economics proxy",
+        lens=tr("Economics proxy", normalize_language(analysis.get("language"))),
     )
 
     summary_h = min(1.35, max(1.05, slide_h * 0.17))
@@ -590,14 +919,17 @@ def _add_profit_slide(presentation: Presentation, analysis: dict[str, Any]) -> b
         mode="profit",
         profit_result=profit_result,
         unit_cost=float(unit_cost),
+        price_benchmarks=_tested_price_benchmarks(analysis),
+        language=normalize_language(analysis.get("language")),
     )
     image_bytes = figure_to_png_bytes(figure)
-    slide.shapes.add_picture(
-        BytesIO(image_bytes),
-        Inches(margin),
-        Inches(chart_top),
-        width=Inches(content_w),
-        height=Inches(chart_h),
+    _add_picture_contained(
+        slide,
+        image_bytes,
+        x=margin,
+        y=chart_top,
+        width=content_w,
+        height=chart_h,
     )
 
     summary = _build_profit_summary_safe(
@@ -606,6 +938,7 @@ def _add_profit_slide(presentation: Presentation, analysis: dict[str, Any]) -> b
         segment_label=str(analysis["segment"]),
         product_label=str(analysis["product_id"]),
         kpi_statuses=_status_map(analysis, ("pmi", "pme")),
+        language=normalize_language(analysis.get("language")),
     )
     _add_bullet_text(
         slide,
@@ -634,6 +967,7 @@ def _add_nms_summary_bullets(
         nms_result=nms_result,
         currency=analysis["currency"],
         segment_label=str(analysis["segment"]),
+        language=normalize_language(analysis.get("language")),
     )
     _add_bullet_text(
         slide,
@@ -655,6 +989,7 @@ def build_pptx_report(
     analyses = report_payload.get("analyses", [])
 
     for analysis in analyses:
+        _add_kpi_summary_slide(presentation, analysis)
         _add_psm_slide(presentation, analysis)
         _add_turnover_index_slide(presentation, analysis)
         _add_profit_slide(presentation, analysis)

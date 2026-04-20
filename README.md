@@ -52,7 +52,6 @@ Supported uploads:
 
 - `.csv`
 - `.xlsx`
-- `.sav` (requires optional extra `.[sav]`)
 
 ## Quality Checks
 
@@ -156,6 +155,10 @@ NMS outputs:
   - in-memory XLSX template download
   - load packaged synthetic example via `importlib.resources`
 
+SAV uploads are intentionally disabled in the public app flow because uploaded files must
+remain fully in-memory. If SAV input is needed later, it should only be reintroduced with a
+compliant in-memory parsing path.
+
 ## Install and Run
 
 ```bash
@@ -166,7 +169,7 @@ pytest -q
 streamlit run src/psm_tool/ui/app.py
 ```
 
-Optional SAV support:
+Optional developer-only SAV path tests:
 
 ```bash
 pip install -e .[sav]
@@ -259,7 +262,7 @@ Proxy `/` to `http://127.0.0.1:8501` via nginx.
 - SAV job: Python `3.11`
   - installs `.[dev,sav]`
   - runs SAV-marked tests (`-m "sav"`)
-  - SAV tests generate temp `.sav` files; no `.sav` fixtures are committed
+  - SAV tests only verify local path-based parsing; upload-bytes SAV is intentionally blocked
 
 ## Test Suite Highlights
 

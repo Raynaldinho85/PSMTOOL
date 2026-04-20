@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from psm_tool.i18n.runtime import tr
 from psm_tool.io.validate import normalize_pi_code11_pair, normalize_pi_pair_units
 
 
@@ -54,7 +55,11 @@ def _select_population(
     df_group: pd.DataFrame, puki_threshold: int
 ) -> tuple[pd.DataFrame, bool, str | None]:
     if "puki" not in df_group.columns:
-        return df_group.copy(), False, "PUKI filter not applied because 'puki' column is missing."
+        return (
+            df_group.copy(),
+            False,
+            tr("PUKI filter not applied because 'puki' column is missing.", None),
+        )
 
     puki_numeric = pd.to_numeric(df_group["puki"], errors="coerce")
     include_mask = puki_numeric <= float(puki_threshold)
@@ -122,7 +127,12 @@ def compute_nms(
     missing = [col for col in required if col not in df_group.columns]
     if missing:
         raise ValueError(
-            f"NMS requires columns: {', '.join(required)}. Missing: {', '.join(missing)}"
+            tr(
+                "NMS requires columns: {required}. Missing: {missing}",
+                None,
+                required=", ".join(required),
+                missing=", ".join(missing),
+            )
         )
 
     prices = np.asarray(prices, dtype=float)
