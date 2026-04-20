@@ -242,6 +242,18 @@ streamlit run src/psm_tool/ui/app.py --server.address 127.0.0.1 --server.port 85
 
 Proxy `/` to `http://127.0.0.1:8501` via nginx.
 
+### Streamlit Community Cloud (demo)
+
+For the quickest free demo deploy, use Streamlit Community Cloud with:
+
+- main file: `src/psm_tool/ui/app.py`
+- Python version: `3.11`
+- root `requirements.txt`
+- root `packages.txt`
+- secrets for `DEMO_MODE` and `APP_PASSWORD`
+
+See `docs/streamlit_community_cloud_demo.md` for the exact setup and smoke-test checklist.
+
 ## Environment Variables
 
 - `DEMO_MODE=true|false`

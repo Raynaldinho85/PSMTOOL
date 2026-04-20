@@ -37,6 +37,7 @@ tmp/
 .DS_Store
 Thumbs.db
 *.code-workspace
+.streamlit/secrets.toml
 
 # Offline package cache
 wheelhouse/
