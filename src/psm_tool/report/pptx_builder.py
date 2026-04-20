@@ -202,25 +202,24 @@ def _wrap_text_two_lines(text: str, *, max_chars_per_line: int) -> str | None:
         return clean
 
     words = clean.split()
-    first_line_words: list[str] = []
-    first_line = ""
-    for word in words:
-        candidate = word if not first_line else f"{first_line} {word}"
-        if len(candidate) <= max_chars_per_line:
-            first_line = candidate
-            first_line_words.append(word)
-            continue
-        break
-    else:
+    if len(clean) <= max_chars_per_line:
         return clean
 
-    if not first_line_words:
+    candidates: list[tuple[int, str, str]] = []
+    for split_idx in range(1, len(words)):
+        first_line = " ".join(words[:split_idx]).strip()
+        second_line = " ".join(words[split_idx:]).strip()
+        if not first_line or not second_line:
+            continue
+        if len(first_line) > max_chars_per_line or len(second_line) > max_chars_per_line:
+            continue
+        candidates.append((max(len(first_line), len(second_line)), first_line, second_line))
+
+    if not candidates:
         return None
 
-    remainder = " ".join(words[len(first_line_words) :]).strip()
-    if not remainder or len(remainder) > max_chars_per_line:
-        return None
-    return f"{first_line}\n{remainder}"
+    _line_score, first_line, second_line = min(candidates, key=lambda item: item[0])
+    return f"{first_line}\n{second_line}"
 
 
 def _fit_headline_for_pptx(text: str) -> tuple[str, int]:
@@ -385,13 +384,22 @@ def _add_bullet_text(
     summary_font_size = min(font_size, SUMMARY_FONT_SIZE_PT)
     summary_lines = [_summary_line(sentence) for sentence in sentences[:max_items]]
     bullet_lines = [f"- {line}" for line in summary_lines]
-    wrapped_two_line_lines = [
-        (
-            f"- {wrapped_line}"
-            if (wrapped_line := _wrap_text_two_lines(line, max_chars_per_line=78)) is not None
-            else f"- {line}"
-        )
-        for line in summary_lines
+    wrapped_two_line_candidates = [
+        [
+            (
+                f"- {wrapped_line}"
+                if (
+                    wrapped_line := _wrap_text_two_lines(
+                        line,
+                        max_chars_per_line=max_chars,
+                    )
+                )
+                is not None
+                else f"- {line}"
+            )
+            for line in summary_lines
+        ]
+        for max_chars in (78, 72, 66, 60)
     ]
     fallback_lines = [
         f"- {_semantic_truncate_text(line, BULLET_MAX_CHARS)}" for line in summary_lines
@@ -399,7 +407,12 @@ def _add_bullet_text(
     tighter_lines = [f"- {_semantic_truncate_text(line, 110)}" for line in summary_lines]
     _fit_text_frame_candidates(
         frame,
-        paragraph_candidates=[bullet_lines, wrapped_two_line_lines, fallback_lines, tighter_lines],
+        paragraph_candidates=[
+            bullet_lines,
+            *wrapped_two_line_candidates,
+            fallback_lines,
+            tighter_lines,
+        ],
         max_size=summary_font_size,
         min_size=summary_font_size if preserve_font_size else SUMMARY_MIN_FONT_SIZE_PT,
     )
