@@ -373,6 +373,10 @@ def _add_bullet_text(
     box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(height))
     frame = box.text_frame
     _text_frame_defaults(frame)
+    frame.margin_left = Inches(0)
+    frame.margin_right = Inches(0)
+    frame.margin_top = Inches(0)
+    frame.margin_bottom = Inches(0)
     label_prefix = f"{_clean_headline_text(strip_leading_label)}:" if strip_leading_label else None
 
     def _summary_line(sentence: str) -> str:
@@ -789,7 +793,7 @@ def _add_psm_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
         lens=tr("Perception", normalize_language(analysis.get("language"))),
     )
 
-    summary_h = min(1.60, max(1.20, slide_h * 0.20))
+    summary_h = min(1.95, max(1.35, slide_h * 0.24))
     summary_y = slide_h - margin - summary_h
     chart_top = context_y + context_h + 0.07
     chart_h = max(2.45, summary_y - chart_top - 0.08)
@@ -902,7 +906,7 @@ def _add_turnover_index_slide(presentation: Presentation, analysis: dict[str, An
         lens=tr("Economics proxy", normalize_language(analysis.get("language"))),
     )
 
-    summary_h = min(1.50, max(1.10, slide_h * 0.19))
+    summary_h = min(1.75, max(1.20, slide_h * 0.21))
     summary_y = slide_h - margin - summary_h
     chart_top = context_y + context_h + 0.07
     chart_h = max(2.40, summary_y - chart_top - 0.08)
@@ -975,7 +979,7 @@ def _add_nms_slide(presentation: Presentation, analysis: dict[str, Any]) -> None
         lens=tr("Modeled demand", normalize_language(analysis.get("language"))),
     )
 
-    summary_h = min(1.50, max(1.10, slide_h * 0.19))
+    summary_h = min(1.75, max(1.20, slide_h * 0.21))
     summary_y = slide_h - margin - summary_h
     chart_top = context_y + context_h + 0.07
     chart_h = max(2.40, summary_y - chart_top - 0.08)
@@ -1075,7 +1079,7 @@ def _add_profit_slide(presentation: Presentation, analysis: dict[str, Any]) -> b
         lens=tr("Economics proxy", normalize_language(analysis.get("language"))),
     )
 
-    summary_h = min(1.50, max(1.10, slide_h * 0.19))
+    summary_h = min(1.75, max(1.20, slide_h * 0.21))
     summary_y = slide_h - margin - summary_h
     chart_top = context_y + context_h + 0.07
     chart_h = max(2.40, summary_y - chart_top - 0.08)
