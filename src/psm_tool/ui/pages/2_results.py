@@ -245,7 +245,10 @@ def _render_marker_label_override_controls(
             current_option = current.capitalize() if current in {"left", "right"} else "Auto"
             index = MARKER_SIDE_OPTIONS.index(current_option)
             widget_key = _marker_override_widget_key(selection_key, chart_id, marker_key)
-            if widget_key not in st.session_state or st.session_state.get(widget_key) not in translated_options:
+            if (
+                widget_key not in st.session_state
+                or st.session_state.get(widget_key) not in translated_options
+            ):
                 st.session_state[widget_key] = translated_options[index]
             st.selectbox(
                 label,
@@ -1162,7 +1165,9 @@ def main() -> None:
         if manual_max_draft_key not in st.session_state or mode != previous_mode:
             st.session_state[manual_max_draft_key] = manual_max_state
         if manual_step_draft_key not in st.session_state or mode != previous_mode:
-            st.session_state[manual_step_draft_key] = float(st.session_state.get(manual_step_key, 5.0))
+            st.session_state[manual_step_draft_key] = float(
+                st.session_state.get(manual_step_key, 5.0)
+            )
 
         manual_min: float | None = None
         manual_max: float | None = None

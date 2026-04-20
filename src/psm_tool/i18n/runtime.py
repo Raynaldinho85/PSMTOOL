@@ -151,7 +151,10 @@ _OVERRIDE_TRANSLATIONS: dict[str, TranslationEntry] = {
     ),
     "override.results.pi_code11_normalized": TranslationEntry(
         en="PI unit normalized: detected coded scale (1..11) and converted to percent (0..100).",
-        de="PI-Einheit normalisiert: codierte Skala (1..11) erkannt und in Prozent (0..100) umgerechnet.",
+        de=(
+            "PI-Einheit normalisiert: codierte Skala (1..11) erkannt und in Prozent "
+            "(0..100) umgerechnet."
+        ),
     ),
     "override.results.requires_clean_opp": TranslationEntry(
         en="Requires clean OPP for optimization statements.",

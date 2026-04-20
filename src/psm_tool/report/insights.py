@@ -450,7 +450,10 @@ def build_nms_summary(
             else f"The highest modeled revenue is at {max_revenue_text} {currency}."
         ),
         (
-            "NMS-Kaufabsicht und Umsatz sind modellierte Nachfrage-Proxys, keine beobachtete Nachfrage."
+            (
+                "NMS-Kaufabsicht und Umsatz sind modellierte Nachfrage-Proxys, keine "
+                "beobachtete Nachfrage."
+            )
             if selected_language == "de"
             else "NMS trial and revenue are modeled demand proxies, not observed demand."
         ),

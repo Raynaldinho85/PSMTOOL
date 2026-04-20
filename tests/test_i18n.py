@@ -47,7 +47,10 @@ def test_de_runtime_overrides_keep_results_and_nms_wording_consistent() -> None:
     assert tr(
         "PI unit normalized: detected coded scale (1..11) and converted to percent (0..100).",
         "de",
-    ) == "PI-Einheit normalisiert: codierte Skala (1..11) erkannt und in Prozent (0..100) umgerechnet."
+    ) == (
+        "PI-Einheit normalisiert: codierte Skala (1..11) erkannt und in Prozent "
+        "(0..100) umgerechnet."
+    )
     assert tr(
         "PI unit normalized: detected fraction scale (0..1) and converted to percent (0..100).",
         "de",
@@ -60,7 +63,8 @@ def test_de_runtime_overrides_keep_results_and_nms_wording_consistent() -> None:
             "de",
         ),
     ) == (
-        "Hinweis zur PI-Einheit: PI-Einheit normalisiert: codierte Skala (1..11) erkannt und in Prozent (0..100) umgerechnet."
+        "Hinweis zur PI-Einheit: PI-Einheit normalisiert: codierte Skala (1..11) "
+        "erkannt und in Prozent (0..100) umgerechnet."
     )
     assert tr("NMS Trial + Revenue", "de") == "NMS Kaufabsicht + Umsatz"
     assert tr("Trial %", "de") == "Kaufabsicht (%)"
@@ -87,7 +91,8 @@ def test_de_runtime_overrides_keep_results_and_nms_wording_consistent() -> None:
         "de",
     ) == (
         "Preflight für den statischen Export erfolgreich. Bitte warten Sie, bis Ihr Export "
-        "bereit ist. Je nach Umfang des Exports kann dies wenige Sekunden bis einige Minuten dauern."
+        "bereit ist. Je nach Umfang des Exports kann dies wenige Sekunden bis einige "
+        "Minuten dauern."
     )
 
 
