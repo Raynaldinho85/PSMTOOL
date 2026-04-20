@@ -20,9 +20,9 @@ from psm_tool.plots.render_static import (
 )
 from psm_tool.report.excel_export import build_excel_report
 from psm_tool.report.pptx_builder import (
+    TITLE_FIT_MIN_FONT_SIZE_PT,
     TITLE_FONT_SIZE_PT,
     TITLE_MIN_FONT_SIZE_PT,
-    TITLE_FIT_MIN_FONT_SIZE_PT,
     _chart_label_overrides,
     _contained_rect,
     _fit_headline_for_pptx,
@@ -375,14 +375,18 @@ def test_pptx_export_shapes_stay_within_slide_bounds() -> None:
 
 
 def test_pptx_export_prefers_smaller_title_font_before_shortening(monkeypatch) -> None:
-    monkeypatch.setattr("psm_tool.report.pptx_builder.kpi_summary_png_bytes", lambda analysis: TINY_PNG)
+    monkeypatch.setattr(
+        "psm_tool.report.pptx_builder.kpi_summary_png_bytes",
+        lambda analysis: TINY_PNG,
+    )
     monkeypatch.setattr("psm_tool.report.pptx_builder.figure_to_png_bytes", lambda fig: TINY_PNG)
     monkeypatch.setattr(
         "psm_tool.report.pptx_builder._psm_action_title",
         lambda analysis: (
             "Perception: The model suggests using the accepted range as pricing guidance "
             "under the current assumptions while preserving the complete recommendation sentence "
-            "for the current export scenario and keeping the entire pricing recommendation readable."
+            "for the current export scenario and keeping the entire pricing recommendation "
+            "readable."
         ),
     )
 
@@ -402,15 +406,31 @@ def test_pptx_export_prefers_smaller_title_font_before_shortening(monkeypatch) -
 
 
 def test_pptx_export_summary_bullets_keep_font_size_and_drop_redundant_prefix(monkeypatch) -> None:
-    monkeypatch.setattr("psm_tool.report.pptx_builder.kpi_summary_png_bytes", lambda analysis: TINY_PNG)
+    monkeypatch.setattr(
+        "psm_tool.report.pptx_builder.kpi_summary_png_bytes",
+        lambda analysis: TINY_PNG,
+    )
     monkeypatch.setattr("psm_tool.report.pptx_builder.figure_to_png_bytes", lambda fig: TINY_PNG)
     monkeypatch.setattr(
         "psm_tool.report.pptx_builder.build_psm_summary",
         lambda *args, **kwargs: [
-            "Perception: The accepted range for the selected market remains broad enough to support a complete pricing statement without cutting off the sentence when exported to PowerPoint.",
-            "Perception: The optimal price point should remain fully readable even when the export needs to use a slightly smaller font size in the summary area.",
-            "Perception: Supporting explanation text should prefer readable wrapping and smaller type instead of ending the message with an ellipsis.",
-            "Perception: This final sentence is intentionally long so the regression test exercises the fit-first behavior in the PowerPoint summary box.",
+            (
+                "Perception: The accepted range for the selected market remains broad enough "
+                "to support a complete pricing statement without cutting off the sentence when "
+                "exported to PowerPoint."
+            ),
+            (
+                "Perception: The optimal price point should remain fully readable even when "
+                "the export needs to use a slightly smaller font size in the summary area."
+            ),
+            (
+                "Perception: Supporting explanation text should prefer readable wrapping and "
+                "smaller type instead of ending the message with an ellipsis."
+            ),
+            (
+                "Perception: This final sentence is intentionally long so the regression test "
+                "exercises the fit-first behavior in the PowerPoint summary box."
+            ),
         ],
     )
 
@@ -434,22 +454,37 @@ def test_pptx_export_summary_bullets_keep_font_size_and_drop_redundant_prefix(mo
 
 
 def test_pptx_export_turnover_and_nms_summaries_drop_lens_prefixes(monkeypatch) -> None:
-    monkeypatch.setattr("psm_tool.report.pptx_builder.kpi_summary_png_bytes", lambda analysis: TINY_PNG)
+    monkeypatch.setattr(
+        "psm_tool.report.pptx_builder.kpi_summary_png_bytes",
+        lambda analysis: TINY_PNG,
+    )
     monkeypatch.setattr("psm_tool.report.pptx_builder.figure_to_png_bytes", lambda fig: TINY_PNG)
     monkeypatch.setattr(
         "psm_tool.report.pptx_builder.build_turnover_summary",
         lambda *args, **kwargs: [
-            "Economics proxy: The highest turnover is reached at 1200 EUR under the current assumptions.",
+            (
+                "Economics proxy: The highest turnover is reached at 1200 EUR under the "
+                "current assumptions."
+            ),
             "Economics proxy: At this point the turnover index reaches 100 on the 0-100 scale.",
-            "Economics proxy: The turnover peak sits above the PI peak under the current assumptions.",
+            (
+                "Economics proxy: The turnover peak sits above the PI peak under the current "
+                "assumptions."
+            ),
         ],
     )
     monkeypatch.setattr(
         "psm_tool.report.pptx_builder.build_nms_summary",
         lambda *args, **kwargs: [
             "Modeled demand: The highest trial sits at 900 EUR under the current assumptions.",
-            "Modeled demand: The highest modeled revenue sits at 1200 EUR under the current assumptions.",
-            "Modeled demand: Revenue peaks at a higher price than trial under the current assumptions.",
+            (
+                "Modeled demand: The highest modeled revenue sits at 1200 EUR under the "
+                "current assumptions."
+            ),
+            (
+                "Modeled demand: Revenue peaks at a higher price than trial under the current "
+                "assumptions."
+            ),
             "Modeled demand: The two markers should be interpreted together.",
         ],
     )
@@ -476,7 +511,10 @@ def test_pptx_export_turnover_and_nms_summaries_drop_lens_prefixes(monkeypatch) 
 
 
 def test_pptx_export_side_kpis_do_not_hard_clip_when_box_can_fit(monkeypatch) -> None:
-    monkeypatch.setattr("psm_tool.report.pptx_builder.kpi_summary_png_bytes", lambda analysis: TINY_PNG)
+    monkeypatch.setattr(
+        "psm_tool.report.pptx_builder.kpi_summary_png_bytes",
+        lambda analysis: TINY_PNG,
+    )
     monkeypatch.setattr("psm_tool.report.pptx_builder.figure_to_png_bytes", lambda fig: TINY_PNG)
 
     payload = _sample_payload()

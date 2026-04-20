@@ -148,7 +148,10 @@ def test_results_page_uses_explicit_apply_forms_for_enter_sensitive_controls() -
 def test_results_page_only_shows_details_for_active_tested_price_and_economics_states() -> None:
     source = Path("src/psm_tool/ui/pages/2_results.py").read_text(encoding="utf-8")
 
-    assert "economics_details_visible = economics_draft_enabled or stored_economics_enabled" in source
+    assert (
+        "economics_details_visible = economics_draft_enabled or stored_economics_enabled"
+        in source
+    )
     assert "if economics_details_visible:" in source
     assert "tested_price_details_visible = (" in source
     assert "tested_price_draft_value is not None" in source

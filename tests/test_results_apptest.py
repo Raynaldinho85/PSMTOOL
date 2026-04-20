@@ -9,7 +9,6 @@ from streamlit.testing.v1 import AppTest
 
 from psm_tool.ui import page_nav
 
-
 RESULTS_PAGE = Path("src/psm_tool/ui/pages/2_results.py")
 
 
