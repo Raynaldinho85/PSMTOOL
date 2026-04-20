@@ -151,8 +151,7 @@ def test_build_nms_explanations_and_summary_use_new_german_wording() -> None:
 
     assert [row["label"] for row in rows[:2]] == ["Max. Kaufabsicht", "Max. Umsatz"]
     assert (
-        rows[0]["explanation"]
-        == "Preis, bei dem die modellierte Kaufabsicht ihr Maximum erreicht."
+        rows[0]["explanation"] == "Preis, bei dem die modellierte Kaufabsicht ihr Maximum erreicht."
     )
     assert (
         rows[1]["explanation"]

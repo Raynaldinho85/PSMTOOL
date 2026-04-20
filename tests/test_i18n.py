@@ -51,10 +51,13 @@ def test_de_runtime_overrides_keep_results_and_nms_wording_consistent() -> None:
         "PI-Einheit normalisiert: codierte Skala (1..11) erkannt und in Prozent "
         "(0..100) umgerechnet."
     )
-    assert tr(
-        "PI unit normalized: detected fraction scale (0..1) and converted to percent (0..100).",
-        "de",
-    ) == "PI-Einheit normalisiert: 0..1-Skala erkannt und in Prozent (0..100) umgerechnet."
+    assert (
+        tr(
+            "PI unit normalized: detected fraction scale (0..1) and converted to percent (0..100).",
+            "de",
+        )
+        == "PI-Einheit normalisiert: 0..1-Skala erkannt und in Prozent (0..100) umgerechnet."
+    )
     assert tr(
         "PI unit note: {note}",
         "de",
@@ -99,7 +102,7 @@ def test_de_runtime_overrides_keep_results_and_nms_wording_consistent() -> None:
 def test_export_page_uses_extended_translated_preflight_success_message() -> None:
     source = Path("src/psm_tool/ui/pages/3_export.py").read_text(encoding="utf-8")
 
-    assert 'preflight_message = tr(' in source
+    assert "preflight_message = tr(" in source
     assert "Please wait until your export is ready." in source
     assert "few seconds to a few minutes" in source
 

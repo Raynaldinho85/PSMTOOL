@@ -1053,10 +1053,7 @@ def main() -> None:
         tested_price_active_key = f"tested_price_active_draft::{tested_price_scope}"
         stored_tested_price = tested_price_map.get(tested_price_scope)
         stored_tested_price_active = bool(tested_price_active_map.get(tested_price_scope, False))
-        if (
-            tested_price_input_key not in st.session_state
-            and stored_tested_price is not None
-        ):
+        if tested_price_input_key not in st.session_state and stored_tested_price is not None:
             st.session_state[tested_price_input_key] = f"{float(stored_tested_price):g}"
         st.session_state.setdefault(tested_price_input_key, "")
         if tested_price_active_key not in st.session_state:
@@ -1096,9 +1093,7 @@ def main() -> None:
             submitted=tested_price_submitted,
             raw_value=st.session_state.get(tested_price_input_key, ""),
             requested_active=bool(st.session_state.get(tested_price_active_key, False)),
-            stored_price=(
-                float(stored_tested_price) if stored_tested_price is not None else None
-            ),
+            stored_price=(float(stored_tested_price) if stored_tested_price is not None else None),
             stored_active=stored_tested_price_active,
         )
         if tested_price_value is None:

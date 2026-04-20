@@ -149,8 +149,7 @@ def test_results_page_only_shows_details_for_active_tested_price_and_economics_s
     source = Path("src/psm_tool/ui/pages/2_results.py").read_text(encoding="utf-8")
 
     assert (
-        "economics_details_visible = economics_draft_enabled or stored_economics_enabled"
-        in source
+        "economics_details_visible = economics_draft_enabled or stored_economics_enabled" in source
     )
     assert "if economics_details_visible:" in source
     assert "tested_price_details_visible = (" in source
@@ -165,7 +164,7 @@ def test_results_page_does_not_write_back_into_draft_widget_keys_after_submit() 
     economics_section = source.split(
         'economics_submitted = st.form_submit_button(tr("Apply", language))',
         1,
-    )[1].split('tested_price_map: dict[str, float]', 1)[0]
+    )[1].split("tested_price_map: dict[str, float]", 1)[0]
     tested_price_section = source.split(
         'tested_price_submitted = st.form_submit_button(tr("Apply", language))',
         1,

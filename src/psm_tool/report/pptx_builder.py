@@ -193,10 +193,7 @@ def _semantic_truncate_text(text: str, max_chars: int) -> str:
     clean = _clean_headline_text(text)
     if len(clean) <= max_chars:
         return clean
-    return (
-        _phrase_boundary_headline(clean, max_chars)
-        or _word_boundary_headline(clean, max_chars)
-    )
+    return _phrase_boundary_headline(clean, max_chars) or _word_boundary_headline(clean, max_chars)
 
 
 def _fit_headline_for_pptx(text: str) -> tuple[str, int]:
@@ -350,11 +347,7 @@ def _add_bullet_text(
     box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(width), Inches(height))
     frame = box.text_frame
     _text_frame_defaults(frame)
-    label_prefix = (
-        f"{_clean_headline_text(strip_leading_label)}:"
-        if strip_leading_label
-        else None
-    )
+    label_prefix = f"{_clean_headline_text(strip_leading_label)}:" if strip_leading_label else None
 
     def _summary_line(sentence: str) -> str:
         clean = _clean_headline_text(sentence)
