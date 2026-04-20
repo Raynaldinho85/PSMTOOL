@@ -8,7 +8,6 @@ import pandas as pd
 import pytest
 
 from psm_tool.io.read_any import (
-    SAVDependencyError,
     SAVUploadNotSupportedError,
     read_any,
     read_optional_pi_ladder,
@@ -42,11 +41,11 @@ def test_read_any_xlsx_from_bytes() -> None:
     pd.testing.assert_frame_equal(parsed, source)
 
 
-def test_read_any_sav_raises_dependency_error_when_pyreadstat_missing() -> None:
+def test_read_any_sav_bytes_are_blocked_even_when_pyreadstat_is_missing() -> None:
     if importlib.util.find_spec("pyreadstat") is not None:
         pytest.skip("pyreadstat is installed; missing-dependency scenario not applicable.")
 
-    with pytest.raises(SAVDependencyError):
+    with pytest.raises(SAVUploadNotSupportedError, match="processed fully in-memory"):
         read_any(b"dummy", filename="input.sav")
 
 

@@ -196,6 +196,33 @@ def _semantic_truncate_text(text: str, max_chars: int) -> str:
     return _phrase_boundary_headline(clean, max_chars) or _word_boundary_headline(clean, max_chars)
 
 
+def _wrap_text_two_lines(text: str, *, max_chars_per_line: int) -> str | None:
+    clean = _clean_headline_text(text)
+    if not clean:
+        return clean
+
+    words = clean.split()
+    first_line_words: list[str] = []
+    first_line = ""
+    for word in words:
+        candidate = word if not first_line else f"{first_line} {word}"
+        if len(candidate) <= max_chars_per_line:
+            first_line = candidate
+            first_line_words.append(word)
+            continue
+        break
+    else:
+        return clean
+
+    if not first_line_words:
+        return None
+
+    remainder = " ".join(words[len(first_line_words) :]).strip()
+    if not remainder or len(remainder) > max_chars_per_line:
+        return None
+    return f"{first_line}\n{remainder}"
+
+
 def _fit_headline_for_pptx(text: str) -> tuple[str, int]:
     clean = _clean_headline_text(text)
     if len(clean) <= TITLE_WRAP_CHAR_CAPACITY:
@@ -356,18 +383,23 @@ def _add_bullet_text(
         return clean
 
     summary_font_size = min(font_size, SUMMARY_FONT_SIZE_PT)
-    bullet_lines = [f"- {_summary_line(sentence)}" for sentence in sentences[:max_items]]
+    summary_lines = [_summary_line(sentence) for sentence in sentences[:max_items]]
+    bullet_lines = [f"- {line}" for line in summary_lines]
+    wrapped_two_line_lines = [
+        (
+            f"- {wrapped_line}"
+            if (wrapped_line := _wrap_text_two_lines(line, max_chars_per_line=78)) is not None
+            else f"- {line}"
+        )
+        for line in summary_lines
+    ]
     fallback_lines = [
-        f"- {_semantic_truncate_text(_summary_line(sentence), BULLET_MAX_CHARS)}"
-        for sentence in sentences[:max_items]
+        f"- {_semantic_truncate_text(line, BULLET_MAX_CHARS)}" for line in summary_lines
     ]
-    tighter_lines = [
-        f"- {_semantic_truncate_text(_summary_line(sentence), 110)}"
-        for sentence in sentences[:max_items]
-    ]
+    tighter_lines = [f"- {_semantic_truncate_text(line, 110)}" for line in summary_lines]
     _fit_text_frame_candidates(
         frame,
-        paragraph_candidates=[bullet_lines, fallback_lines, tighter_lines],
+        paragraph_candidates=[bullet_lines, wrapped_two_line_lines, fallback_lines, tighter_lines],
         max_size=summary_font_size,
         min_size=summary_font_size if preserve_font_size else SUMMARY_MIN_FONT_SIZE_PT,
     )
