@@ -565,22 +565,19 @@ section[data-testid="stSidebar"] button[kind] div p {{
     margin: 0 auto !important;
 }}
 
-section[data-testid="stSidebar"] div[data-testid="stPageLink"] {{
+div[data-testid="stPageLink"] {{
     display: none !important;
 }}
 
-section[data-testid="stSidebar"]
 div[data-testid="stElementContainer"]:has(> div[data-testid="stPageLink"]) {{
     display: none !important;
 }}
 
-body[data-psm-sidebar-collapsed="true"]
-section[data-testid="stSidebar"] div[data-testid="stPageLink"] {{
+body[data-psm-sidebar-collapsed="true"] div[data-testid="stPageLink"] {{
     display: block !important;
 }}
 
 body[data-psm-sidebar-collapsed="true"]
-section[data-testid="stSidebar"]
 div[data-testid="stElementContainer"]:has(> div[data-testid="stPageLink"]) {{
     display: block !important;
 }}
@@ -609,16 +606,19 @@ def inject_base_styles(*, max_width: int = DEFAULT_DESKTOP_MAX_WIDTH) -> None:
             const sidebar = parentDoc.querySelector('[data-testid="stSidebar"]');
             if (!sidebar || !parentDoc.body) return;
 
-            let collapsed = false;
-            const ariaExpanded = sidebar.getAttribute("aria-expanded");
-            if (ariaExpanded === "false") {
-              collapsed = true;
-            } else if (ariaExpanded === "true") {
-              collapsed = false;
-            } else {
-              const width = sidebar.getBoundingClientRect().width;
-              collapsed = width > 0 && width < 120;
-            }
+            const sidebarNav = sidebar.querySelector('div[data-testid="stSidebarNav"]');
+            const navRect = sidebarNav ? sidebarNav.getBoundingClientRect() : null;
+            const navStyle = sidebarNav ? window.getComputedStyle(sidebarNav) : null;
+            const navVisible = Boolean(
+              sidebarNav &&
+              navRect &&
+              navRect.width >= 120 &&
+              navRect.height > 40 &&
+              navStyle &&
+              navStyle.display !== "none" &&
+              navStyle.visibility !== "hidden"
+            );
+            const collapsed = !navVisible;
 
             parentDoc.body.setAttribute(
               "data-psm-sidebar-collapsed",
@@ -627,16 +627,6 @@ def inject_base_styles(*, max_width: int = DEFAULT_DESKTOP_MAX_WIDTH) -> None:
 
             const pageLinkBlocks = parentDoc.querySelectorAll('div[data-testid="stPageLink"]');
             pageLinkBlocks.forEach(function(block) {
-              const label = (block.textContent || "").trim();
-              const isQuickNav = label.startsWith("↑ ") || label.endsWith(" ↓");
-              const usesFallbackNavLabel =
-                isQuickNav ||
-                label.startsWith("Previous: ") ||
-                label.startsWith("Next: ") ||
-                label.startsWith("Zurück: ") ||
-                label.startsWith("Zurueck: ") ||
-                label.startsWith("Weiter: ");
-              if (!usesFallbackNavLabel) return;
               block.setAttribute("data-psm-quick-nav", "true");
               const container = block.closest('div[data-testid="stElementContainer"]');
               if (container) {

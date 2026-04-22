@@ -156,14 +156,16 @@ def test_app_bottom_nav_keeps_language_switch_and_next_link() -> None:
     assert "label=f\"{t('nav.next')}: {t(next_item.label_key)}\"" in source
 
 
-def test_quick_navigation_detection_covers_current_labels() -> None:
+def test_quick_navigation_visibility_tracks_sidebar_nav_visibility() -> None:
     source = Path("src/psm_tool/ui/style.py").read_text(encoding="utf-8")
 
-    assert 'label.startsWith("Previous: ")' in source
-    assert 'label.startsWith("Next: ")' in source
-    assert 'label.startsWith("Zurück: ")' in source
-    assert 'label.startsWith("Zurueck: ")' in source
-    assert 'label.startsWith("Weiter: ")' in source
+    assert (
+        "const sidebarNav = sidebar.querySelector('div[data-testid=\"stSidebarNav\"]');" in source
+    )
+    assert "const navVisible = Boolean(" in source
+    assert "const collapsed = !navVisible;" in source
+    assert 'div[data-testid="stPageLink"] {' in source
+    assert 'div[data-testid="stElementContainer"]:has(> div[data-testid="stPageLink"]) {' in source
     assert 'block.style.display = collapsed ? "block" : "none";' in source
 
 
