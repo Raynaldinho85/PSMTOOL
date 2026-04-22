@@ -104,10 +104,7 @@ def main() -> None:
     if config.demo_mode:
         render_notice(
             tr(
-                (
-                    "DEMO_MODE is enabled. Strict upload limits are active "
-                    "and raw respondent-level output is hidden."
-                ),
+                ("Test mode is enabled. Upload and feature limits are active."),
                 language,
             )
         )

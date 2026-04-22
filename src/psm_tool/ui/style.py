@@ -3,7 +3,6 @@ from __future__ import annotations
 from html import escape
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 BASE_STYLE_TEMPLATE = """
 <style>
@@ -599,7 +598,7 @@ DEFAULT_DESKTOP_MAX_WIDTH = 2800
 
 def inject_base_styles(*, max_width: int = DEFAULT_DESKTOP_MAX_WIDTH) -> None:
     st.markdown(BASE_STYLE_TEMPLATE.format(max_width=max_width), unsafe_allow_html=True)
-    components.html(
+    st.html(
         """
         <script>
         (function() {
@@ -681,8 +680,8 @@ def inject_base_styles(*, max_width: int = DEFAULT_DESKTOP_MAX_WIDTH) -> None:
         })();
         </script>
         """,
-        height=0,
-        width=0,
+        width="content",
+        unsafe_allow_javascript=True,
     )
 
 
