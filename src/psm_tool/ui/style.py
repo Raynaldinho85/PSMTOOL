@@ -606,6 +606,7 @@ def inject_base_styles(*, max_width: int = DEFAULT_DESKTOP_MAX_WIDTH) -> None:
             const sidebar = parentDoc.querySelector('[data-testid="stSidebar"]');
             if (!sidebar || !parentDoc.body) return;
 
+            const ariaExpanded = sidebar.getAttribute("aria-expanded");
             const sidebarNav = sidebar.querySelector('div[data-testid="stSidebarNav"]');
             const navRect = sidebarNav ? sidebarNav.getBoundingClientRect() : null;
             const navStyle = sidebarNav ? window.getComputedStyle(sidebarNav) : null;
@@ -618,7 +619,7 @@ def inject_base_styles(*, max_width: int = DEFAULT_DESKTOP_MAX_WIDTH) -> None:
               navStyle.display !== "none" &&
               navStyle.visibility !== "hidden"
             );
-            const collapsed = !navVisible;
+            const collapsed = ariaExpanded === "false" || !navVisible;
 
             parentDoc.body.setAttribute(
               "data-psm-sidebar-collapsed",

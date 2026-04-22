@@ -159,11 +159,12 @@ def test_app_bottom_nav_keeps_language_switch_and_next_link() -> None:
 def test_quick_navigation_visibility_tracks_sidebar_nav_visibility() -> None:
     source = Path("src/psm_tool/ui/style.py").read_text(encoding="utf-8")
 
+    assert 'const ariaExpanded = sidebar.getAttribute("aria-expanded");' in source
     assert (
         "const sidebarNav = sidebar.querySelector('div[data-testid=\"stSidebarNav\"]');" in source
     )
     assert "const navVisible = Boolean(" in source
-    assert "const collapsed = !navVisible;" in source
+    assert 'const collapsed = ariaExpanded === "false" || !navVisible;' in source
     assert 'div[data-testid="stPageLink"] {' in source
     assert 'div[data-testid="stElementContainer"]:has(> div[data-testid="stPageLink"]) {' in source
     assert 'block.style.display = collapsed ? "block" : "none";' in source
