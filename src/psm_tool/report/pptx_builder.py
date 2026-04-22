@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
+from textwrap import wrap
 from typing import Any
 
 from pptx import Presentation
@@ -222,6 +223,27 @@ def _wrap_text_two_lines(text: str, *, max_chars_per_line: int) -> str | None:
     return f"{first_line}\n{second_line}"
 
 
+def _wrap_text_up_to_lines(
+    text: str,
+    *,
+    max_chars_per_line: int,
+    max_lines: int,
+) -> str | None:
+    clean = _clean_headline_text(text)
+    if not clean:
+        return clean
+
+    wrapped = wrap(
+        clean,
+        width=max_chars_per_line,
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    if not wrapped or len(wrapped) > max_lines:
+        return None
+    return "\n".join(wrapped)
+
+
 def _fit_headline_for_pptx(text: str) -> tuple[str, int]:
     clean = _clean_headline_text(text)
     if len(clean) <= TITLE_WRAP_CHAR_CAPACITY:
@@ -388,7 +410,7 @@ def _add_bullet_text(
     summary_font_size = min(font_size, SUMMARY_FONT_SIZE_PT)
     summary_lines = [_summary_line(sentence) for sentence in sentences[:max_items]]
     bullet_lines = [f"- {line}" for line in summary_lines]
-    wrapped_two_line_candidates = [
+    wrapped_candidates = [
         [
             (
                 f"- {wrapped_line}"
@@ -405,6 +427,30 @@ def _add_bullet_text(
         ]
         for max_chars in (78, 72, 66, 60)
     ]
+    wrapped_candidates.extend(
+        [
+            [
+                (
+                    f"- {wrapped_line}"
+                    if (
+                        wrapped_line := _wrap_text_up_to_lines(
+                            line,
+                            max_chars_per_line=max_chars,
+                            max_lines=max_lines,
+                        )
+                    )
+                    is not None
+                    else f"- {line}"
+                )
+                for line in summary_lines
+            ]
+            for max_lines, widths in (
+                (3, (54, 48, 44)),
+                (4, (40, 36)),
+            )
+            for max_chars in widths
+        ]
+    )
     fallback_lines = [
         f"- {_semantic_truncate_text(line, BULLET_MAX_CHARS)}" for line in summary_lines
     ]
@@ -413,7 +459,7 @@ def _add_bullet_text(
         frame,
         paragraph_candidates=[
             bullet_lines,
-            *wrapped_two_line_candidates,
+            *wrapped_candidates,
             fallback_lines,
             tighter_lines,
         ],
