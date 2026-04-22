@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import streamlit as st
 
-from psm_tool.config import AppConfig
 from psm_tool.i18n import DEFAULT_LANGUAGE, get_language, tr
 from psm_tool.ui.auth import require_auth
 from psm_tool.ui.page_nav import render_page_nav_bottom
-from psm_tool.ui.style import inject_base_styles, render_notice
+from psm_tool.ui.style import inject_base_styles
 
 
 def _initialize_state() -> None:
@@ -27,7 +26,6 @@ def _initialize_state() -> None:
 
 
 def main() -> None:
-    config = AppConfig()
     st.set_page_config(page_title="PRICEY", page_icon=":bar_chart:", layout="wide")
     inject_base_styles(max_width=2800)
     _initialize_state()
@@ -101,14 +99,6 @@ def main() -> None:
                 ),
                 unsafe_allow_html=True,
             )
-    if config.demo_mode:
-        render_notice(
-            tr(
-                ("Test mode is enabled. Upload and feature limits are active."),
-                language,
-            )
-        )
-
     render_page_nav_bottom("app")
 
 
