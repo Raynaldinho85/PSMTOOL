@@ -63,7 +63,7 @@ def test_kpi_summary_figure_uses_fixed_white_canvas_and_all_cards() -> None:
     assert fig.layout.plot_bgcolor == "#ffffff"
     assert "KPI Summary" in texts
     assert "Product: Classic | Country: DE | Currency: EUR" in texts
-    for label in ("PMI", "OPP", "IDP", "PME", "Max Turnover Price"):
+    for label in ("PMI", "OPP", "IDP", "PME", "Max Turnover"):
         assert f"<b>{label}</b>" in texts
     for term in (
         "Point of Marginal Cheapness",
@@ -72,6 +72,14 @@ def test_kpi_summary_figure_uses_fixed_white_canvas_and_all_cards() -> None:
         "Point of Marginal Expensiveness",
     ):
         assert term in texts
+    for explanation in (
+        "Lower bound of acceptable range",
+        "Balance point of cheap and<br>expensive",
+        "Balance point of value and<br>expensiveness",
+        "Upper bound of acceptable range",
+        "Price with maximum turnover",
+    ):
+        assert explanation in texts
     assert len(fig.layout.shapes) == 5
 
 
@@ -95,6 +103,7 @@ def test_kpi_summary_adds_symmetric_sixth_card_for_active_valid_tested_price() -
     assert len(fig.layout.shapes) == 6
     assert "<b>Tested Price</b>" in texts
     assert "EUR 455" in texts
+    assert "Study benchmark" in texts
     assert "Price tested in study" in texts
     assert _bottom_card_x0s(fig) == list(CARD_LAYOUTS[6][1])
 
@@ -109,7 +118,8 @@ def test_kpi_summary_localizes_tested_price_card_for_german() -> None:
     texts = "\n".join(_annotation_texts(fig))
 
     assert "<b>Testpreis</b>" in texts
-    assert "Testpreis in der Studie" in texts
+    assert "Studien-Benchmark" in texts
+    assert "In der Studie getesteter Preis" in texts
 
 
 def test_kpi_summary_localizes_turnover_card_for_german() -> None:
@@ -121,6 +131,21 @@ def test_kpi_summary_localizes_turnover_card_for_german() -> None:
 
     assert "<b>Max Umsatz</b>" in texts
     assert "Preis mit höchstem Umsatz" in texts
+    assert "Preis mit maximalem Umsatz" in texts
+
+
+def test_kpi_summary_localizes_psm_cards_for_german() -> None:
+    analysis = _sample_analysis()
+    analysis["language"] = "de"
+
+    texts = "\n".join(_annotation_texts(make_kpi_summary_figure(analysis)))
+
+    assert "Untere Akzeptanzgrenze" in texts
+    assert "Optimaler Preispunkt" in texts
+    assert "Indifferenzpreispunkt" in texts
+    assert "Obere Akzeptanzgrenze" in texts
+    assert "Gleichgewichtspunkt zwischen<br>günstig und teuer" in texts
+    assert "Gleichgewichtspunkt zwischen<br>wertig und teuer" in texts
 
 
 def test_kpi_summary_ignores_inactive_or_invalid_tested_price() -> None:
@@ -167,7 +192,7 @@ def test_kpi_summary_figure_handles_missing_turnover() -> None:
 
     texts = "\n".join(_annotation_texts(make_kpi_summary_figure(analysis)))
 
-    assert "<b>Max Turnover Price</b>" in texts
+    assert "<b>Max Turnover</b>" in texts
     assert "Not available for this analysis" in texts
 
 

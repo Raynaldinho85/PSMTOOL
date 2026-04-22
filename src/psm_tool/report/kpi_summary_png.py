@@ -43,10 +43,10 @@ KPI_TERMS = {
 }
 
 KPI_EXPLANATIONS = {
-    "pmi": "Lower bound of acceptable price",
+    "pmi": "Lower bound of acceptable range",
     "opp": "Balance point of cheap and expensive",
     "idp": "Balance point of value and expensiveness",
-    "pme": "Upper bound of acceptable price",
+    "pme": "Upper bound of acceptable range",
 }
 
 GERMAN_KPI_TERMS = {
@@ -59,7 +59,7 @@ GERMAN_KPI_TERMS = {
 GERMAN_KPI_EXPLANATIONS = {
     "pmi": "Untere Grenze des akzeptierten Preisbereichs",
     "opp": "Gleichgewichtspunkt zwischen günstig und teuer",
-    "idp": "Gleichgewichtspunkt zwischen Preiswürdigkeit und Teuer-Wahrnehmung",
+    "idp": "Gleichgewichtspunkt zwischen wertig und teuer",
     "pme": "Obere Grenze des akzeptierten Preisbereichs",
 }
 
@@ -200,16 +200,10 @@ def _turnover_card(
     selected_language = normalize_language(language)
     turnover = analysis.get("turnover_index_result")
     value = _format_price(currency, getattr(turnover, "max_turnover_price", None))
-    label = "Max Umsatz" if selected_language == "de" else tr("Max Turnover Price", language)
-    term = (
-        "Preis mit höchstem Umsatz"
-        if selected_language == "de"
-        else tr("Highest Turnover Index", language)
-    )
+    label = "Max Umsatz" if selected_language == "de" else "Max Turnover"
+    term = "Preis mit höchstem Umsatz" if selected_language == "de" else "Highest turnover price"
     explanation = (
-        "Preis mit höchstem Umsatz"
-        if selected_language == "de"
-        else tr("Price with highest turnover index", language)
+        "Preis mit maximalem Umsatz" if selected_language == "de" else "Price with maximum turnover"
     )
     if value == "-":
         return KPISummaryCard(
@@ -239,9 +233,13 @@ def _tested_price_card(
         return None
     return KPISummaryCard(
         label=tr("Tested Price", language),
-        term=tr("Study Benchmark", language),
+        term="Studien-Benchmark" if normalize_language(language) == "de" else "Study benchmark",
         value=_truncate_line(_format_price(currency, tested_price), 18),
-        explanation=tr("Price tested in study", language),
+        explanation=(
+            "In der Studie getesteter Preis"
+            if normalize_language(language) == "de"
+            else "Price tested in study"
+        ),
     )
 
 
