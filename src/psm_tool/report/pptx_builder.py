@@ -259,18 +259,23 @@ def _fit_headline_for_pptx(text: str) -> tuple[str, int]:
     )
 
 
-def _configure_paragraph_layout(paragraph) -> None:
+def _configure_paragraph_layout(paragraph, *, line_spacing: float = 1.0) -> None:
     paragraph.space_before = Pt(0)
     paragraph.space_after = Pt(0)
-    paragraph.line_spacing = 1.0
+    paragraph.line_spacing = line_spacing
 
 
-def _set_text_frame_paragraphs(frame, paragraphs: list[str]) -> None:
+def _set_text_frame_paragraphs(
+    frame,
+    paragraphs: list[str],
+    *,
+    line_spacing: float = 1.0,
+) -> None:
     frame.clear()
     for idx, paragraph_text in enumerate(paragraphs):
         paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
         paragraph.text = paragraph_text
-        _configure_paragraph_layout(paragraph)
+        _configure_paragraph_layout(paragraph, line_spacing=line_spacing)
 
 
 def _best_fit_font_choice(frame, max_size: int) -> tuple[str, int] | None:
@@ -302,13 +307,15 @@ def _fit_text_frame_candidates(
     paragraph_candidates: list[list[str]],
     max_size: int,
     min_size: int,
+    line_spacing: float = 1.0,
+    preserve_max_size_on_fallback: bool = False,
 ) -> int:
     if not paragraph_candidates:
         return max_size
 
     fallback_choice: tuple[list[str], tuple[str, int] | None] | None = None
     for paragraphs in paragraph_candidates:
-        _set_text_frame_paragraphs(frame, paragraphs)
+        _set_text_frame_paragraphs(frame, paragraphs, line_spacing=line_spacing)
         choice = _best_fit_font_choice(frame, max_size)
         if choice is None:
             fallback_choice = (paragraphs, None)
@@ -320,7 +327,11 @@ def _fit_text_frame_candidates(
             return fitted_size
 
     final_paragraphs, final_choice = fallback_choice or (paragraph_candidates[-1], None)
-    _set_text_frame_paragraphs(frame, final_paragraphs)
+    _set_text_frame_paragraphs(frame, final_paragraphs, line_spacing=line_spacing)
+    if preserve_max_size_on_fallback:
+        family = final_choice[0] if final_choice is not None else PPTX_FONT_FAMILY_CANDIDATES[0]
+        _apply_font_size(frame, family, max_size)
+        return max_size
     if final_choice is not None:
         family, fitted_size = final_choice
         _apply_font_size(frame, family, max(1, fitted_size))
@@ -410,6 +421,7 @@ def _add_bullet_text(
     summary_font_size = min(font_size, SUMMARY_FONT_SIZE_PT)
     summary_lines = [_summary_line(sentence) for sentence in sentences[:max_items]]
     bullet_lines = [f"- {line}" for line in summary_lines]
+    bullet_line_spacing = 0.92 if preserve_font_size else 1.0
     wrapped_candidates = [
         [
             (
@@ -447,24 +459,25 @@ def _add_bullet_text(
             for max_lines, widths in (
                 (3, (54, 48, 44)),
                 (4, (40, 36)),
+                (5, (34, 32, 30)),
             )
             for max_chars in widths
         ]
     )
-    fallback_lines = [
-        f"- {_semantic_truncate_text(line, BULLET_MAX_CHARS)}" for line in summary_lines
-    ]
-    tighter_lines = [f"- {_semantic_truncate_text(line, 110)}" for line in summary_lines]
+    paragraph_candidates = [bullet_lines, *wrapped_candidates]
+    if not preserve_font_size:
+        fallback_lines = [
+            f"- {_semantic_truncate_text(line, BULLET_MAX_CHARS)}" for line in summary_lines
+        ]
+        tighter_lines = [f"- {_semantic_truncate_text(line, 110)}" for line in summary_lines]
+        paragraph_candidates.extend([fallback_lines, tighter_lines])
     _fit_text_frame_candidates(
         frame,
-        paragraph_candidates=[
-            bullet_lines,
-            *wrapped_candidates,
-            fallback_lines,
-            tighter_lines,
-        ],
+        paragraph_candidates=paragraph_candidates,
         max_size=summary_font_size,
         min_size=summary_font_size if preserve_font_size else SUMMARY_MIN_FONT_SIZE_PT,
+        line_spacing=bullet_line_spacing,
+        preserve_max_size_on_fallback=preserve_font_size,
     )
 
 
